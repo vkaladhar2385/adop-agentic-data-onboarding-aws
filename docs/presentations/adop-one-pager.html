@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ADOP one-pager — agentic data onboarding on AWS</title>
+  <style>
+    @page { size: letter; margin: 0.55in; }
+    body { font-family: "Segoe UI", Calibri, system-ui, sans-serif; color:#1a1a1a; margin:28px 36px; font-size:12.5px; line-height:1.35; }
+    h1 { font-size:20px; color:#1b2a4a; margin:0 0 4px; }
+    h2 { font-size:13px; color:#0f6e6b; margin:14px 0 6px; letter-spacing:0.04em; text-transform:uppercase; }
+    .sub { color:#4a5568; margin:0 0 10px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .box { border:1px solid #d8dee9; padding:8px 10px; }
+    .box b { display:block; font-size:18px; color:#1b2a4a; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #e4e7ec; text-align:left; padding:4px 6px; font-size:12px; vertical-align:top; }
+    th { color:#1b2a4a; }
+    .fine { color:#6b7280; font-size:11px; margin-top:10px; }
+    img { width:100%; max-height:210px; object-fit:contain; border:1px solid #d8dee9; }
+  </style>
+</head>
+<body>
+  <h1>Agentic data engineering on your existing AWS estate</h1>
+  <p class="sub">ADOP pattern · agents generate in Dev · your CI/CD promotes artifacts · agents never run in production.</p>
+
+  <div class="grid">
+    <div class="box"><b>~14 → 0.5 days</b>per governed source onboarded</div>
+    <div class="box"><b>$0.75–$3.65</b>LLM tokens per workload</div>
+    <div class="box"><b>$0 orchestration at rest</b>Step Functions + EventBridge (no MWAA)</div>
+  </div>
+
+  <h2>What you get</h2>
+  <table>
+    <tr><th>Artifact</th><th>Client value</th></tr>
+    <tr><td>YAML spec + semantic layer</td><td>Readable contract for engineers and auditors</td></tr>
+    <tr><td>Bronze → Silver → Gold ETL + tests</td><td>Same rules locally and on Glue; fail before deploy</td></tr>
+    <tr><td>Quality gates + PII / LF-Tags</td><td>Critical failures block promotion; column-level access</td></tr>
+    <tr><td>Step Functions, Terraform, GitHub Actions</td><td>Fits current AWS + CI/CD; OIDC, no static keys</td></tr>
+  </table>
+
+  <h2>Two proof points (synthetic, this repo)</h2>
+  <table>
+    <tr><th>advisory_transactions (SOX)</th><th>web_events (GDPR)</th></tr>
+    <tr><td>Daily brokerage CSV → Gold star schema. Financial formulas are critical. Bad rows quarantined for review.</td>
+        <td>Hourly clickstream JSONL → Gold rollups. No-consent events never processed. Right-to-erasure via hashed user token.</td></tr>
+  </table>
+
+  <h2>How it fits</h2>
+  <img src="../diagrams/adop-architecture.png" alt="ADOP architecture" />
+
+  <h2>Engagement</h2>
+  <p><strong>Pilot</strong> the pattern on a sandbox feed → <strong>adapt</strong> generators to your modules, IAM, VPC, tags, and pipeline →
+  <strong>enable</strong> your platform team to onboard the next sources in hours. The consulting backlog is the adaptation gap
+  (approved modules, permission boundaries, landing-zone accounts, WORM retention, agent governance) — not a rip-and-replace of AWS.</p>
+  <p class="fine">Time figures are typical senior-engineer estimates plus ADOP published token costs. Substitute the client’s actuals. Not a proposal to run this codebase in a regulated production estate.</p>
+</body>
+</html>

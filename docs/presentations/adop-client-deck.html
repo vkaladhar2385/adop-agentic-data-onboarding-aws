@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADOP — Agentic Data Engineering for Your AWS Estate</title>
+  <style>
+    :root { --navy:#1b2a4a; --slate:#4a5568; --line:#d8dee9; --bg:#f7f6f2; --card:#fff; --teal:#0f6e6b; --ink:#1a1a1a; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family: "Segoe UI", Calibri, system-ui, sans-serif; }
+    .deck { height:100%; }
+    .slide { display:none; height:100%; padding:48px 64px; flex-direction:column; }
+    .slide.active { display:flex; }
+    h1 { font-size:36px; font-weight:650; color:var(--navy); margin:0 0 12px; letter-spacing:-0.02em; }
+    h2 { font-size:28px; font-weight:650; color:var(--navy); margin:0 0 20px; }
+    p, li { font-size:18px; line-height:1.45; color:var(--slate); }
+    .kicker { font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--teal); font-weight:600; margin-bottom:10px; }
+    .row { display:flex; gap:24px; flex:1; min-height:0; }
+    .col { flex:1; }
+    .stat { background:var(--card); border:1px solid var(--line); padding:20px 22px; }
+    .stat b { display:block; font-size:32px; color:var(--navy); }
+    .stat span { font-size:14px; color:var(--slate); }
+    table { width:100%; border-collapse:collapse; font-size:15px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--navy); font-weight:600; }
+    .bar { display:flex; align-items:center; gap:12px; margin:10px 0; }
+    .bar .label { width:140px; font-size:14px; color:var(--navy); }
+    .bar .track { flex:1; height:18px; background:#e8ebe6; position:relative; }
+    .bar .fill { height:100%; background:var(--navy); }
+    .bar .fill.teal { background:var(--teal); }
+    .bar .n { width:90px; font-size:13px; color:var(--slate); }
+    .foot { margin-top:auto; padding-top:16px; font-size:12px; color:#7a8494; display:flex; justify-content:space-between; }
+    .nav { position:fixed; bottom:16px; right:20px; display:flex; gap:8px; }
+    .nav button { background:var(--navy); color:#fff; border:0; padding:8px 12px; cursor:pointer; font-size:13px; }
+    img.arch { max-width:100%; max-height:62vh; object-fit:contain; border:1px solid var(--line); background:#fff; }
+    .callout { border-left:3px solid var(--teal); padding:8px 14px; background:#fff; }
+    ul.tight li { margin:6px 0; }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide active">
+  <div class="kicker">Client conversation · pattern, not product</div>
+  <h1>From weeks to hours:<br>agentic data engineering on your AWS estate</h1>
+  <p>A demonstrated AWS reference pattern. Agents generate governed pipelines in Dev.<br>
+  Your CI/CD promotes deterministic artifacts. Agents never run in production.</p>
+  <div class="row" style="flex:0; margin-top:28px;">
+    <div class="stat"><b>~14 → 0.5 days</b><span>per onboarded source (typical vs agentic)</span></div>
+    <div class="stat"><b>$0.75–$3.65</b><span>LLM tokens per workload</span></div>
+    <div class="stat"><b>$0 at rest</b><span>Step Functions + EventBridge, no MWAA</span></div>
+  </div>
+  <div class="foot"><span>ADOP pattern · synthetic demo · no client data</span><span>1 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Onboarding one governed feed is still a two-week project</h2>
+  <ul class="tight">
+    <li>Hand-written PySpark for Bronze → Silver → Gold</li>
+    <li>Quality rules authored column by column</li>
+    <li>Orchestration, IaC, PII, KMS zoning, Lake Formation tags redone every time</li>
+    <li>Defects found in production, not in review</li>
+    <li>Governance quality varies by who built the last feed</li>
+  </ul>
+  <p class="callout">At dozens of sources a year, that is months of senior engineer time — and inconsistent controls.</p>
+  <div class="foot"><span>ADOP client deck</span><span>2 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">What changes</div>
+  <h2>Describe the source. Review generated, tested artifacts.</h2>
+  <div class="row">
+    <div class="col">
+      <p><strong style="color:var(--navy)">You say</strong> where the data lives, cadence, Gold shape, and regulation (SOX, GDPR, HIPAA…).</p>
+      <p><strong style="color:var(--navy)">Agents produce</strong> config, PySpark, quality gates, star schema or rollups, Step Functions, Terraform, tests.</p>
+      <p><strong style="color:var(--navy)">You approve</strong> and commit. CI/CD promotes. Same scripts in QA / Staging / Prod.</p>
+    </div>
+    <div class="col">
+      <p>Two worked examples in this repo:</p>
+      <table>
+        <tr><th></th><th>Wealth / SOX</th><th>Digital / GDPR</th></tr>
+        <tr><td>Feed</td><td>Daily trades (CSV)</td><td>Hourly clickstream (JSONL)</td></tr>
+        <tr><td>Gold</td><td>Star schema</td><td>Hourly rollup</td></tr>
+        <tr><td>Control</td><td>Financial math + quarantine</td><td>Consent + right-to-erasure</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><span>ADOP client deck</span><span>3 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Architecture</div>
+  <h2>Agents in Dev. Artifacts in Prod. Your pipeline in the middle.</h2>
+  <img class="arch" src="../diagrams/adop-architecture.png" alt="ADOP architecture: Dev agents, CI/CD, AWS runtime" />
+  <div class="foot"><span>Native AWS only · no rip-and-replace</span><span>4 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">What you receive</div>
+  <h2>A complete, reviewable workload — not a black box</h2>
+  <table>
+    <tr><th>Deliverable</th><th>Why it matters</th></tr>
+    <tr><td>Declarative YAML spec</td><td>Auditors can read the contract, not just the Spark</td></tr>
+    <tr><td>Bronze → Silver → Gold ETL</td><td>Local pandas and Glue share the same rules — no demo drift</td></tr>
+    <tr><td>Quality gates (critical = block)</td><td>SOX formulas / GDPR consent fail closed</td></tr>
+    <tr><td>Step Functions + EventBridge</td><td>Pay per run; avoid ~$350/mo always-on Airflow</td></tr>
+    <tr><td>Terraform + GitHub Actions</td><td>Zone KMS, least-privilege IAM, OIDC deploy, post-verify</td></tr>
+    <tr><td>Unit + integration tests</td><td>Confidence before any AWS spend</td></tr>
+  </table>
+  <div class="foot"><span>Proof: workloads/advisory_transactions and workloads/web_events</span><span>5 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Time</div>
+  <h2>One source: ~14 engineer-days → ~0.5 day</h2>
+  <div class="bar"><div class="label">Schema + semantics</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="n">1.0d → 10m</div></div>
+  <div class="bar"><div class="label">PySpark ETL</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="n">3.0d → 15m</div></div>
+  <div class="bar"><div class="label">Quality + PII</div><div class="track"><div class="fill" style="width:90%"></div></div><div class="n">2.5d → 20m</div></div>
+  <div class="bar"><div class="label">Gold model</div><div class="track"><div class="fill" style="width:70%"></div></div><div class="n">1.5d → 10m</div></div>
+  <div class="bar"><div class="label">Orchestration</div><div class="track"><div class="fill" style="width:55%"></div></div><div class="n">1.0d → 10m</div></div>
+  <div class="bar"><div class="label">IaC + CI/CD + tests</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="n">5.0d → 30m</div></div>
+  <div class="bar"><div class="label">Agentic (review)</div><div class="track"><div class="fill teal" style="width:4%"></div></div><div class="n">~0.5 day</div></div>
+  <p>20 sources/year ≈ <strong style="color:var(--navy)">270 engineer-days reclaimed</strong>. Token cost at worst ~$73.</p>
+  <div class="foot"><span>Estimates — swap in the client’s actuals. Sources in docs/BEFORE_AFTER.md</span><span>6 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Cost</div>
+  <h2>Tokens are cents. The real saving is people and idle Airflow.</h2>
+  <div class="row">
+    <div class="stat"><b>~$0.75</b><span>Sonnet path per workload</span></div>
+    <div class="stat"><b>~$3.65</b><span>Opus path per workload</span></div>
+    <div class="stat"><b>$0 / mo</b><span>orchestration at rest (this design)</span></div>
+  </div>
+  <p>AWS run cost is the same shape as today (S3 + Glue DPU-seconds + Athena). We deliberately
+  do <em>not</em> introduce MWAA. A sandbox live run, if you ever want screenshots, is ~$5–15
+  and is torn down the same day.</p>
+  <div class="foot"><span>Infra cost depends on volume; tokens do not replace Glue spend</span><span>7 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Fit</div>
+  <h2>Drops into the AWS and CI/CD you already have</h2>
+  <ul class="tight">
+    <li><strong>Services:</strong> S3, Glue, Athena, Iceberg, KMS, Lake Formation, Step Functions, EventBridge, SNS, CloudTrail</li>
+    <li><strong>Promotion:</strong> GitHub Actions shown; same stages map to CodePipeline, GitLab, Azure DevOps</li>
+    <li><strong>Auth:</strong> OIDC to a least-privilege role — no long-lived keys in CI</li>
+    <li><strong>Landing zone:</strong> catalog account vs consumer account is a parameterized split, not a rewrite</li>
+    <li><strong>Security:</strong> agents have no prod credentials; Bronze immutable; zone-scoped KMS; PII masking as policy</li>
+  </ul>
+  <div class="foot"><span>docs/AWS_CICD_FIT.md</span><span>8 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The honest part</div>
+  <h2>The engagement is adaptation — not “install this repo”</h2>
+  <p>Generated Terraform is a starting point. A regulated estate still needs:</p>
+  <table>
+    <tr><td>Approved Terraform modules</td><td>IAM vending + permission boundaries</td></tr>
+    <tr><td>VPC / endpoints / no public paths</td><td>Their LF-Tag taxonomy</td></tr>
+    <tr><td>Control Tower account split</td><td>House CI + change tickets</td></tr>
+    <tr><td>Secrets Manager only</td><td>WORM / 7-year evidence</td></tr>
+    <tr><td colspan="2">Governance of the Dev agent environment itself (prompts, traces, approval)</td></tr>
+  </table>
+  <p>That list <em>is</em> the scoped statement of work. Pattern adaptation, not tool adoption.</p>
+  <div class="foot"><span>docs/ADAPTATION_GAP.md</span><span>9 / 10</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">How we engage</div>
+  <h2>Pilot → adapt → enable their platform team</h2>
+  <div class="row">
+    <div class="stat"><b>1. Pilot</b><span>Sandbox, synthetic data, this pattern proven locally (and optionally on AWS for a few hours).</span></div>
+    <div class="stat"><b>2. Adapt</b><span>Wire generators to their modules, IAM, VPC, CI/CD, classification tags.</span></div>
+    <div class="stat"><b>3. Enable</b><span>Their engineers onboard the next feeds in hours. Governance is policy, not tribal knowledge.</span></div>
+  </div>
+  <p class="callout" style="margin-top:28px;">Live demo on the laptop: generate data → run pipeline → show quarantine / consent filter → tests green. No client account required.</p>
+  <div class="foot"><span>Questions welcome</span><span>10 / 10</span></div>
+</section>
+
+</div>
+<div class="nav">
+  <button type="button" onclick="go(-1)">Prev</button>
+  <button type="button" onclick="go(1)">Next</button>
+</div>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  }
+  function go(d) { show(i + d); }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+  });
+</script>
+</body>
+</html>

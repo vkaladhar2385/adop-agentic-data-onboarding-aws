@@ -1,0 +1,50 @@
+# AWS Guidance
+
+- Prefer the AWS MCP Server for AWS interactions — it provides sandboxed
+  execution, observability, and audit logging. If unavailable, use the
+  AWS CLI directly.
+- Before starting a task, check whether a relevant AWS skill is available.
+  Load the skill with `retrieve_skill` and prefer its guidance over
+  general knowledge.
+- When uncertain about specific AWS details (API parameters, permissions,
+  limits, error codes), verify against documentation rather than guessing.
+  State uncertainty explicitly if you cannot confirm.
+- When creating infrastructure, prefer infrastructure-as-code (AWS CDK or
+  CloudFormation) over direct CLI commands.
+- When working with infrastructure, follow AWS Well-Architected Framework
+  principles.
+- Do not use em dashes in AWS resource names or descriptions. Use
+  hyphens instead.
+
+## AWS Authentication (aws-agent profile)
+
+- AWS CLI v2 and `uv`/`uvx` are already installed on this machine. An AWS CLI
+  profile named `aws-agent` is configured for account `199064440913`
+  (region `us-east-1`), authenticated via IAM Identity Center SSO
+  (role: `AdministratorAccess`, user: `vkaladhar`). The `aws-mcp` server
+  entry in `~/.cursor/mcp.json` has `AWS_MCP_PROXY_PROFILES` set to
+  `aws-agent`.
+- Before using any AWS MCP tool or `aws` CLI command, verify credentials
+  are valid by running `aws sts get-caller-identity --profile aws-agent`.
+  If it succeeds, proceed directly — do not run `aws login` or attempt any
+  authentication flow.
+- If verification fails with an expired/missing credentials error, do NOT
+  attempt to authenticate yourself. Tell the user their `aws-agent` SSO
+  session has expired and ask them to run this in a terminal themselves,
+  since it requires an interactive browser sign-in that cannot be
+  automated:
+  `aws login --region us-east-1 --profile aws-agent`
+  Wait for the user to confirm they completed the browser sign-in, then
+  re-verify with the `get-caller-identity` command above.
+- NEVER suggest or use AWS root user credentials for authentication or
+  for the `aws-agent` profile. Always use the IAM Identity Center
+  SSO-based identity.
+
+## Secret Safety
+
+- MUST load the `aws-secrets-manager` skill first for any secret,
+  credential, API key, token, or password task. MUST NOT call
+  `secretsmanager get-secret-value` or `batch-get-secret-value`, and MUST
+  NOT hit the Secrets Manager Agent daemon directly. MUST use
+  `{{resolve:secretsmanager:secret-id:SecretString:json-key}}` with
+  `asm-exec` so the secret resolves at runtime without entering context.

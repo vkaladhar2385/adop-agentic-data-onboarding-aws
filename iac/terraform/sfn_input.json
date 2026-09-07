@@ -1,0 +1,1 @@
+{"source_path":"s3://adop-datalake-199064440913-us-east-1/landing/advisory_transactions/","bronze_path":"s3://adop-datalake-199064440913-us-east-1/bronze/advisory_transactions/","silver_path":"s3://adop-datalake-199064440913-us-east-1/silver/advisory_transactions/","gold_path":"s3://adop-datalake-199064440913-us-east-1/gold/advisory_transactions/"}

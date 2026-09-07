@@ -1,0 +1,18 @@
+{
+  "Comment": "EventBridge Scheduler entry that triggers the advisory_transactions Step Functions state machine daily at 07:00 UTC. Replaces an always-on MWAA environment (~$350/mo) with a pay-per-invocation schedule.",
+  "Name": "advisory-transactions-daily",
+  "ScheduleExpression": "cron(0 7 * * ? *)",
+  "ScheduleExpressionTimezone": "UTC",
+  "FlexibleTimeWindow": { "Mode": "OFF" },
+  "Target": {
+    "Arn": "arn:aws:states:us-east-1:<account>:stateMachine:advisory_transactions_pipeline",
+    "RoleArn": "arn:aws:iam::<account>:role/advisory-transactions-scheduler-role",
+    "Input": {
+      "source_path": "s3://data-lake-<account>-us-east-1/landing/advisory_transactions/",
+      "bronze_path": "s3://data-lake-<account>-us-east-1/bronze/advisory_transactions/",
+      "silver_path": "s3://data-lake-<account>-us-east-1/silver/advisory_transactions/",
+      "gold_path": "s3://data-lake-<account>-us-east-1/gold/advisory_transactions/"
+    },
+    "RetryPolicy": { "MaximumRetryAttempts": 3, "MaximumEventAgeInSeconds": 3600 }
+  }
+}

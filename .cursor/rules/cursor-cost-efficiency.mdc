@@ -1,0 +1,50 @@
+---
+description: Cost-efficient Cursor usage — model selection, context discipline, and escalation for infra/Glue work
+alwaysApply: true
+---
+
+# Cursor cost efficiency (infra / Terraform / Glue)
+
+Token cost scales with **context size × model tier**. Prefer small, focused turns on a mid-tier model; reserve premium reasoning models for genuine complexity.
+
+## Default model
+
+- **Default (~80% of work):** fast/mid-tier model or Auto — Terraform variable edits, ARN additions, docs, explanations, fmt/lint, small Python/Glue changes.
+- **Escalate to opus-thinking-high only when:**
+  - The fast model gives a wrong or circular answer twice on the same problem, OR
+  - The task spans 4+ files with non-obvious interactions, OR
+  - Root-cause debugging of runtime/platform behavior (e.g. Glue pip/zipimport, IAM cross-account), OR
+  - Architecture / migration design with real trade-offs (blue-green, schema cutover).
+
+Do not use thinking-high for mechanical edits, copy-paste patterns, or single-file changes.
+
+## Context discipline (highest leverage)
+
+1. **One task = one chat.** Start a new chat when switching topics. Long chats re-send full history and can reach millions of tokens per turn.
+2. **Point, don't browse.** Use `@path/to/file` for the 2–3 files that matter (e.g. `@environments/qa/variables.tf`, `@modules/infra/locals.tf`) instead of open-ended repo exploration.
+3. **Snippets over dumps.** Paste only the relevant log lines or error block, not entire CloudWatch/Glue run logs.
+4. **Delegate heavy reads.** For log analysis, multi-file discovery, or plan review, prefer a focused subagent/task and act on its summary in the main chat.
+5. **Tab / inline edit** for one-line or trivial changes instead of a full agent turn.
+
+## Task patterns in this repo
+
+| Work | Model | Context |
+|------|-------|---------|
+| Add `additional_source_s3_*` ARNs in `environments/*/variables.tf` | Fast/mid | `@environments/qa/variables.tf` + mirror block from ue2 |
+| Edit `modules/infra/locals.tf` / `glue.tf` | Fast/mid | `@` the specific module file |
+| Glue wheelhouse / `shell-deps.zip` / offline deps | Escalate if stuck | `@scripts/bundle_shell_deps.py` `@modules/infra/locals.tf` |
+| OpenSearch alias / position_ref_id migration design | Thinking-high when designing | Link design doc or `@docs/design/...` only |
+| Explain a single Glue script | Fast/mid | `@src/glue_script_*.py` for that job only |
+
+## Agent behavior (when this rule is active)
+
+- Prefer **minimal tool reads**: open only files needed for the stated task; do not broadly explore unless the user asks or the task is explicitly investigative.
+- **Summarize findings concisely**; avoid repeating large prior context in every reply.
+- For **multi-step infra changes**, propose the smallest diff first; do not refactor unrelated code.
+- If the user pastes an error, **diagnose from the snippet** before reading entire log files.
+- Suggest **starting a new chat** when the thread has shifted to a unrelated issue (orchestrator deps vs cross-region IAM vs design doc).
+
+## Guardrails
+
+- User should set a **usage-based spend limit** in [cursor.com/dashboard](https://cursor.com/dashboard) → Billing.
+- If a single request would require reading 5+ large files, **state that upfront** and offer a narrower scope or subagent.

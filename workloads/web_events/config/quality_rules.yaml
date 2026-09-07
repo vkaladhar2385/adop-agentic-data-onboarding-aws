@@ -1,0 +1,37 @@
+workload: web_events
+
+gates:
+  silver: 0.80
+  gold: 0.95
+
+rules:
+  - id: completeness_event_id
+    dimension: completeness
+    critical: true
+    threshold: 1.00
+    description: event_id never null after ingest
+  - id: uniqueness_event_id
+    dimension: uniqueness
+    critical: true
+    threshold: 1.00
+    description: event_id unique after dedup
+  - id: validity_event_type
+    dimension: validity
+    critical: true
+    threshold: 1.00
+    description: event_type in the allowed set
+  - id: validity_consent_true
+    dimension: validity
+    critical: true
+    threshold: 1.00
+    description: Silver/Gold contain only consent=true events (GDPR)
+  - id: validity_ip_dotted
+    dimension: validity
+    critical: false
+    threshold: 0.98
+    description: ip_address is dotted-quad (masked last octet still valid)
+  - id: completeness_traffic_source
+    dimension: completeness
+    critical: true
+    threshold: 1.00
+    description: Gold rollup keyed by traffic_source

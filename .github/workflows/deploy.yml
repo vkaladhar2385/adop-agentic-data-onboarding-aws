@@ -1,0 +1,158 @@
+# ADOP — Deploy (artifacts + IaC promotion), both workloads
+# Dev agents only GENERATE artifacts; promotion to QA/Staging/Prod happens here,
+# through standard CI/CD with human approval gates — never by the agent itself.
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: target environment
+        type: choice
+        options: [qa, staging, prod]
+        default: qa
+
+permissions:
+  id-token: write        # OIDC federation to AWS (no long-lived keys)
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  package_and_sync:
+    name: package lambdas + sync scripts to artifact bucket
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC, least-privilege role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/adop-deploy-${{ github.event.inputs.environment }}
+          aws-region: us-east-1
+
+      - name: Sync pipeline scripts + configs for both workloads
+        run: |
+          for w in advisory_transactions web_events; do
+            aws s3 sync "workloads/$w/" "s3://${{ secrets.ARTIFACT_BUCKET }}/workloads/$w/" --delete
+          done
+
+      - name: Build + upload Glue --extra-py-files dep zip (shared/ + workloads/<w>/)
+        run: |
+          # Glue Python Shell scripts run standalone (no repo checkout), so their
+          # `from shared.utils import ...` / `from workloads.<w>... import local_runner`
+          # imports need this zip, wired via --extra-py-files in glue.tf.
+          for w in advisory_transactions web_events; do
+            build="build/$w/glue_deps"
+            rm -rf "$build" && mkdir -p "$build/shared/utils" "$build/workloads/$w"
+            cp -r shared/. "$build/shared/"
+            cp -r "workloads/$w/." "$build/workloads/$w/"
+            find "$build" -name "__pycache__" -type d -exec rm -rf {} +
+            touch "$build/workloads/__init__.py" "$build/shared/__init__.py" "$build/shared/utils/__init__.py"
+            find "$build/workloads/$w" -type d -exec touch {}/__init__.py \;
+            (cd "$build" && zip -qr "../glue_deps.zip" .)
+            aws s3 cp "build/$w/glue_deps.zip" "s3://${{ secrets.ARTIFACT_BUCKET }}/glue-deps/$w/glue_deps.zip"
+          done
+
+      # Lambda handlers only need stdlib + boto3 (preinstalled in the Lambda
+      # runtime) + shared/utils/pii.py, so the zips stay lean: no pandas/
+      # pyarrow, no dependency install step. See docs/ARCHITECTURE.md#packaging.
+      - name: Build lean Lambda deployment packages
+        run: |
+          set -euo pipefail
+          for w in advisory_transactions web_events; do
+            for fn in register_catalog post_deploy_verifier; do
+              build="build/$w/$fn"
+              rm -rf "$build" && mkdir -p "$build/shared/utils" "$build/workloads/$w/scripts/load"
+              touch "$build/shared/__init__.py" "$build/shared/utils/__init__.py" \
+                    "$build/workloads/__init__.py" "$build/workloads/$w/__init__.py" \
+                    "$build/workloads/$w/scripts/__init__.py" "$build/workloads/$w/scripts/load/__init__.py"
+              cp shared/utils/pii.py "$build/shared/utils/pii.py"
+              cp shared/utils/post_deployment_verifier.py "$build/shared/utils/post_deployment_verifier.py"
+              if [ "$fn" = "register_catalog" ]; then
+                cp "workloads/$w/scripts/load/register_catalog.py" "$build/workloads/$w/scripts/load/register_catalog.py"
+              fi
+              (cd "$build" && zip -qr "../../../${w}_${fn}.zip" .)
+            done
+          done
+
+      - name: Upload Lambda packages to the artifact bucket
+        run: |
+          for w in advisory_transactions web_events; do
+            for fn in register_catalog post_deploy_verifier; do
+              aws s3 cp "${w}_${fn}.zip" \
+                "s3://${{ secrets.ARTIFACT_BUCKET }}/lambda-artifacts/$w/${fn}.zip"
+            done
+          done
+
+      # Extension Lambdas (Redshift/OpenSearch/Redis) -- advisory_transactions
+      # only, added after the core pilot. register_redshift_spectrum and
+      # index_gold_to_opensearch stay lean (stdlib + boto3/botocore); only
+      # cache_quality_scores bundles a real dependency (redis-py), since Redis
+      # has no AWS-signed HTTP API to call with boto3 alone. See
+      # docs/EXTENDING_TO_NEW_SERVICES.md#trade-offs.
+      - name: Build extension Lambda packages (Redshift / OpenSearch / Redis)
+        run: |
+          set -euo pipefail
+          w=advisory_transactions
+          for fn in register_redshift_spectrum index_gold_to_opensearch; do
+            build="build/$w/$fn"
+            rm -rf "$build" && mkdir -p "$build/workloads/$w/scripts/load"
+            touch "$build/workloads/__init__.py" "$build/workloads/$w/__init__.py" \
+                  "$build/workloads/$w/scripts/__init__.py" "$build/workloads/$w/scripts/load/__init__.py"
+            cp "workloads/$w/scripts/load/$fn.py" "$build/workloads/$w/scripts/load/$fn.py"
+            (cd "$build" && zip -qr "../../../${w}_${fn}.zip" .)
+          done
+
+          build="build/$w/cache_quality_scores"
+          rm -rf "$build" && mkdir -p "$build/workloads/$w/scripts/load"
+          touch "$build/workloads/__init__.py" "$build/workloads/$w/__init__.py" \
+                "$build/workloads/$w/scripts/__init__.py" "$build/workloads/$w/scripts/load/__init__.py"
+          cp "workloads/$w/scripts/load/cache_quality_scores.py" "$build/workloads/$w/scripts/load/cache_quality_scores.py"
+          python -m pip install --quiet --target "$build" redis
+          (cd "$build" && zip -qr "../../../${w}_cache_quality_scores.zip" .)
+
+      - name: Upload extension Lambda packages to the artifact bucket
+        run: |
+          w=advisory_transactions
+          for fn in register_redshift_spectrum index_gold_to_opensearch cache_quality_scores; do
+            aws s3 cp "${w}_${fn}.zip" \
+              "s3://${{ secrets.ARTIFACT_BUCKET }}/lambda-artifacts/$w/${fn}.zip"
+          done
+
+  terraform_apply:
+    name: terraform apply (both workloads)
+    runs-on: ubuntu-latest
+    needs: package_and_sync
+    environment: ${{ github.event.inputs.environment }}   # GitHub env = approval gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC, least-privilege role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/adop-deploy-${{ github.event.inputs.environment }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform apply (state machines, schedules, KMS, IAM, Glue jobs, Lambdas)
+        working-directory: iac/terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="data_lake_bucket=${{ secrets.DATA_LAKE_BUCKET }}" \
+            -var="alert_email=${{ secrets.ALERT_EMAIL }}" \
+            -var="environment=${{ github.event.inputs.environment }}"
+
+      - name: Post-deployment verification (mandatory, must pass)
+        run: |
+          python -m pip install boto3
+          for w in advisory_transactions web_events; do
+            python shared/utils/post_deployment_verifier.py \
+              --workload "$w" \
+              --database "${w}_db" \
+              --state-machine "${w}_pipeline"
+          done

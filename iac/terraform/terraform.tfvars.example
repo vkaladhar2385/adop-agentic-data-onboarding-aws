@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in your SANDBOX values. Never commit real values.
+# Provisions BOTH workloads (advisory_transactions + web_events) from this one root.
+account_id       = "111122223333"
+aws_region       = "us-east-1"
+data_lake_bucket = "data-lake-111122223333-us-east-1"
+alert_email      = "you@example.com"
+environment      = "dev"

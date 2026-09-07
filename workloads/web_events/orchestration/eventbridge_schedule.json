@@ -1,0 +1,18 @@
+{
+  "Comment": "EventBridge Scheduler entry that triggers the web_events Step Functions state machine hourly at :05. Replaces an always-on MWAA environment with a pay-per-invocation schedule.",
+  "Name": "web-events-hourly",
+  "ScheduleExpression": "cron(5 * * * ? *)",
+  "ScheduleExpressionTimezone": "UTC",
+  "FlexibleTimeWindow": { "Mode": "OFF" },
+  "Target": {
+    "Arn": "arn:aws:states:us-east-1:<account>:stateMachine:web_events_pipeline",
+    "RoleArn": "arn:aws:iam::<account>:role/web-events-scheduler-role",
+    "Input": {
+      "source_path": "s3://data-lake-<account>-us-east-1/landing/web_events/",
+      "bronze_path": "s3://data-lake-<account>-us-east-1/bronze/web_events/",
+      "silver_path": "s3://data-lake-<account>-us-east-1/silver/web_events/",
+      "gold_path": "s3://data-lake-<account>-us-east-1/gold/web_events/"
+    },
+    "RetryPolicy": { "MaximumRetryAttempts": 3, "MaximumEventAgeInSeconds": 1800 }
+  }
+}

@@ -1,0 +1,35 @@
+workload: web_events
+
+bronze_to_silver:
+  dedup:
+    keys: [event_id]
+    keep: latest_by
+    order_by: event_ts
+  consent_filter:
+    column: consent_analytics
+    require: true                 # GDPR: no consent => do not process
+  pii_masking:
+    - column: user_id
+      strategy: hash_token
+    - column: user_email
+      strategy: mask_email
+    - column: ip_address
+      strategy: mask_ip
+  quarantine_when:
+    - missing_event_id
+    - invalid_event_type
+    - invalid_ip
+  derived:
+    event_hour: "date_trunc hour event_ts"
+
+silver_to_gold:
+  schema_style: rollup
+  gold_pii_policy:
+    suppress: [user_email, ip_address]   # Gold is aggregates only
+  analytical_view:
+    name: gold_hourly_traffic
+    group_by: [traffic_source, event_hour]
+    aggregations:
+      page_views: "count where event_type=page_view"
+      unique_users: "nunique user_id"
+      event_count: count(event_id)

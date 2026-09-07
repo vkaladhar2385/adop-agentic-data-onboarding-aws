@@ -1,0 +1,61 @@
+---
+description: Architecture discipline for AWS Bedrock AgentCore / MCP integrations — keep the codebase resilient to AgentCore's fast-moving API and behavior changes
+globs:
+  - "**/*agentcore*"
+  - "**/*mcp*"
+alwaysApply: false
+---
+
+# AgentCore / MCP Architecture Rule
+
+AgentCore is an early, fast-moving AWS service. Its runtime model, auth flow, and
+session/state semantics have already changed materially since launch (July 2025)
+and will keep changing. Do not build core logic that assumes today's exact
+behavior is permanent.
+
+## 1. Configurable, not hardcoded
+
+Externalize anything that is a *value* AWS could change:
+- Service quotas and limits
+- Endpoint URLs, region-specific settings
+- Timeout / idle-session values
+- API/runtime version identifiers
+
+These belong in config (env vars, config files, parameter store) — never
+literals inside business logic. Treat documented quotas as "verify before
+deploy," not as constants to design around.
+
+## 2. Adapter boundaries, not inline vendor logic
+
+For anything that is a *behavior or contract* AWS could change — not just a
+value — isolate it behind an interface/adapter so the implementation can be
+swapped without touching agent or tool logic. This applies especially to:
+
+- **Auth flow** (e.g. today's Cognito OAuth 2.0 workaround for MCP's OAuth 2.1
+  requirement — this is a known interim gap, not a stable contract)
+- **Session/state model** (stateless one-shot MCP calls vs. stateful sessions
+  tracked via `Mcp-Session-Id` — both must be tolerated, since AWS is actively
+  shifting between these models)
+- **Tool-invocation transport** (Lambda-as-Gateway-target vs. standalone HTTP
+  MCP server vs. whatever AWS introduces next)
+
+## 3. The test to apply before wiring anything in
+
+Before integrating a new AgentCore/MCP piece, ask:
+
+> "If AWS changes this next quarter, does that force a change in my agent
+> logic, or just in one adapter file?"
+
+If the answer is "my agent logic," add a seam (interface, adapter, config
+flag) before proceeding — don't wire the vendor specifics in directly.
+
+## 4. Practical guidance
+
+- Keep AgentCore-specific primitives (Gateway config JSON, Runtime session
+  semantics, Cognito setup scripts) as a thin deployment/runtime layer
+  *underneath* a framework-agnostic core.
+- Prefer frameworks that are already model- and infra-agnostic by design
+  (e.g. Strands Agents SDK) for the agent orchestration layer itself.
+- Re-verify quotas, auth requirements, and runtime behavior against current
+  AWS docs before each major integration point — don't rely on a previously
+  read page.

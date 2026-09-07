@@ -1,0 +1,24 @@
+workload: web_events
+namespace: digital
+
+entities:
+  - name: WebEvent
+    grain: one row per tracked browser event
+    primary_key: event_id
+
+columns:
+  event_id:         { role: identifier, type: string,  pii: false }
+  user_id:          { role: identifier, type: string,  pii: true,  pii_type: USER_ID, sensitivity: HIGH }
+  session_id:       { role: identifier, type: string,  pii: false }
+  event_type:       { role: dimension,  type: string,  pii: false }
+  event_ts:         { role: temporal,   type: timestamp, pii: false }
+  page_path:        { role: dimension,  type: string,  pii: false }
+  traffic_source:   { role: dimension,  type: string,  pii: false }
+  ip_address:       { role: attribute,  type: string,  pii: true,  pii_type: IP, sensitivity: MEDIUM }
+  user_email:       { role: attribute,  type: string,  pii: true,  pii_type: EMAIL, sensitivity: HIGH }
+  consent_analytics: { role: attribute,  type: boolean, pii: false }
+  country:          { role: dimension,  type: string,  pii: false }
+
+business_terms:
+  consent_analytics: "Lawful basis flag. False => event must not enter Silver/Gold."
+  bounce: "Session with exactly one page_view and no click."

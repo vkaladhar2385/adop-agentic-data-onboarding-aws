@@ -1,0 +1,69 @@
+# ADOP advisory_transactions — Continuous Integration
+# Runs on every PR. Mirrors ADOP's Phase 4.5 pre-deployment validation:
+# tests + config/YAML + state-machine JSON + Terraform, all before anything deploys.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: unit + integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Generate sample data
+        run: |
+          python demo/data_generators/generate_advisory_transactions.py
+          python demo/data_generators/generate_web_events.py
+      - name: Run tests
+        run: pytest workloads/ -v
+
+  validate-config:
+    name: validate configs + orchestration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Validate YAML config files
+        run: |
+          python - <<'PY'
+          import glob, yaml, sys
+          for f in glob.glob("workloads/*/config/*.yaml"):
+              yaml.safe_load(open(f)); print("ok", f)
+          PY
+      - name: Validate Step Functions ASL is valid JSON
+        run: |
+          python - <<'PY'
+          import json
+          import glob
+          for path in glob.glob("workloads/*/orchestration/*_state_machine.json"):
+              d = json.load(open(path))
+              assert "StartAt" in d and "States" in d, path
+              print("ok", path, d["StartAt"])
+          PY
+
+  terraform:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: fmt check
+        run: terraform -chdir=iac/terraform fmt -check
+      - name: init (no backend)
+        run: terraform -chdir=iac/terraform init -backend=false
+      - name: validate
+        run: terraform -chdir=iac/terraform validate

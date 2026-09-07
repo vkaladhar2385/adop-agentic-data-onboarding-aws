@@ -1,0 +1,9 @@
+# ADOP advisory_transactions demo — local runtime dependencies.
+# Production Glue jobs run PySpark on AWS; these support the LOCAL demo + tests.
+pandas>=2.0,<3.0
+pyyaml>=6.0
+pyarrow>=14.0          # Parquet engine for zone outputs
+pytest>=8.0
+
+# Deploy-time only (not needed to run the local demo):
+# boto3>=1.34          # post-deployment verifier + AWS calls
