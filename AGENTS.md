@@ -1,22 +1,30 @@
 ---
 project: adop-client-demo
-stack: Python (Glue Python Shell, Step Functions), SQL, Terraform, AWS
-status: track-a-deployed, agent-contract-layer-in-progress
+stack: Python (Glue PySpark 4.x, Apache Iceberg), Step Functions, SQL, Terraform, AWS
+status: track-a-deployed, agent-contract-layer-in-progress, pyspark-iceberg-migration-pending
 agent_host: Cursor (primary), Claude Code (optional, Track B study)
 ---
 
-# AGENTS.md — ADOP Agent Contract (Track A)
+# AGENTS.md — ADOP Agent Contract
 
 Bronze → Silver → Gold data pipeline orchestration for this repo. This file is the
 **source of truth for agent behavior** when working in Cursor (or any agent host
 that loads project instructions).
 
 **Relationship to official ADOP:** The AWS sample in `reference/ADOP/` (Track B,
-gitignored) is the reference *agent factory*. This repo (Track A) proves the
-*pattern* on real AWS. This document adapts official ADOP guardrails to **our**
-choices: Step Functions (not MWAA), Python Shell + pandas (not PySpark/Iceberg
-yet), Terraform deploy (not MCP Phase 5). See `docs/TRACK_B.md` for the
+gitignored) is the reference *agent factory*. This repo adapts official ADOP
+guardrails with **our** orchestration and deploy choices: **Step Functions +
+EventBridge** (not MWAA), **Terraform + package_and_sync** (not MCP Phase 5).
+**Compute and storage now match ADOP:** **Glue ETL (PySpark 4.x) + Apache
+Iceberg** on S3 for Silver and Gold. See `docs/TRACK_B.md` for the full
 comparison and Phase 7 roadmap.
+
+### Legacy pilot workloads (Python Shell)
+
+`advisory_transactions` and `web_events` were built and deployed on **Glue Python
+Shell + pandas + Parquet** (demo-scale cost trade-off). They remain valid reference
+artifacts until migrated. **All new workloads and all framework/codegen output MUST
+use PySpark + Iceberg** per the stack section below.
 
 ---
 
@@ -54,9 +62,67 @@ The human provides the rules. The agent does NOT guess or infer them.
 [ ] Schedule explicitly stated by user
 [ ] Orchestrator choice confirmed (default: Step Functions + EventBridge for this repo)
 [ ] Extension sinks confirmed if any (catalog only vs Redshift / OpenSearch / Redis)
+[ ] Gold schema shape confirmed (star schema, flat Iceberg, rollup — per ADOP Phase 1)
 ```
 
 **If ANY item is missing, ASK THE USER. Do not proceed to Phase 4 build.**
+
+---
+
+## Stack (ADOP-aligned — mandatory for new work)
+
+| Layer | Choice | Notes |
+|---|---|---|
+| **Compute** | AWS Glue **ETL** (`glueetl`), Glue **4.0**, PySpark **3.x** | Not Python Shell for transforms/ingest |
+| **Silver / Gold storage** | **Apache Iceberg** on S3 | `writeTo(...).using("iceberg")` or equivalent catalog write |
+| **Bronze** | Raw landing format → Iceberg or staged Parquet | Bronze stays **immutable** after ingest |
+| **Catalog** | AWS Glue Data Catalog (`glue_catalog.{db}.{table}`) | DDL in `sql/{bronze,silver,gold}/` with `table_type=ICEBERG` |
+| **Orchestration** | Step Functions + EventBridge | No MWAA unless user explicitly opts in |
+| **Deploy** | Terraform + `tools/package_and_sync.py` | Not MCP Phase 5 (unless added later) |
+| **Logging** | `StructuredLogger` in every ETL script | Port from `reference/ADOP/shared/utils/structured_logger.py` |
+| **Lineage** | `--enable-data-lineage=true` on **every** Glue ETL job | Non-negotiable (official ADOP `lineage-always` rule) |
+
+### Glue ETL job defaults (every transform / ingest job)
+
+Agents and Terraform MUST set these on `glueetl` jobs (see
+`reference/ADOP/TOOL_ROUTING.md`, `reference/ADOP/prompts/.../01-fix-iceberg-glue.md`):
+
+```hcl
+# Terraform default_arguments (merge into aws_glue_job)
+"--datalake-formats"              = "iceberg"
+"--enable-data-lineage"           = "true"
+"--enable-continuous-cloudwatch-log" = "true"
+"--enable-metrics"                = "true"
+"--job-language"                  = "python"
+```
+
+Job shape: `command.name = "glueetl"`, `glue_version = "4.0"`, `worker_type = "G.1X"`,
+`number_of_workers = 2` (scale up only when user confirms volume).
+
+Quality gate jobs may stay **Python Shell** if they only read Iceberg via Athena/boto3
+and score sidecar JSON — same pattern as official ADOP (Spark transforms, lighter gates).
+
+### PySpark script contract
+
+Production scripts under `workloads/{name}/scripts/` MUST:
+
+1. Use `GlueContext`, `Job`, `getResolvedOptions` (not bare pandas in the Glue path).
+2. Read/write via **Glue catalog Iceberg tables** (`spark.table` / `writeTo`), not ad-hoc Parquet paths alone.
+3. Implement transforms from `config/transformations.yaml` (same spec-driven rule as pilot).
+4. Wire in `StructuredLogger` with agent name, workload, run id.
+5. Include the 5-line codegen header once `shared/codegen/` exists; until then, comment `# stack: pyspark-iceberg`.
+
+Reference implementation: `reference/ADOP/workloads/customer_master/scripts/transform/bronze_to_silver.py`.
+
+### Local development vs production
+
+| Environment | Allowed |
+|---|---|
+| **Unit tests** | pandas fixtures + config-driven logic **or** `pyspark` local session — must assert same rules as production |
+| **Local demo runner** | May keep `local_runner.py` (pandas) **only** as a test harness until PySpark local is wired; production path is always PySpark |
+| **AWS production** | Glue ETL + Iceberg only |
+
+Do not add new Python Shell transform jobs. Do not write Silver/Gold as plain Parquet without Iceberg catalog registration.
 
 ### NEVER do these
 
@@ -136,13 +202,18 @@ tools/package_and_sync.py    # Glue scripts + Lambda zips before apply
 
 ## Data zones
 
-| Zone | Mutability | Quality gate | Format (Track A) |
+| Zone | Mutability | Quality gate | Format |
 |---|---|---|---|
-| Bronze | Immutable | None | Raw / Parquet landing |
-| Silver | Updatable | ≥ 0.80 | Parquet + Glue table |
-| Gold | Updatable | ≥ 0.95 | Parquet star schema or rollups |
+| Bronze | Immutable | None | Raw landing → Iceberg or staged files |
+| Silver | Updatable | ≥ 0.80 | **Iceberg** on S3 (always) |
+| Gold | Updatable | ≥ 0.95 | **Iceberg** — schema per use case |
 
-Gold shape is a Phase 1 discovery answer: star schema (`advisory_transactions`) vs hourly rollup + erasure index (`web_events`).
+Gold shape is a Phase 1 discovery answer (official ADOP options):
+
+- **Star schema** — reporting / BI (`advisory_transactions` target)
+- **Flat Iceberg** — analytics / ML (`claims_v2` in reference ADOP)
+- **Rollups + side indexes** — streaming / GDPR erasure (`web_events` target)
+- **Iceberg + DynamoDB** — low-latency API serving (opt-in extension)
 
 ---
 
@@ -184,17 +255,29 @@ After deploy verification passes, offer (do not skip):
 
 ## Framework roadmap (not yet implemented)
 
-These layers will turn Track A from a demo into a full agentic framework (Phase 7):
+These layers turn this repo into a full agentic framework (Phase 7):
 
 | Layer | Status | Location (planned) |
 |---|---|---|
+| **PySpark + Iceberg migration** (pilot workloads) | **In progress** (contract declared) | `workloads/*/scripts/`, `iac/terraform/main.tf`, `glue.tf` |
 | JSON Schema contracts for configs | Not started | `contracts/v1/*.schema.json` |
-| Deterministic codegen from specs | Not started | `shared/codegen/` |
+| Deterministic codegen from specs | Not started | `shared/codegen/` (PySpark + Iceberg Jinja templates) |
+| `StructuredLogger` | Not started | `shared/utils/structured_logger.py` |
 | Tool registry (MCP / CLI routing) | Partial | Cursor `aws-mcp`; official 13-server set in Track B |
 | Agent trace logs | Not started | `workloads/*/logs/trace_events.jsonl` |
 | `/onboard-workflow` command | Not started | `.cursor/commands/` or docs prompt |
 
-Until codegen exists, agents may hand-author artifacts **only after Phase 1 gate passes**, following patterns in existing workloads. Prefer editing specs (`config/*.yaml`) and shared utils over one-off script logic.
+Until codegen exists, agents may hand-author PySpark scripts **only after Phase 1 gate
+passes**, following `reference/ADOP/workloads/*/scripts/`. Prefer editing specs
+(`config/*.yaml`) over embedding business logic in scripts.
+
+### PySpark + Iceberg migration sequence (pilot workloads)
+
+1. Update `iac/terraform/modules/workload_pipeline/glue.tf` — Iceberg defaults, drop Python Shell-only `--extra-py-files` pattern for Spark jobs.
+2. Flip `glue_jobs` in `main.tf` from `pythonshell` → `glueetl` for ingest + transform steps.
+3. Rewrite `scripts/transform/*.py` and `scripts/extract/*.py` as PySpark (keep `local_runner` for unit tests or replace with Spark local tests).
+4. Align `sql/**/*.sql` DDL with live Iceberg tables; register via `register_catalog.py`.
+5. Re-run `pytest`, `package_and_sync`, sandbox E2E, post-deploy verifier.
 
 ---
 
