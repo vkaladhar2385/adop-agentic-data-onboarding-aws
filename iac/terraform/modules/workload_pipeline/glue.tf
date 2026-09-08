@@ -25,11 +25,22 @@ data "aws_iam_policy_document" "glue_permissions" {
   statement {
     sid     = "ReadWriteWorkloadData"
     actions = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-    resources = [
-      "arn:aws:s3:::${var.data_lake_bucket}/*/${var.workload}/*",
-      "arn:aws:s3:::${var.data_lake_bucket}/workloads/${var.workload}/*",
-      "arn:aws:s3:::${var.data_lake_bucket}/landing/${var.workload}/*",
-    ]
+    resources = concat(
+      [
+        for zone in ["bronze", "silver", "gold", "quarantine", "glue-temp"] :
+        "arn:aws:s3:::${var.data_lake_bucket}/${zone}/${var.workload}/*"
+      ],
+      [
+        for zone in ["bronze", "silver", "gold", "quarantine"] :
+        "arn:aws:s3:::${var.data_lake_bucket}/${zone}/${var.workload}*"
+      ],
+      [
+        "arn:aws:s3:::${var.data_lake_bucket}/workloads/${var.workload}/*",
+        "arn:aws:s3:::${var.data_lake_bucket}/landing/${var.workload}/*",
+        "arn:aws:s3:::${var.data_lake_bucket}/glue-deps/${var.workload}/*",
+        "arn:aws:s3:::${var.data_lake_bucket}/quality-scores/${var.workload}/*",
+      ],
+    )
   }
   statement {
     sid       = "ListBucket"
@@ -101,6 +112,7 @@ resource "aws_glue_job" "job" {
       "--job-language"        = "python"
       "--datalake-formats"    = "iceberg"
       "--enable-data-lineage" = "true"
+      "--conf"                = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.data_lake_bucket}/silver/${var.workload}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO --conf spark.sql.catalog.glue_catalog.glue.lakeformation-enabled=true --conf spark.sql.defaultCatalog=glue_catalog"
     } : {
       # Python Shell: pyarrow for pandas parquet I/O at demo scale.
       "--additional-python-modules" = "pyarrow==15.0.2"

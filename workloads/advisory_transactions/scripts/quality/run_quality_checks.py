@@ -81,7 +81,7 @@ if __name__ == "__main__":
             df = s3_io.read_parquet_prefix(f"s3://{bucket}/gold/advisory_transactions/fact_transactions/")
         else:
             # Silver has exactly one object at this prefix.
-            df = s3_io.read_parquet_prefix(f"s3://{bucket}/silver/advisory_transactions/")
+            df = s3_io.read_parquet_prefix(f"s3://{bucket}/silver/advisory_transactions/quality_export/")
 
     report = evaluate(df, args.zone)
     _print_report(report)

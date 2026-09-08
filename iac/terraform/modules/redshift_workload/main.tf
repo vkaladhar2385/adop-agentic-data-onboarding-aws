@@ -39,7 +39,11 @@ data "aws_iam_policy_document" "spectrum_permissions" {
   statement {
     sid       = "ReadGoldObjects"
     actions   = ["s3:GetObject", "s3:ListBucket"]
-    resources = ["arn:aws:s3:::${var.data_lake_bucket}", "arn:aws:s3:::${var.data_lake_bucket}/gold/${var.workload}/*"]
+    resources = [
+      "arn:aws:s3:::${var.data_lake_bucket}",
+      "arn:aws:s3:::${var.data_lake_bucket}/gold/${var.workload}/*",
+      "arn:aws:s3:::${var.data_lake_bucket}/gold/${var.workload}*",
+    ]
   }
   statement {
     sid       = "DecryptGoldKms"

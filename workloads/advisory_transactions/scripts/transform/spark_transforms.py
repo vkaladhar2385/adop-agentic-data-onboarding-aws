@@ -84,7 +84,7 @@ def bronze_to_silver_df(bronze: DataFrame, cfg: dict | None = None) -> tuple[Dat
         "broken_gross_formula",
         "broken_net_formula",
     ]
-    bad = flag_cols[0]
+    bad = F.col(flag_cols[0])
     for col_name in flag_cols[1:]:
         bad = bad | F.col(col_name)
 
@@ -172,7 +172,39 @@ def silver_to_gold_tables(silver: DataFrame, cfg: dict | None = None) -> dict[st
     return gold
 
 
-def write_iceberg_table(df: DataFrame, database: str, table: str) -> None:
+def configure_iceberg_catalog(spark, warehouse: str) -> None:
+    """Ensure glue_catalog is registered (Glue ETL jobs should set this via --conf)."""
+    if spark.conf.get("spark.sql.catalog.glue_catalog", None):
+        return
+    root = warehouse.rstrip("/") + "/"
+    # Static Spark configs (extensions, catalog class) must be set via Glue --conf at job start.
+    for key, value in (
+        ("spark.sql.catalog.glue_catalog", "org.apache.iceberg.spark.SparkCatalog"),
+        ("spark.sql.catalog.glue_catalog.warehouse", root),
+        ("spark.sql.catalog.glue_catalog.catalog-impl", "org.apache.iceberg.aws.glue.GlueCatalog"),
+        ("spark.sql.catalog.glue_catalog.io-impl", "org.apache.iceberg.aws.s3.S3FileIO"),
+        ("spark.sql.defaultCatalog", "glue_catalog"),
+    ):
+        try:
+            spark.conf.set(key, value)
+        except Exception as exc:  # pragma: no cover - static config already set or locked
+            print(f"[iceberg] skip conf {key}: {exc}")
+
+
+def _warehouse_from_s3_path(path: str) -> str:
+    """Derive catalog warehouse root from a zone path (s3://bucket/zone/workload/ -> s3://bucket/)."""
+    without_scheme = path.replace("s3://", "", 1)
+    bucket = without_scheme.split("/", 1)[0]
+    return f"s3://{bucket}/"
+
+
+def write_iceberg_table(
+    df: DataFrame, database: str, table: str, warehouse: str | None = None
+) -> None:
+    spark = df.sparkSession
+    if warehouse is None:
+        warehouse = "s3://"
+    configure_iceberg_catalog(spark, warehouse)
     full_name = f"glue_catalog.{database}.{table}"
-    df.writeTo(full_name).using("iceberg").createOrReplace()
+    df.write.format("iceberg").mode("overwrite").saveAsTable(full_name)
     print(f"[iceberg] wrote {full_name} rows={df.count()}")

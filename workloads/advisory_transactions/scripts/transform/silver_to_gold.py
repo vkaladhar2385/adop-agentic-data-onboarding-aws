@@ -57,11 +57,14 @@ def run_glue_spark():  # pragma: no cover
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
+    warehouse = spark_transforms._warehouse_from_s3_path(gold_path)
+    spark_transforms.configure_iceberg_catalog(spark, warehouse)
+
     silver_df = spark.read.parquet(silver_path)
     gold = spark_transforms.silver_to_gold_tables(silver_df)
 
     for name, frame in gold.items():
-        spark_transforms.write_iceberg_table(frame, database, name)
+        spark_transforms.write_iceberg_table(frame, database, name, warehouse=warehouse)
         export_prefix = f"{gold_path}/{name}"
         frame.write.mode("overwrite").parquet(export_prefix)
         print(f"[gold] {name}: {frame.count()} rows -> iceberg + {export_prefix}")
