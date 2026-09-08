@@ -11,9 +11,10 @@ Bronze → Silver → Gold data pipeline orchestration for this repo. This file 
 **source of truth for agent behavior** when working in Cursor (or any agent host
 that loads project instructions).
 
-**Relationship to official ADOP:** The AWS sample in `reference/ADOP/` (Track B,
-gitignored) is the reference *agent factory*. This repo adapts official ADOP
-guardrails with **our** orchestration and deploy choices: **Step Functions +
+**Relationship to official ADOP:** The AWS sample at
+`C:\Vis\MyLearning\Data-Engineering\agentic-projects\ADOP` (Track B study clone,
+sibling repo — see `docs/TRACK_B.md`) is the reference *agent factory*. This repo
+adapts official ADOP guardrails with **our** orchestration and deploy choices: **Step Functions +
 EventBridge** (not MWAA), **Terraform + package_and_sync** (not MCP Phase 5).
 **Compute and storage:** Silver and Gold use **Apache Iceberg**. **Glue job type
 per pipeline step** is declared in `config/compute.yaml` — agents may mix
@@ -135,7 +136,7 @@ the **target** routing; migration closes the gap to Terraform + PySpark scripts.
 ### Glue ETL job defaults (`job_type: glueetl`)
 
 Agents and Terraform MUST set these on `glueetl` jobs (see
-`reference/ADOP/TOOL_ROUTING.md`, `reference/ADOP/prompts/.../01-fix-iceberg-glue.md`):
+`../agentic-projects/ADOP/TOOL_ROUTING.md`, `../agentic-projects/ADOP/prompts/.../01-fix-iceberg-glue.md`):
 
 ```hcl
 # Terraform default_arguments (merge into aws_glue_job)
@@ -176,7 +177,7 @@ Production scripts under `workloads/{name}/scripts/` MUST:
 4. Wire in `StructuredLogger` with agent name, workload, run id.
 5. Include the 5-line codegen header once `shared/codegen/` exists; until then, comment `# stack: pyspark-iceberg`.
 
-Reference: `reference/ADOP/workloads/customer_master/scripts/transform/bronze_to_silver.py`.
+Reference: `../agentic-projects/ADOP/workloads/customer_master/scripts/transform/bronze_to_silver.py`.
 
 ### Python Shell script contract (`job_type: pythonshell` only)
 
@@ -317,6 +318,7 @@ After deploy verification passes, offer (do not skip):
 |---|---|
 | `AGENTS.md` | Every session — this contract |
 | `docs/TRACK_B.md` | Comparing to official ADOP / Phase 7 planning |
+| `../agentic-projects/ADOP/` | Track B study clone (CLAUDE.md, SKILLS.md, codegen, workloads) |
 | `docs/ARCHITECTURE.md` | Artifact map, SFN flow, module layout |
 | `docs/ADAPTATION_GAP.md` | Enterprise consulting backlog |
 | `docs/EXTENDING_TO_NEW_SERVICES.md` | Adding Redshift / OpenSearch / Redis / new sinks |
@@ -341,7 +343,7 @@ These layers turn this repo into a full agentic framework (Phase 7):
 | `/onboard-workflow` command | Not started | `.cursor/commands/` or docs prompt |
 
 Until codegen exists, agents may hand-author PySpark scripts **only after Phase 1 gate
-passes**, following `reference/ADOP/workloads/*/scripts/`. Prefer editing specs
+passes**, following `../agentic-projects/ADOP/workloads/*/scripts/`. Prefer editing specs
 (`config/*.yaml`) over embedding business logic in scripts.
 
 ### PySpark + Iceberg migration sequence (pilot workloads)
