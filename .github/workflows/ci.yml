@@ -5,9 +5,9 @@ name: ci
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, master]
   push:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   test:
@@ -54,6 +54,8 @@ jobs:
               assert "StartAt" in d and "States" in d, path
               print("ok", path, d["StartAt"])
           PY
+      - name: Validate compute.yaml vs Terraform glue_jobs (ADOP drift pattern)
+        run: python tools/validate_compute.py
 
   terraform:
     name: terraform fmt + validate

@@ -59,6 +59,13 @@ pipeline_steps:
     job_type: pythonshell
     script: scripts/quality/run_quality_checks.py
 
+# Terraform alignment — flip to enforced after main.tf glue_jobs matches pipeline_steps
+terraform_sync:
+  status: pending
+  note: >-
+    Pilot Terraform still all-pythonshell. CI warns on drift until migration;
+    set status to enforced when glue_jobs match this file (see tools/validate_compute.py).
+
 # Automatic resolution when ingest_job_type: auto or step omits job_type
 routing:
   rules:
