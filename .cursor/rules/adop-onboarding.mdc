@@ -1,0 +1,20 @@
+---
+description: ADOP onboarding human gate — no pipeline codegen until Phase 1 discovery is complete
+globs:
+  - workloads/**/*
+  - shared/codegen/**/*
+  - contracts/**/*
+alwaysApply: false
+---
+
+# ADOP onboarding gate
+
+Before creating or editing files under `workloads/` (config, scripts, orchestration, sql, tests):
+
+1. Read `AGENTS.md` — especially the **STOP — Human-in-the-Loop Gate** section.
+2. Confirm the Phase 1 discovery checklist has **human-provided** answers for: zone, PK/dedup, transformations, PII/compliance, quality thresholds, schedule, orchestrator, extension sinks.
+3. If any item is missing, **ask the user** — do not infer from column names or sample data alone.
+4. **Build (Phases 2–4)** writes files only. Do not run `terraform apply` or sync to AWS without explicit user approval (Phase 5).
+5. Match existing workload patterns: `advisory_transactions`, `web_events`. See `docs/ARCHITECTURE.md` for the agent-to-artifact map.
+
+When codegen lands in `shared/codegen/`, prefer spec → renderer over direct script edits.
