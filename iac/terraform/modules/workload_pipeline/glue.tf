@@ -54,6 +54,20 @@ resource "aws_iam_role_policy" "glue" {
   policy = data.aws_iam_policy_document.glue_permissions.json
 }
 
+locals {
+  glue_deps_py_files = [
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/pii.py",
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality.py",
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/s3_io.py",
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/local_runner.py",
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/spark_transforms.py",
+  ]
+  glue_deps_config_files = [
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/transformations.yaml",
+    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality_rules.yaml",
+  ]
+}
+
 # ---- One aws_glue_job per pipeline step ----
 # script_location expects the CI deploy workflow to have already run
 # `aws s3 sync workloads/<workload>/ s3://<bucket>/workloads/<workload>/`.
@@ -71,7 +85,7 @@ resource "aws_glue_job" "job" {
 
   command {
     script_location = "s3://${var.data_lake_bucket}/workloads/${var.workload}/${each.value.script_path}"
-    python_version  = each.value.job_type == "pythonshell" ? "3.9" : "3" # "3" (i.e. 3.6) pythonshell runtime is retired
+    python_version  = each.value.job_type == "pythonshell" ? "3.9" : "3"
     name            = each.value.job_type == "pythonshell" ? "pythonshell" : "glueetl"
   }
 
@@ -80,26 +94,16 @@ resource "aws_glue_job" "job" {
       "--enable-continuous-cloudwatch-log" = "true"
       "--enable-metrics"                   = "true"
       "--TempDir"                          = "s3://${var.data_lake_bucket}/glue-temp/${var.workload}/"
-      # Python Shell's pre-installed library set doesn't guarantee pyarrow;
-      # this pip-installs it at job bootstrap (supported for both job types).
+      "--extra-py-files"                   = join(",", local.glue_deps_py_files)
+      "--extra-files"                      = join(",", local.glue_deps_config_files)
+    },
+    each.value.job_type == "glueetl" ? {
+      "--job-language"        = "python"
+      "--datalake-formats"    = "iceberg"
+      "--enable-data-lineage" = "true"
+    } : {
+      # Python Shell: pyarrow for pandas parquet I/O at demo scale.
       "--additional-python-modules" = "pyarrow==15.0.2"
-      # Standalone Glue scripts don't get a repo checkout. --extra-py-files
-      # only supports flat files for Python Shell (no extracted package
-      # tree), so tools/package_and_sync.py uploads pii.py/quality.py/s3_io.py/
-      # local_runner.py flat and each script falls back to a plain `import
-      # local_runner` etc. when the dotted `shared.utils...` import fails.
-      "--extra-py-files" = join(",", [
-        "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/pii.py",
-        "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality.py",
-        "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/s3_io.py",
-        "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/local_runner.py",
-      ])
-      # local_runner.load_config() falls back to looking next to itself, i.e.
-      # in this same flat working directory, when it's not run from a repo checkout.
-      "--extra-files" = join(",", [
-        "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/transformations.yaml",
-        "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality_rules.yaml",
-      ])
     },
     each.value.default_arguments,
   )

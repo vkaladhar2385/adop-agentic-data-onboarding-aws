@@ -39,16 +39,27 @@ module "advisory_transactions" {
     gold_path   = "s3://${var.data_lake_bucket}/gold/advisory_transactions/"
   }
 
-  # All 5 jobs run as Glue Python Shell (0.0625 DPU): the pipeline logic is pure
-  # pandas (shared/utils/s3_io.py + local_runner.py), and this dataset is demo-scale,
-  # so a full Spark (glueetl/G.1X) cluster would just add cost with no benefit.
-  # See docs/EXTENDING_TO_NEW_SERVICES.md for the Spark-vs-Python-Shell trade-off.
+  # Mixed compute per config/compute.yaml: Python Shell ingest + quality;
+  # Glue ETL (PySpark + Iceberg) for Silver/Gold transforms.
   glue_jobs = {
     ingest_to_bronze = { script_path = "scripts/extract/ingest_to_bronze.py", job_type = "pythonshell" }
-    bronze_to_silver = { script_path = "scripts/transform/bronze_to_silver.py", job_type = "pythonshell" }
-    quality_silver   = { script_path = "scripts/quality/run_quality_checks.py", job_type = "pythonshell", default_arguments = { "--zone" = "silver", "--data_lake_bucket" = var.data_lake_bucket } }
-    silver_to_gold   = { script_path = "scripts/transform/silver_to_gold.py", job_type = "pythonshell" }
-    quality_gold     = { script_path = "scripts/quality/run_quality_checks.py", job_type = "pythonshell", default_arguments = { "--zone" = "gold", "--data_lake_bucket" = var.data_lake_bucket } }
+    bronze_to_silver = {
+      script_path = "scripts/transform/bronze_to_silver.py",
+      job_type      = "glueetl",
+      default_arguments = {
+        "--database"     = "advisory_transactions_db",
+        "--silver_table" = "silver_advisory_transactions",
+      },
+    }
+    quality_silver = { script_path = "scripts/quality/run_quality_checks.py", job_type = "pythonshell", default_arguments = { "--zone" = "silver", "--data_lake_bucket" = var.data_lake_bucket } }
+    silver_to_gold = {
+      script_path = "scripts/transform/silver_to_gold.py",
+      job_type      = "glueetl",
+      default_arguments = {
+        "--database" = "advisory_transactions_db",
+      },
+    }
+    quality_gold = { script_path = "scripts/quality/run_quality_checks.py", job_type = "pythonshell", default_arguments = { "--zone" = "gold", "--data_lake_bucket" = var.data_lake_bucket } }
   }
 
   lambda_functions = {

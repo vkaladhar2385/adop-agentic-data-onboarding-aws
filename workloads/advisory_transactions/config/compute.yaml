@@ -6,8 +6,7 @@
 #   glueetl     — Glue 4.0 PySpark (G.1X workers); required for Iceberg transforms
 #   pythonshell — Glue Python Shell 0.0625 DPU; light I/O, scoring, demo-scale ingest
 #
-# Pilot note: Terraform still deploys all-pythonshell until migration lands.
-# This file declares the TARGET routing per AGENTS.md compute rules.
+# Pilot note: Terraform glue_jobs now match this file (mixed Shell + ETL).
 
 workload: advisory_transactions
 
@@ -61,10 +60,8 @@ pipeline_steps:
 
 # Terraform alignment — flip to enforced after main.tf glue_jobs matches pipeline_steps
 terraform_sync:
-  status: pending
-  note: >-
-    Pilot Terraform still all-pythonshell. CI warns on drift until migration;
-    set status to enforced when glue_jobs match this file (see tools/validate_compute.py).
+  status: enforced
+  note: Terraform glue_jobs must match pipeline_steps (validated by tools/validate_compute.py).
 
 # Automatic resolution when ingest_job_type: auto or step omits job_type
 routing:

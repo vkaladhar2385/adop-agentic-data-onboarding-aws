@@ -78,9 +78,7 @@ if __name__ == "__main__":
             # completeness/uniqueness stats (a column absent from one table
             # reads as all-NaN for that table's rows). Grade the fact table
             # only, matching run_local_pipeline.py's evaluate(gold["fact_transactions"], "gold").
-            df = s3_io.read_parquet_object(
-                f"s3://{bucket}/gold/advisory_transactions/fact_transactions/fact_transactions.parquet"
-            )
+            df = s3_io.read_parquet_prefix(f"s3://{bucket}/gold/advisory_transactions/fact_transactions/")
         else:
             # Silver has exactly one object at this prefix.
             df = s3_io.read_parquet_prefix(f"s3://{bucket}/silver/advisory_transactions/")

@@ -335,7 +335,7 @@ These layers turn this repo into a full agentic framework (Phase 7):
 |---|---|---|
 | **Compute routing spec** | **Draft** (example workload) | `workloads/*/config/compute.yaml` |
 | **Compute drift validator** | **Done** | `tools/validate_compute.py` (CI in validate-config job) |
-| **PySpark + Iceberg migration** (pilot workloads) | In progress | scripts + Terraform aligned to `compute.yaml` |
+| **PySpark + Iceberg migration** (pilot workloads) | **Partial** (`advisory_transactions` transforms) | `spark_transforms.py`, `glue.tf`, `main.tf` |
 | JSON Schema contracts for configs | Not started | `contracts/v1/*.schema.json` (include `compute.schema.json`) |
 | Deterministic codegen from specs | Not started | `shared/codegen/` (PySpark + Iceberg Jinja templates) |
 | `StructuredLogger` | Not started | `shared/utils/structured_logger.py` |

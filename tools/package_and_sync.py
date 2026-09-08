@@ -85,6 +85,7 @@ _GLUE_FLAT_PY = {
     "quality.py": "shared/utils/quality.py",
     "s3_io.py": "shared/utils/s3_io.py",
     "local_runner.py": "workloads/{workload}/scripts/transform/local_runner.py",
+    "spark_transforms.py": "workloads/{workload}/scripts/transform/spark_transforms.py",
 }
 _GLUE_FLAT_CONFIG = {
     "transformations.yaml": "workloads/{workload}/config/transformations.yaml",
