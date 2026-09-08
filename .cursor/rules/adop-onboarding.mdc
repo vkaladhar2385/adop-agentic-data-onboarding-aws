@@ -15,8 +15,8 @@ Before creating or editing files under `workloads/` (config, scripts, orchestrat
 2. Confirm the Phase 1 discovery checklist has **human-provided** answers for: zone, PK/dedup, transformations, PII/compliance, quality thresholds, schedule, orchestrator, extension sinks.
 3. If any item is missing, **ask the user** — do not infer from column names or sample data alone.
 4. **Build (Phases 2–4)** writes files only. Do not run `terraform apply` or sync to AWS without explicit user approval (Phase 5).
-5. **Stack:** new workloads use **Glue ETL (PySpark 4.x) + Apache Iceberg** for Silver/Gold — not Python Shell. Pilot workloads (`advisory_transactions`, `web_events`) are legacy Parquet/Python Shell until migrated.
+5. **Compute:** read `config/compute.yaml` before choosing Glue job type. Mixed `glueetl` + `pythonshell` on one workload is allowed when the rules say so. Iceberg Silver/Gold transforms MUST be `glueetl`.
 6. Glue ETL jobs require `--datalake-formats=iceberg` and `--enable-data-lineage=true`.
-7. Match patterns in `reference/ADOP/workloads/` for PySpark scripts; see `docs/ARCHITECTURE.md` for artifact map.
+7. Terraform `glue_jobs` must match `compute.yaml` `pipeline_steps`.
 
 When codegen lands in `shared/codegen/`, prefer spec → renderer over direct script edits.

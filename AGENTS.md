@@ -15,16 +15,10 @@ that loads project instructions).
 gitignored) is the reference *agent factory*. This repo adapts official ADOP
 guardrails with **our** orchestration and deploy choices: **Step Functions +
 EventBridge** (not MWAA), **Terraform + package_and_sync** (not MCP Phase 5).
-**Compute and storage now match ADOP:** **Glue ETL (PySpark 4.x) + Apache
-Iceberg** on S3 for Silver and Gold. See `docs/TRACK_B.md` for the full
-comparison and Phase 7 roadmap.
-
-### Legacy pilot workloads (Python Shell)
-
-`advisory_transactions` and `web_events` were built and deployed on **Glue Python
-Shell + pandas + Parquet** (demo-scale cost trade-off). They remain valid reference
-artifacts until migrated. **All new workloads and all framework/codegen output MUST
-use PySpark + Iceberg** per the stack section below.
+**Compute and storage:** Silver and Gold use **Apache Iceberg**. **Glue job type
+per pipeline step** is declared in `config/compute.yaml` — agents may mix
+**Glue ETL (PySpark)** and **Glue Python Shell** on the same workload when the
+rules say so. See **Compute routing** below.
 
 ---
 
@@ -63,26 +57,82 @@ The human provides the rules. The agent does NOT guess or infer them.
 [ ] Orchestrator choice confirmed (default: Step Functions + EventBridge for this repo)
 [ ] Extension sinks confirmed if any (catalog only vs Redshift / OpenSearch / Redis)
 [ ] Gold schema shape confirmed (star schema, flat Iceberg, rollup — per ADOP Phase 1)
+[ ] Compute profile confirmed (row volume, Iceberg zones, which steps may use Python Shell vs Spark)
 ```
 
 **If ANY item is missing, ASK THE USER. Do not proceed to Phase 4 build.**
 
+Ask explicitly during Phase 1:
+
+> "Expected rows per run (typical and peak)? Silver/Gold on Iceberg? OK to use Python Shell for quality gates and small ingest, with Spark for Iceberg transforms?"
+
+Record answers in `config/compute.yaml` → `profile` and `pipeline_steps`.
+
 ---
 
-## Stack (ADOP-aligned — mandatory for new work)
+## Compute routing (Glue Python Shell vs Glue ETL)
+
+**Source of truth:** `workloads/{name}/config/compute.yaml`
+
+Agents MUST read this file (or create it during Phase 4 Metadata/DevOps) before
+writing scripts or Terraform `glue_jobs`. **Never pick job type ad hoc.** Mixed
+workloads (some steps Shell, some ETL) are normal and expected.
+
+### Decision matrix
+
+| Pipeline step | Default `job_type` | Use **glueetl** (PySpark 4.x) when | Use **pythonshell** when |
+|---|---|---|---|
+| **ingest_to_bronze** | `auto` (see rules) | Large files, JSONL complexity, Avro/Parquet conversion, Iceberg bronze, peak **> 50k rows/run** (unless user overrides) | Small landing files, simple copy/CSV parse, demo/sandbox cost guardrail, user confirms low volume |
+| **bronze_to_silver** | **glueetl** | **Always when Silver format is Iceberg** (hard rule) | Never for Iceberg Silver — Shell cannot satisfy ADOP Iceberg write path |
+| **silver_to_gold** | **glueetl** | **Always when Gold format is Iceberg** (hard rule) | Never for Iceberg Gold |
+| **quality_silver / quality_gold** | **pythonshell** | User explicitly requests Spark DQ across full table at scale | Default: score via sidecar JSON, Athena sample, or pandas on aggregated metrics |
+| **register_catalog / verifier** | **lambda** | N/A — not Glue | N/A |
+
+### Hard rules (override user preference if violated)
+
+1. **Iceberg transform ⇒ glueetl.** Any step that **writes** Silver or Gold Iceberg MUST be `glueetl` with `--datalake-formats=iceberg`.
+2. **Lineage on every glueetl job.** `--enable-data-lineage=true` is non-negotiable for Spark jobs.
+3. **One script, one job type.** Do not share a single script between Shell and ETL paths — fork entrypoints or use separate templates in codegen.
+4. **Terraform follows compute.yaml.** `iac/terraform/main.tf` `glue_jobs` map MUST match `pipeline_steps.*.job_type` (codegen or agent validates before apply).
+5. **Human confirms mixed compute.** If any step is `pythonshell` while others are `glueetl`, state the mix in the Phase 4 plan and get approval.
+
+### Agent algorithm (Phase 4 build)
+
+```
+1. Read config/compute.yaml (create if missing from Phase 1 answers).
+2. For each pipeline_steps entry:
+     a. Apply routing.rules (Iceberg transform → glueetl, quality_* → pythonshell, etc.).
+     b. Emit script in the matching style (PySpark vs pandas/boto3).
+     c. Emit Terraform glue_jobs[job_key].job_type from pipeline_steps[job_key].job_type.
+3. If compute.yaml and an existing script disagree on job_type → fix script OR update compute.yaml with user confirmation — never silently drift.
+4. Run pytest for the workload before presenting the plan.
+```
+
+Example mixed workload: `workloads/advisory_transactions/config/compute.yaml`
+(Spark transforms + Shell quality gates + Shell demo ingest).
+
+### Legacy pilot note
+
+`advisory_transactions` / `web_events` Terraform still deploys **all-pythonshell**
+with Parquet paths (pre-migration). Their `compute.yaml` (when present) declares
+the **target** routing; migration closes the gap to Terraform + PySpark scripts.
+
+---
+
+## Stack (storage + orchestration)
 
 | Layer | Choice | Notes |
 |---|---|---|
-| **Compute** | AWS Glue **ETL** (`glueetl`), Glue **4.0**, PySpark **3.x** | Not Python Shell for transforms/ingest |
-| **Silver / Gold storage** | **Apache Iceberg** on S3 | `writeTo(...).using("iceberg")` or equivalent catalog write |
-| **Bronze** | Raw landing format → Iceberg or staged Parquet | Bronze stays **immutable** after ingest |
-| **Catalog** | AWS Glue Data Catalog (`glue_catalog.{db}.{table}`) | DDL in `sql/{bronze,silver,gold}/` with `table_type=ICEBERG` |
+| **Compute** | **Per-step** in `config/compute.yaml` | `glueetl` and/or `pythonshell` on same workload |
+| **Silver / Gold storage** | **Apache Iceberg** on S3 | Transform steps that write these zones MUST be `glueetl` |
+| **Bronze** | Raw landing → Iceberg or staged Parquet | Ingest job type from compute routing |
+| **Catalog** | AWS Glue Data Catalog (`glue_catalog.{db}.{table}`) | DDL in `sql/{bronze,silver,gold}/` with `table_type=ICEBERG` where applicable |
 | **Orchestration** | Step Functions + EventBridge | No MWAA unless user explicitly opts in |
-| **Deploy** | Terraform + `tools/package_and_sync.py` | Not MCP Phase 5 (unless added later) |
-| **Logging** | `StructuredLogger` in every ETL script | Port from `reference/ADOP/shared/utils/structured_logger.py` |
-| **Lineage** | `--enable-data-lineage=true` on **every** Glue ETL job | Non-negotiable (official ADOP `lineage-always` rule) |
+| **Deploy** | Terraform + `tools/package_and_sync.py` | `glue_jobs` derived from `compute.yaml` |
+| **Logging** | `StructuredLogger` in every Glue script | Both job types |
+| **Lineage** | `--enable-data-lineage=true` | **glueetl jobs only** (Shell has no lineage flag) |
 
-### Glue ETL job defaults (every transform / ingest job)
+### Glue ETL job defaults (`job_type: glueetl`)
 
 Agents and Terraform MUST set these on `glueetl` jobs (see
 `reference/ADOP/TOOL_ROUTING.md`, `reference/ADOP/prompts/.../01-fix-iceberg-glue.md`):
@@ -97,12 +147,26 @@ Agents and Terraform MUST set these on `glueetl` jobs (see
 ```
 
 Job shape: `command.name = "glueetl"`, `glue_version = "4.0"`, `worker_type = "G.1X"`,
-`number_of_workers = 2` (scale up only when user confirms volume).
+`number_of_workers = 2` (scale up only when user confirms volume in `compute.yaml`).
 
-Quality gate jobs may stay **Python Shell** if they only read Iceberg via Athena/boto3
-and score sidecar JSON — same pattern as official ADOP (Spark transforms, lighter gates).
+### Glue Python Shell job defaults (`job_type: pythonshell`)
 
-### PySpark script contract
+Use for steps declared in `compute.yaml` (typically quality gates, small ingest):
+
+```hcl
+# Terraform — pythonshell branch in glue.tf
+glue_version     = "3.0"
+max_capacity     = 0.0625
+command.name     = "pythonshell"
+python_version   = "3.9"
+# Package shared utils via --extra-py-files / --extra-files (see glue.tf pilot pattern)
+# Do NOT set --datalake-formats or --enable-data-lineage (not supported / not applicable)
+```
+
+Shell scripts use **pandas + boto3** (or Athena API), read `transformations.yaml` /
+`quality_rules.yaml` from `--extra-files`, and MUST NOT attempt Iceberg catalog writes.
+
+### PySpark script contract (`job_type: glueetl` only)
 
 Production scripts under `workloads/{name}/scripts/` MUST:
 
@@ -112,17 +176,24 @@ Production scripts under `workloads/{name}/scripts/` MUST:
 4. Wire in `StructuredLogger` with agent name, workload, run id.
 5. Include the 5-line codegen header once `shared/codegen/` exists; until then, comment `# stack: pyspark-iceberg`.
 
-Reference implementation: `reference/ADOP/workloads/customer_master/scripts/transform/bronze_to_silver.py`.
+Reference: `reference/ADOP/workloads/customer_master/scripts/transform/bronze_to_silver.py`.
+
+### Python Shell script contract (`job_type: pythonshell` only)
+
+1. Use `shared/utils/s3_io.py` + pandas (pilot pattern) or Athena/boto3 for reads.
+2. Load rules from `--extra-files` config YAMLs.
+3. Write outputs only to formats Shell supports (Parquet paths, CSV sidecars, JSON scores) — **not** Iceberg table commits.
+4. Quality gates write score sidecar to S3 for Step Functions branching.
 
 ### Local development vs production
 
-| Environment | Allowed |
-|---|---|
-| **Unit tests** | pandas fixtures + config-driven logic **or** `pyspark` local session — must assert same rules as production |
-| **Local demo runner** | May keep `local_runner.py` (pandas) **only** as a test harness until PySpark local is wired; production path is always PySpark |
-| **AWS production** | Glue ETL + Iceberg only |
+| Environment | glueetl steps | pythonshell steps |
+|---|---|---|
+| **Unit tests** | pyspark local or pandas fixture mirroring config rules | pandas fixtures + `quality.py` |
+| **Local demo** | optional `local_runner.py` until Spark local wired | `run_local_pipeline.py` |
+| **AWS** | PySpark + Iceberg per compute.yaml | Shell per compute.yaml |
 
-Do not add new Python Shell transform jobs. Do not write Silver/Gold as plain Parquet without Iceberg catalog registration.
+Do not write Silver/Gold Iceberg from Python Shell. Do not pick job type without updating `compute.yaml`.
 
 ### NEVER do these
 
@@ -181,7 +252,8 @@ Reference workloads: `advisory_transactions` (SOX, star schema, extensions),
 ```
 workloads/{name}/
 ├── config/
-│   source.yaml, semantic.yaml, transformations.yaml, quality_rules.yaml, schedule.yaml
+│   source.yaml, semantic.yaml, transformations.yaml, quality_rules.yaml
+│   schedule.yaml, compute.yaml          # compute.yaml = Glue job_type per step
 ├── scripts/
 │   extract/, transform/, quality/, load/
 ├── orchestration/
@@ -259,8 +331,9 @@ These layers turn this repo into a full agentic framework (Phase 7):
 
 | Layer | Status | Location (planned) |
 |---|---|---|
-| **PySpark + Iceberg migration** (pilot workloads) | **In progress** (contract declared) | `workloads/*/scripts/`, `iac/terraform/main.tf`, `glue.tf` |
-| JSON Schema contracts for configs | Not started | `contracts/v1/*.schema.json` |
+| **Compute routing spec** | **Draft** (example workload) | `workloads/*/config/compute.yaml` |
+| **PySpark + Iceberg migration** (pilot workloads) | In progress | scripts + Terraform aligned to `compute.yaml` |
+| JSON Schema contracts for configs | Not started | `contracts/v1/*.schema.json` (include `compute.schema.json`) |
 | Deterministic codegen from specs | Not started | `shared/codegen/` (PySpark + Iceberg Jinja templates) |
 | `StructuredLogger` | Not started | `shared/utils/structured_logger.py` |
 | Tool registry (MCP / CLI routing) | Partial | Cursor `aws-mcp`; official 13-server set in Track B |
