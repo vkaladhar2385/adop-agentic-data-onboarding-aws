@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/compute.schema.json",
+  "title": "Glue compute routing spec",
+  "type": "object",
+  "required": ["workload", "profile", "pipeline_steps"],
+  "additionalProperties": true,
+  "properties": {
+    "workload": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,40}$"
+    },
+    "profile": {
+      "type": "object",
+      "required": ["silver_format", "gold_format"],
+      "properties": {
+        "estimated_rows_per_run": { "type": "integer", "minimum": 0 },
+        "peak_rows_per_run": { "type": "integer", "minimum": 0 },
+        "silver_format": { "type": "string", "enum": ["iceberg", "parquet"] },
+        "gold_format": { "type": "string", "enum": ["iceberg", "parquet"] },
+        "compliance": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "transform_job_type": { "type": "string", "enum": ["glueetl", "pythonshell"] },
+        "quality_job_type": { "type": "string", "enum": ["glueetl", "pythonshell"] },
+        "ingest_job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "auto"] }
+      },
+      "additionalProperties": true
+    },
+    "pipeline_steps": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["job_type", "script"],
+        "properties": {
+          "job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "auto"] },
+          "script": { "type": "string", "minLength": 1 },
+          "workers": { "type": "integer", "minimum": 1 },
+          "worker_type": { "type": "string" },
+          "requires": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "rationale": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "terraform_sync": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["pending", "enforced"] },
+        "note": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "routing": { "type": "object" }
+  }
+}

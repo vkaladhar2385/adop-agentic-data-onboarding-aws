@@ -1,0 +1,4 @@
+schema_version: v1
+workload: advisory_transactions
+database: advisory_transactions_db
+silver_table: silver_advisory_transactions

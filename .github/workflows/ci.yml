@@ -35,15 +35,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install PyYAML
-        run: pip install pyyaml
-      - name: Validate YAML config files
-        run: |
-          python - <<'PY'
-          import glob, yaml, sys
-          for f in glob.glob("workloads/*/config/*.yaml"):
-              yaml.safe_load(open(f)); print("ok", f)
-          PY
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Validate JSON Schema contracts
+        run: python tools/validate_configs.py
+      - name: Validate compute.yaml vs Terraform glue_jobs (ADOP drift pattern)
+        run: python tools/validate_compute.py
+      - name: Check codegen drift (bronze_to_silver)
+        run: python tools/render_workload.py --workload advisory_transactions --check-drift
       - name: Validate Step Functions ASL is valid JSON
         run: |
           python - <<'PY'
@@ -54,8 +53,6 @@ jobs:
               assert "StartAt" in d and "States" in d, path
               print("ok", path, d["StartAt"])
           PY
-      - name: Validate compute.yaml vs Terraform glue_jobs (ADOP drift pattern)
-        run: python tools/validate_compute.py
 
   terraform:
     name: terraform fmt + validate

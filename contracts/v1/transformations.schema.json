@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/transformations.schema.json",
+  "title": "Workload transformations config",
+  "type": "object",
+  "required": ["workload", "bronze_to_silver", "silver_to_gold"],
+  "additionalProperties": true,
+  "properties": {
+    "workload": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,40}$"
+    },
+    "bronze_to_silver": {
+      "type": "object",
+      "required": ["dedup", "quarantine_when"],
+      "properties": {
+        "dedup": {
+          "type": "object",
+          "required": ["keys"],
+          "properties": {
+            "keys": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "keep": { "type": "string" },
+            "order_by": { "type": "string" }
+          }
+        },
+        "casts": { "type": "object" },
+        "string_ops": { "type": "object" },
+        "pii_masking": { "type": "array" },
+        "consent_filter": { "type": "object" },
+        "quarantine_when": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "derived": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "silver_to_gold": {
+      "type": "object",
+      "required": ["schema_style", "gold_pii_policy"],
+      "properties": {
+        "schema_style": { "type": "string" },
+        "fact": { "type": "object" },
+        "dimensions": { "type": "array" },
+        "gold_pii_policy": {
+          "type": "object",
+          "required": ["suppress"],
+          "properties": {
+            "suppress": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "analytical_view": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

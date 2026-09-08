@@ -1,9 +1,6 @@
-# spec_hash: 27164d4468b473a4b238d0a3178b1de8016003a93996a3c17d453775bb461714
-# template_id: advisory_bronze_to_silver
-# template_hash: a6f3f112f542fae1a8d4b8676f554ad3e371e0fa251f58f6c333433f274ab249
-# schema_version: v1
-# rendered_at: 2026-09-08T16:16:06Z
-"""Bronze -> Silver transform for `advisory_transactions`.
+{# template_id: advisory_bronze_to_silver #}
+{# required_slots: schema_version, workload, database, silver_table #}
+"""Bronze -> Silver transform for `{{ workload }}`.
 
 Local mode uses pandas/local_runner (pytest source of truth). Glue ETL (PySpark)
 writes Apache Iceberg to the Silver catalog table and exports Parquet to
@@ -21,7 +18,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 try:
-    from workloads.advisory_transactions.scripts.transform import local_runner, spark_transforms
+    from workloads.{{ workload }}.scripts.transform import local_runner, spark_transforms
 except ImportError:
     import local_runner  # type: ignore
     import spark_transforms  # type: ignore
@@ -37,7 +34,7 @@ def run_local(bronze_parquet: str, out_dir: str) -> dict:
     out = Path(out_dir)
     (out / "silver").mkdir(parents=True, exist_ok=True)
     (out / "quarantine").mkdir(parents=True, exist_ok=True)
-    silver.to_parquet(out / "silver" / "silver_advisory_transactions.parquet", index=False)
+    silver.to_parquet(out / "silver" / "silver_{{ workload }}.parquet", index=False)
     quarantine.to_csv(out / "quarantine" / "quarantine.csv", index=False)
     print(f"[silver] clean rows: {len(silver)}  |  quarantined: {len(quarantine)}")
     return {"silver": silver, "quarantine": quarantine}
@@ -100,7 +97,7 @@ def run_glue():  # pragma: no cover - legacy Python Shell path if invoked withou
     cfg = local_runner.load_config("transformations.yaml")
     bronze = s3_io.read_parquet_prefix(bronze_path)
     silver, quarantine = local_runner.bronze_to_silver(bronze, cfg)
-    silver_target = silver_path.rstrip("/") + "/silver_advisory_transactions.parquet"
+    silver_target = silver_path.rstrip("/") + "/silver_{{ workload }}.parquet"
     s3_io.write_parquet(silver, silver_target)
     if len(quarantine):
         quarantine_target = silver_path.rstrip("/").replace("/silver/", "/quarantine/") + "/quarantine.csv"
@@ -113,9 +110,9 @@ if __name__ == "__main__":
     ap.add_argument("--local", action="store_true")
     ap.add_argument(
         "--bronze",
-        default="output/advisory_transactions/bronze/bronze_advisory_transactions.parquet",
+        default="output/{{ workload }}/bronze/bronze_{{ workload }}.parquet",
     )
-    ap.add_argument("--out", default="output/advisory_transactions")
+    ap.add_argument("--out", default="output/{{ workload }}")
     args, _unknown = ap.parse_known_args()
     if args.local:
         run_local(args.bronze, args.out)

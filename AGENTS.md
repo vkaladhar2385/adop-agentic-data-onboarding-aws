@@ -335,9 +335,9 @@ These layers turn this repo into a full agentic framework (Phase 7):
 |---|---|---|
 | **Compute routing spec** | **Draft** (example workload) | `workloads/*/config/compute.yaml` |
 | **Compute drift validator** | **Done** | `tools/validate_compute.py` (CI in validate-config job) |
-| **PySpark + Iceberg migration** (pilot workloads) | **Partial** (`advisory_transactions` transforms) | `spark_transforms.py`, `glue.tf`, `main.tf` |
-| JSON Schema contracts for configs | Not started | `contracts/v1/*.schema.json` (include `compute.schema.json`) |
-| Deterministic codegen from specs | Not started | `shared/codegen/` (PySpark + Iceberg Jinja templates) |
+| **JSON Schema contracts** | **Done** (compute + transformations) | `contracts/v1/` + `tools/validate_configs.py` |
+| **Codegen (one template)** | **Done** (bronze_to_silver) | `shared/codegen/`, `shared/templates/advisory_bronze_to_silver.py.j2`, `tools/render_workload.py` |
+| **PySpark + Iceberg migration** (pilot workloads) | **Partial** (code + sync; sandbox apply pending) | `spark_transforms.py`, `glue.tf`, `main.tf` |
 | `StructuredLogger` | Not started | `shared/utils/structured_logger.py` |
 | Tool registry (MCP / CLI routing) | Partial | Cursor `aws-mcp`; official 13-server set in Track B |
 | Agent trace logs | Not started | `workloads/*/logs/trace_events.jsonl` |
