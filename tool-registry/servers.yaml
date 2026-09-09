@@ -1,0 +1,107 @@
+# tool-registry/servers.yaml — Track A MCP registry
+# Must match .mcp.json. Validate: python tools/validate_mcp_registry.py
+# Custom servers: vendored in-repo at mcp-servers/ (self-contained)
+
+servers:
+  # --- REQUIRED (block Phase 5 if failed) ---
+  - name: glue-athena
+    type: custom
+    category: REQUIRED
+    location: mcp-servers/glue-athena-server/server.py
+    use_for: Glue catalog + Athena queries
+    fallback: aws glue / aws athena CLI
+
+  - name: lakeformation
+    type: custom
+    category: REQUIRED
+    location: mcp-servers/lakeformation-server/server.py
+    use_for: LF-Tags, TBAC grants
+    fallback: aws lakeformation CLI
+
+  - name: iam
+    type: pypi
+    category: REQUIRED
+    package: awslabs-iam-mcp-server
+    use_for: Role lookup, simulate_principal_policy
+    fallback: aws iam CLI
+
+  # --- WARN (CLI fallback if failed) ---
+  - name: cloudtrail
+    type: pypi
+    category: WARN
+    package: awslabs-cloudtrail-mcp-server
+    use_for: Audit trail lookup
+    fallback: aws cloudtrail CLI
+
+  - name: redshift
+    type: pypi
+    category: WARN
+    package: awslabs-redshift-mcp-server
+    use_for: Spectrum / Redshift verify queries
+    fallback: aws athena CLI
+
+  - name: core
+    type: pypi
+    category: WARN
+    package: awslabs-core-mcp-server
+    use_for: S3, KMS, Secrets Manager
+    fallback: aws s3 / aws kms CLI
+    notes: Slow startup (~5-10s)
+
+  - name: s3-tables
+    type: pypi
+    category: WARN
+    package: awslabs-s3-tables-mcp-server
+    use_for: S3 Tables / Iceberg ops
+    fallback: aws s3 CLI
+
+  - name: pii-detection
+    type: custom
+    category: WARN
+    location: mcp-servers/pii-detection-server/server.py
+    use_for: PII scan + LF tag hints
+    fallback: semantic.yaml + shared/utils/pii.py
+
+  # --- OPTIONAL (defer if failed) ---
+  - name: sagemaker-catalog
+    type: custom
+    category: OPTIONAL
+    location: mcp-servers/sagemaker-catalog-server/server.py
+    use_for: Business metadata on Glue tables
+    fallback: Defer enrichment
+
+  - name: lambda
+    type: pypi
+    category: OPTIONAL
+    package: awslabs-lambda-mcp-server
+    use_for: LF grant/revoke via Lambda helpers
+    fallback: aws lambda invoke CLI
+
+  - name: cloudwatch
+    type: pypi
+    category: OPTIONAL
+    package: awslabs-cloudwatch-mcp-server
+    use_for: Logs, metrics, alarms
+    fallback: aws cloudwatch CLI
+
+  - name: cost-explorer
+    type: pypi
+    category: OPTIONAL
+    package: awslabs-cost-explorer-mcp-server
+    use_for: Cost and usage
+    fallback: aws ce CLI
+
+  - name: dynamodb
+    type: pypi
+    category: OPTIONAL
+    package: awslabs-dynamodb-mcp-server
+    use_for: Operational state tables
+    fallback: aws dynamodb CLI
+
+not_available:
+  - name: stepfunctions
+    reason: Track A uses Terraform for SFN; no official MCP server
+    fallback: aws stepfunctions CLI
+  - name: eventbridge
+    reason: Track A uses Terraform for Scheduler
+    fallback: aws scheduler CLI
