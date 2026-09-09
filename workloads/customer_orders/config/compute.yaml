@@ -1,0 +1,59 @@
+workload: customer_orders
+
+profile:
+  estimated_rows_per_run: 500
+  peak_rows_per_run: 5000
+  silver_format: iceberg
+  gold_format: iceberg
+  compliance: none
+
+defaults:
+  transform_job_type: glueetl
+  quality_job_type: pythonshell
+  ingest_job_type: auto
+
+pipeline_steps:
+  ingest_to_bronze:
+    job_type: pythonshell
+    script: scripts/extract/ingest_to_bronze.py
+    rationale: daily CSV batch
+
+  bronze_to_silver:
+    job_type: glueetl
+    script: scripts/transform/bronze_to_silver.py
+    workers: 2
+    worker_type: G.1X
+    requires:
+      - datalake-formats=iceberg
+      - enable-data-lineage=true
+
+  quality_silver:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+  silver_to_gold:
+    job_type: glueetl
+    script: scripts/transform/silver_to_gold.py
+    workers: 2
+    worker_type: G.1X
+    requires:
+      - datalake-formats=iceberg
+      - enable-data-lineage=true
+
+  quality_gold:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+terraform_sync:
+  status: pending
+  note: Tier B MWAA proof — DAG codegen + pytest; MWAA sync when sandbox redeployed.
+
+routing:
+  rules:
+    - id: iceberg_transform_requires_spark
+      when: "step in (bronze_to_silver, silver_to_gold)"
+      job_type: glueetl
+      override: true
+    - id: quality_gate_prefers_shell
+      when: "step matches quality_*"
+      job_type: pythonshell

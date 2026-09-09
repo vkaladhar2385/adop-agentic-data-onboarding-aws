@@ -1,0 +1,20 @@
+{
+  "state": "STAGED_LOCAL",
+  "workload": "customer_orders",
+  "namespace": "commerce",
+  "version": "v1",
+  "staged_at": "2026-09-09T05:22:05.145621+00:00",
+  "artifacts": {
+    "ontology.ttl": {
+      "sha256": "5483af3d056ce8159038951b651d41ec9b0696bfabfcbd81ebd2f5a6a35dd348"
+    },
+    "mappings.ttl": {
+      "sha256": "3281fa47d2d5459efd4b29cb2083157571be32a14cdd2725c7dbbb4ed805ddba"
+    }
+  },
+  "steward_checklist": [
+    "Review OWL classes against business glossary",
+    "Confirm PII annotations before AWS Semantic Layer publish",
+    "Validate R2RML maps to Gold Glue table"
+  ]
+}

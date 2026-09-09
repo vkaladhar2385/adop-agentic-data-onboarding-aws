@@ -1,0 +1,18 @@
+@prefix ex: <https://adop.example/commerce/v1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:Ontology a owl:Ontology ; rdfs:label "customer_orders ontology" .
+
+ex:CustomerOrder a owl:Class ; rdfs:label "CustomerOrder" .
+ex:customer_id a owl:DatatypeProperty ; rdfs:range xsd:string .
+ex:customer_id ex:piiClassification "restricted" ; ex:dataSensitivity "high" .
+ex:line_value a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+ex:order_date a owl:DatatypeProperty ; rdfs:range xsd:date .
+ex:order_id a owl:DatatypeProperty ; rdfs:range xsd:string .
+ex:order_status a owl:DatatypeProperty ; rdfs:range xsd:string .
+ex:order_total a owl:DatatypeProperty ; rdfs:range xsd:decimal .
+ex:product_sku a owl:DatatypeProperty ; rdfs:range xsd:string .
+ex:quantity a owl:DatatypeProperty ; rdfs:range xsd:integer .
+ex:updated_at a owl:DatatypeProperty ; rdfs:range xsd:dateTime .

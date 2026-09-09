@@ -1,0 +1,29 @@
+workload: customer_orders
+
+bronze_to_silver:
+  dedup:
+    keys: [order_id]
+    keep: latest_by
+    order_by: updated_at
+  casts:
+    quantity: integer
+    order_total: decimal
+  string_ops:
+    trim: all
+    uppercase: [order_status]
+  pii_masking:
+    - column: customer_id
+      method: hash
+  quarantine_when:
+    - missing_order_id
+    - invalid_quantity
+  derived:
+    line_value: "order_total"
+
+silver_to_gold:
+  schema_style: flat
+  table: gold_customer_orders
+  grain: order_id
+  measures: [quantity, order_total, line_value]
+  gold_pii_policy:
+    suppress: [customer_id]

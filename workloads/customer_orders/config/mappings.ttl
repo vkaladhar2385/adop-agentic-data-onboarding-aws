@@ -1,0 +1,7 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix ex: <https://adop.example/commerce/v1/> .
+
+<#gold_customer_ordersMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "customer_orders_db.gold_customer_orders" ] ;
+  rr:subjectMap [ rr:class ex:CustomerOrder ] .
+

@@ -1,0 +1,30 @@
+workload: customer_orders
+
+gates:
+  silver: 0.80
+  gold: 0.95
+
+rules:
+  - id: completeness_order_id
+    dimension: completeness
+    critical: true
+    threshold: 1.00
+    description: order_id must never be null
+
+  - id: uniqueness_order_id
+    dimension: uniqueness
+    critical: true
+    threshold: 1.00
+    description: order_id unique after dedup
+
+  - id: validity_quantity_positive
+    dimension: validity
+    critical: true
+    threshold: 1.00
+    description: quantity >= 1
+
+  - id: validity_order_total_non_negative
+    dimension: validity
+    critical: false
+    threshold: 1.00
+    description: order_total >= 0 (warning)

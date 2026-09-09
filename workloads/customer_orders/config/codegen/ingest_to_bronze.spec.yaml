@@ -1,0 +1,4 @@
+schema_version: v1
+workload: customer_orders
+bronze_table: bronze_customer_orders
+source_sample: demo/sample_data/customer_orders.csv

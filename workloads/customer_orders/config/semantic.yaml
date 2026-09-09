@@ -1,0 +1,22 @@
+workload: customer_orders
+namespace: commerce
+
+entities:
+  - name: CustomerOrder
+    grain: one row per order_id
+    primary_key: [order_id]
+
+columns:
+  order_id:       { role: identifier, type: string, pii: false }
+  customer_id:    { role: identifier, type: string, pii: true }
+  product_sku:    { role: dimension,  type: string, pii: false }
+  quantity:       { role: measure,    type: integer, pii: false }
+  order_date:     { role: temporal,   type: date,    pii: false }
+  order_status:   { role: dimension,  type: string, pii: false }
+  order_total:    { role: measure,    type: decimal, pii: false }
+  updated_at:     { role: temporal,   type: timestamp, pii: false }
+  line_value:     { role: measure,    type: decimal, pii: false, derived: true }
+
+lf_tags:
+  - tag: pii
+    columns: [customer_id]

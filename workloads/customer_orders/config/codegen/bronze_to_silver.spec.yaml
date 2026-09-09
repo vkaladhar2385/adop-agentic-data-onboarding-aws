@@ -1,0 +1,4 @@
+schema_version: v1
+workload: customer_orders
+database: customer_orders_db
+silver_table: silver_customer_orders

@@ -1,0 +1,4 @@
+schema_version: v1
+workload: customer_orders
+silver_s3_prefix: silver/customer_orders/quality_export/
+gold_s3_prefix: gold/customer_orders/gold_customer_orders/

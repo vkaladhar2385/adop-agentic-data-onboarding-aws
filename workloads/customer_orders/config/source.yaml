@@ -1,0 +1,42 @@
+workload: customer_orders
+domain: commerce
+description: >-
+  Daily customer order feed. Tier B factory proof — MWAA orchestration + ontology staging.
+
+source:
+  type: s3
+  format: csv
+  has_header: true
+  location: s3://data-lake-<account>-us-east-1/landing/customer_orders/ingestion_date=YYYY-MM-DD/customer_orders.csv
+  compression: none
+  primary_key: order_id
+  estimated_row_count: 500
+
+cadence:
+  mode: batch
+  frequency: daily
+  time_utc: "07:00"
+
+zones:
+  bronze:
+    database: customer_orders_db
+    table: bronze_customer_orders
+    format: parquet
+  silver:
+    database: customer_orders_db
+    table: silver_customer_orders
+    format: iceberg
+  gold:
+    database: customer_orders_db
+    table: gold_customer_orders
+    schema_style: flat
+    format: iceberg
+
+compliance:
+  regulation: none
+  retention_years: 3
+  bronze_immutable: true
+
+orchestration:
+  engine: mwaa
+  schedule: airflow

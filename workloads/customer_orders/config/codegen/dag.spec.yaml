@@ -1,0 +1,51 @@
+schema_version: v1
+template_id: airflow_dag
+workload: customer_orders
+dataset_name: customer_orders
+dag_id: customer_orders_pipeline
+schedule:
+  cron: "0 7 * * *"
+  timezone: UTC
+  catchup: false
+  max_active_runs: 1
+  start_date: "2026-01-01"
+retries:
+  count: 2
+  delay_seconds: 300
+  backoff: true
+tasks:
+  - task_id: ingest_bronze
+    type: glue_job
+    script_path: scripts/extract/ingest_to_bronze.py
+    timeout_minutes: 30
+  - task_id: transform_silver
+    type: glue_job
+    script_path: scripts/transform/bronze_to_silver.py
+    depends_on: [ingest_bronze]
+    timeout_minutes: 45
+  - task_id: quality_check_silver
+    type: quality_check
+    depends_on: [transform_silver]
+    timeout_minutes: 15
+    params:
+      "--TABLE_NAME": "glue_catalog.customer_orders_db.silver_customer_orders"
+      "--ZONE": "silver"
+  - task_id: aggregate_gold
+    type: glue_job
+    script_path: scripts/transform/silver_to_gold.py
+    depends_on: [quality_check_silver]
+    timeout_minutes: 30
+  - task_id: quality_check_gold
+    type: quality_check
+    depends_on: [aggregate_gold]
+    timeout_minutes: 15
+    params:
+      "--TABLE_NAME": "glue_catalog.customer_orders_db.gold_customer_orders"
+      "--ZONE": "gold"
+failure_handling:
+  on_failure_callback: sns_alert
+  notification_channel: customer-orders-alerts
+tags:
+  - customer_orders
+  - tier-b
+  - mwaa
