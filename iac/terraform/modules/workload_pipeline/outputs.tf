@@ -1,5 +1,5 @@
 output "sfn_role_name" {
-  value       = aws_iam_role.sfn.name
+  value       = local.sfn_role_name
   description = "Step Functions execution role name (root attaches extra invoke perms for extension Lambdas)."
 }
 
@@ -14,13 +14,33 @@ output "schedule_name" {
 }
 
 output "glue_database" {
-  value       = aws_glue_catalog_database.db.name
-  description = "Glue catalog database for all zones."
+  value       = local.glue_database_name
+  description = "Glue catalog database for all zones (created by Terraform or MCP per catalog_owner)."
+}
+
+output "catalog_owner" {
+  value       = var.catalog_owner
+  description = "terraform or mcp — who owns Glue database creation."
 }
 
 output "kms_key_aliases" {
-  value       = { for z, a in aws_kms_alias.zone : z => a.name }
+  value       = local.zone_kms_alias_map
   description = "Zone-scoped KMS aliases (Bronze/Silver/Gold)."
+}
+
+output "kms_owner" {
+  value       = var.kms_owner
+  description = "terraform or mcp — who owns zone KMS keys."
+}
+
+output "iam_owner" {
+  value       = var.iam_owner
+  description = "terraform or mcp — who owns pipeline IAM roles."
+}
+
+output "lakeformation_owner" {
+  value       = var.lakeformation_owner
+  description = "terraform or mcp — who owns Lake Formation grants."
 }
 
 output "alerts_topic_arn" {

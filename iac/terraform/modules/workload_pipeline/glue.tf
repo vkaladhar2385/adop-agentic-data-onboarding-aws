@@ -10,13 +10,20 @@ data "aws_iam_policy_document" "glue_assume" {
 }
 
 resource "aws_iam_role" "glue" {
+  count              = var.iam_owner == "terraform" ? 1 : 0
   name               = "${local.name}-glue-role"
   assume_role_policy = data.aws_iam_policy_document.glue_assume.json
   tags               = local.tags
 }
 
+data "aws_iam_role" "glue" {
+  count = var.iam_owner == "mcp" ? 1 : 0
+  name  = "${local.name}-glue-role"
+}
+
 resource "aws_iam_role_policy_attachment" "glue_service" {
-  role       = aws_iam_role.glue.name
+  count      = var.iam_owner == "terraform" ? 1 : 0
+  role       = aws_iam_role.glue[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 }
 
@@ -50,18 +57,24 @@ data "aws_iam_policy_document" "glue_permissions" {
   statement {
     sid       = "UseZoneKmsKeys"
     actions   = ["kms:Decrypt", "kms:Encrypt", "kms:GenerateDataKey*", "kms:DescribeKey"]
-    resources = [for k in aws_kms_key.zone : k.arn]
+    resources = local.zone_kms_arns
   }
   statement {
     sid       = "GlueCatalogDb"
-    actions   = ["glue:GetDatabase", "glue:GetTable", "glue:GetTables", "glue:CreateTable", "glue:UpdateTable"]
+    actions   = ["glue:GetDatabase", "glue:GetTable", "glue:GetTables", "glue:CreateTable", "glue:UpdateTable", "glue:DeleteTable"]
     resources = ["*"] # Glue catalog resource-level perms are coarse; scope via Lake Formation instead
+  }
+  statement {
+    sid       = "LakeFormationDataAccess"
+    actions   = ["lakeformation:GetDataAccess"]
+    resources = ["*"]
   }
 }
 
 resource "aws_iam_role_policy" "glue" {
+  count  = var.iam_owner == "terraform" ? 1 : 0
   name   = "${local.name}-glue-policy"
-  role   = aws_iam_role.glue.id
+  role   = aws_iam_role.glue[0].id
   policy = data.aws_iam_policy_document.glue_permissions.json
 }
 
@@ -77,6 +90,13 @@ locals {
     "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/transformations.yaml",
     "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality_rules.yaml",
   ]
+  # Iceberg warehouse must match the zone each transform writes (Glue --conf is static at job start).
+  glue_job_warehouse_zone = {
+    ingest_to_bronze = "bronze"
+    bronze_to_silver = "silver"
+    silver_to_gold   = "gold"
+  }
+  glue_iceberg_conf_prefix = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO --conf spark.sql.catalog.glue_catalog.glue.lakeformation-enabled=true --conf spark.sql.defaultCatalog=glue_catalog"
 }
 
 # ---- One aws_glue_job per pipeline step ----
@@ -86,7 +106,7 @@ resource "aws_glue_job" "job" {
   for_each = var.glue_jobs
 
   name              = "${var.workload}_${each.key}"
-  role_arn          = aws_iam_role.glue.arn
+  role_arn          = local.glue_role_arn
   glue_version      = each.value.job_type == "pythonshell" ? "3.0" : "4.0"
   max_retries       = 1
   timeout           = each.value.job_type == "pythonshell" ? 15 : 60
@@ -112,7 +132,7 @@ resource "aws_glue_job" "job" {
       "--job-language"        = "python"
       "--datalake-formats"    = "iceberg"
       "--enable-data-lineage" = "true"
-      "--conf"                = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.data_lake_bucket}/silver/${var.workload}/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO --conf spark.sql.catalog.glue_catalog.glue.lakeformation-enabled=true --conf spark.sql.defaultCatalog=glue_catalog"
+      "--conf"                = "${local.glue_iceberg_conf_prefix} --conf spark.sql.catalog.glue_catalog.glue.id=${var.account_id} --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.data_lake_bucket}/${lookup(local.glue_job_warehouse_zone, each.key, "silver")}/${var.workload}/"
     } : {
       # Python Shell: pyarrow for pandas parquet I/O at demo scale.
       "--additional-python-modules" = "pyarrow==15.0.2"

@@ -86,3 +86,47 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "catalog_owner" {
+  type        = string
+  description = "Who creates the Glue catalog database: terraform (default) or mcp (Phase 5 MCP cutover)."
+  default     = "terraform"
+
+  validation {
+    condition     = contains(["terraform", "mcp"], var.catalog_owner)
+    error_message = "catalog_owner must be terraform or mcp."
+  }
+}
+
+variable "kms_owner" {
+  type        = string
+  description = "Who creates zone KMS keys: terraform (default) or mcp."
+  default     = "terraform"
+
+  validation {
+    condition     = contains(["terraform", "mcp"], var.kms_owner)
+    error_message = "kms_owner must be terraform or mcp."
+  }
+}
+
+variable "iam_owner" {
+  type        = string
+  description = "Who creates pipeline IAM roles: terraform (default) or mcp."
+  default     = "terraform"
+
+  validation {
+    condition     = contains(["terraform", "mcp"], var.iam_owner)
+    error_message = "iam_owner must be terraform or mcp."
+  }
+}
+
+variable "lakeformation_owner" {
+  type        = string
+  description = "Who creates Lake Formation grants: terraform (default) or mcp."
+  default     = "terraform"
+
+  validation {
+    condition     = contains(["terraform", "mcp"], var.lakeformation_owner)
+    error_message = "lakeformation_owner must be terraform or mcp."
+  }
+}

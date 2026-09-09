@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADOP Agent Factory — Requirements vs Status</title>
+  <style>
+    :root { --navy:#1b2a4a; --slate:#4a5568; --line:#d8dee9; --bg:#f7f6f2; --card:#fff; --teal:#0f6e6b; --ink:#1a1a1a; --green:#0d7a4a; --amber:#b45309; --gray:#6b7280; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family: "Segoe UI", Calibri, system-ui, sans-serif; }
+    .deck { height:100%; }
+    .slide { display:none; height:100%; padding:40px 56px; flex-direction:column; overflow:hidden; }
+    .slide.active { display:flex; }
+    h1 { font-size:34px; font-weight:650; color:var(--navy); margin:0 0 10px; letter-spacing:-0.02em; line-height:1.15; }
+    h2 { font-size:24px; font-weight:650; color:var(--navy); margin:0 0 14px; }
+    p, li { font-size:16px; line-height:1.4; color:var(--slate); }
+    .kicker { font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--teal); font-weight:600; margin-bottom:8px; }
+    .row { display:flex; gap:18px; flex:1; min-height:0; }
+    .col { flex:1; min-width:0; }
+    .stat { background:var(--card); border:1px solid var(--line); padding:16px 18px; flex:1; }
+    .stat b { display:block; font-size:26px; color:var(--navy); margin-bottom:4px; }
+    .stat span { font-size:13px; color:var(--slate); line-height:1.35; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--navy); font-weight:600; font-size:12px; }
+    .bar { display:flex; align-items:center; gap:10px; margin:8px 0; }
+    .bar .label { width:200px; font-size:13px; color:var(--navy); flex-shrink:0; }
+    .bar .track { flex:1; height:16px; background:#e8ebe6; }
+    .bar .fill { height:100%; background:var(--navy); }
+    .bar .fill.teal { background:var(--teal); }
+    .bar .fill.amber { background:var(--amber); }
+    .bar .n { width:72px; font-size:12px; color:var(--slate); text-align:right; flex-shrink:0; }
+    .foot { margin-top:auto; padding-top:12px; font-size:11px; color:#7a8494; display:flex; justify-content:space-between; }
+    .nav { position:fixed; bottom:16px; right:20px; display:flex; gap:8px; z-index:10; }
+    .nav button { background:var(--navy); color:#fff; border:0; padding:8px 12px; cursor:pointer; font-size:13px; }
+    .callout { border-left:3px solid var(--teal); padding:8px 14px; background:#fff; font-size:15px; }
+    ul.tight li { margin:5px 0; font-size:15px; }
+    .badge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; white-space:nowrap; }
+    .badge.done { background:#d1fae5; color:var(--green); }
+    .badge.mostly { background:#fef3c7; color:var(--amber); }
+    .badge.progress { background:#dbeafe; color:#1d4ed8; }
+    .badge.partial { background:#fce7f3; color:#9d174d; }
+    .badge.not { background:#f3f4f6; color:var(--gray); }
+    .compact td:first-child { width:34%; }
+    .compact td:nth-child(2) { width:14%; }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide active">
+  <div class="kicker">Executive update · September 2026</div>
+  <h1>Internal agent factory for<br>governed data pipelines</h1>
+  <p><strong style="color:var(--navy)">Our platform</strong> — ADOP-inspired architecture, our code, our operating model.<br>
+  AWS open ADOP is the <em>reference blueprint</em>, not an off-the-shelf product we installed.</p>
+  <div class="row" style="flex:0; margin-top:22px;">
+    <div class="stat"><b>~95%</b><span>Factory &amp; codegen (spec → render → test)</span></div>
+    <div class="stat"><b>~90%</b><span>MCP-first deploy policy + implementation</span></div>
+    <div class="stat"><b>In progress</b><span>Live E2E on fresh sandbox after MCP cutover</span></div>
+  </div>
+  <p class="callout" style="margin-top:20px;">One-line: <strong>The factory is built; we are re-proving end-to-end on AWS after cost teardown and MCP-first infrastructure cutover.</strong></p>
+  <div class="foot"><span>ADOP Track A · internal pilot</span><span>1 / 6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">What we are building</div>
+  <h2>Your agent factory vs the AWS reference</h2>
+  <div class="row">
+    <div class="col">
+      <p><strong style="color:var(--navy)">Reference (Track B study)</strong></p>
+      <ul class="tight">
+        <li>AWS sample ADOP — multi-agent phases, MCP, codegen</li>
+        <li>MWAA + PySpark + Iceberg as defaults</li>
+        <li>Design patterns for discovery, gates, catalog</li>
+      </ul>
+    </div>
+    <div class="col">
+      <p><strong style="color:var(--navy)">Our platform (Track A)</strong></p>
+      <ul class="tight">
+        <li>Repeatable onboard → build → deploy workflows</li>
+        <li>Step Functions + EventBridge (MWAA opt-in only)</li>
+        <li>Enforced codegen + write guard + CI drift</li>
+        <li>MCP-first data plane; Terraform fallback for compute</li>
+        <li>4+ proof workloads (SOX, GDPR, catalog-only, Tier B)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>See docs/TRACK_B.md · AGENTS.md</span><span>2 / 6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Requirements vs status</div>
+  <h2>Platform &amp; factory (complete)</h2>
+  <table class="compact">
+    <tr><th>Requirement</th><th>Status</th><th>Note</th></tr>
+    <tr><td>Own agent factory (not AWS product)</td><td><span class="badge done">Done</span></td><td>Tier A complete; Tier B scaffolding in repo</td></tr>
+    <tr><td>HITL discovery gate</td><td><span class="badge done">Done</span></td><td>AGENTS.md + onboard workflow</td></tr>
+    <tr><td>Sub-agents → specs; main agent renders</td><td><span class="badge done">Done</span></td><td>AgentOutput contract + write guard</td></tr>
+    <tr><td>Deterministic codegen + CI drift</td><td><span class="badge done">Done</span></td><td>5 templates; 3 workloads drift-clean</td></tr>
+    <tr><td>Step Functions default orchestration</td><td><span class="badge done">Done</span></td><td>MWAA codegen optional, demo skipped</td></tr>
+    <tr><td>Medallion + quality + PII / LF-Tags</td><td><span class="badge done">Done</span></td><td>SOX + GDPR proof workloads</td></tr>
+    <tr><td>13 MCP servers + health check</td><td><span class="badge done">Done</span></td><td>Self-contained mcp-servers/</td></tr>
+    <tr><td>Tier B (Gateway, Cedar, ontology)</td><td><span class="badge done">Done</span></td><td>Files + Gateway config; live demo partial</td></tr>
+  </table>
+  <div class="foot"><span>Source: docs/STATUS.md · Tier A checklist A1–A18</span><span>3 / 6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Requirements vs status</div>
+  <h2>Deploy model &amp; live AWS (in progress)</h2>
+  <table class="compact">
+    <tr><th>Requirement</th><th>Status</th><th>Note</th></tr>
+    <tr><td>MCP-first: catalog, KMS, IAM, LF</td><td><span class="badge done">Done</span></td><td>mcp_deploy_infrastructure.py + conditional TF</td></tr>
+    <tr><td>TF fallback: jobs, Lambdas, SFN, SNS</td><td><span class="badge done">Done</span></td><td>Ownership in compute.yaml + TOOL_ROUTING.md</td></tr>
+    <tr><td>PySpark + Iceberg Silver/Gold</td><td><span class="badge mostly">Mostly</span></td><td>compute.yaml + Glue ETL; E2E stabilizing</td></tr>
+    <tr><td>Live E2E on sandbox</td><td><span class="badge progress">In progress</span></td><td>v6 SUCCEEDED pre-destroy; redeploy + fix underway</td></tr>
+    <tr><td>Extensions (Redshift / OpenSearch / Redis)</td><td><span class="badge partial">Partial</span></td><td>Redshift on SFN; OS/Redis deferred (cost)</td></tr>
+    <tr><td>Tier-2 aws-mcp (Glue jobs via MCP)</td><td><span class="badge not">Not started</span></td><td>Optional TF shrink — backlog</td></tr>
+    <tr><td>Phase 7 multi-cloud framework</td><td><span class="badge not">Not started</span></td><td>After Track B mastery</td></tr>
+  </table>
+  <div class="foot"><span>Last green run: framework-e2e-v6 · destroy 2026-09-09</span><span>4 / 6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Progress summary</div>
+  <h2>Completion by dimension</h2>
+  <div class="bar"><div class="label">Factory &amp; codegen</div><div class="track"><div class="fill teal" style="width:95%"></div></div><div class="n">~95%</div></div>
+  <div class="bar"><div class="label">MCP-first architecture</div><div class="track"><div class="fill teal" style="width:90%"></div></div><div class="n">~90%</div></div>
+  <div class="bar"><div class="label">Tier B file parity</div><div class="track"><div class="fill" style="width:85%"></div></div><div class="n">~85%</div></div>
+  <div class="bar"><div class="label">Live AWS E2E (today)</div><div class="track"><div class="fill amber" style="width:40%"></div></div><div class="n">~40%</div></div>
+  <div class="bar"><div class="label">Gateway / MWAA live demo</div><div class="track"><div class="fill amber" style="width:60%"></div></div><div class="n">~60%</div></div>
+  <p class="callout" style="margin-top:16px;">Milestone labels (M1–M6b ≈ 94%) measure <em>factory scaffolding</em>, not “% of AWS owned by MCP.” Policy target: ~62% MCP / ~38% TF for core pipeline.</p>
+  <div class="foot"><span>Internal metrics · not client-facing SLA</span><span>5 / 6</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Current focus</div>
+  <h2>While E2E fix completes</h2>
+  <ol class="tight" style="font-size:16px; color:var(--slate); padding-left:22px;">
+    <li><strong style="color:var(--navy)">Terraform apply</strong> on clean sandbox (40 resources planned)</li>
+    <li><strong style="color:var(--navy)">Green Step Functions run</strong> — medallion + register_catalog + verifier</li>
+    <li><strong style="color:var(--navy)">Confirm MCP cutover</strong> — data plane live before TF control plane</li>
+  </ol>
+  <div class="row" style="flex:0; margin-top:24px;">
+    <div class="stat"><b>Proven once</b><span>SFN framework-e2e-v6 SUCCEEDED (Iceberg + Redshift path)</span></div>
+    <div class="stat"><b>Now proving</b><span>Same path after destroy + MCP-first redeploy</span></div>
+  </div>
+  <p style="margin-top:20px; font-size:14px; color:#7a8494;">Open in browser · Arrow keys or Prev/Next · Print to PDF from slide 1</p>
+  <div class="foot"><span>docs/presentations/adop-requirements-status.html</span><span>6 / 6</span></div>
+</section>
+
+</div>
+<div class="nav">
+  <button type="button" onclick="go(-1)">Prev</button>
+  <button type="button" onclick="go(1)">Next</button>
+</div>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  }
+  function go(d) { show(i + d); }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+  });
+</script>
+</body>
+</html>

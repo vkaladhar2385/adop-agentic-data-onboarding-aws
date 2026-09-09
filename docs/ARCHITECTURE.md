@@ -43,15 +43,16 @@ flowchart LR
   SEC[KMS + Lake Formation LF-Tags<br/>+ CloudTrail] -. secures .-> Lake
 ```
 
-Two independent pipelines share one pattern and one codebase layout:
+Three workloads share one pattern and one codebase layout:
 
-| | `advisory_transactions` | `web_events` |
-|---|---|---|
-| Domain | Wealth/brokerage | Digital analytics (clickstream) |
-| Cadence | Daily batch (07:00 UTC) | Hourly micro-batch (:05) |
-| Regulation | SOX (7-yr retention, financial integrity) | GDPR (consent, right-to-erasure) |
-| Gold shape | Star schema (fact + 4 dims) | Hourly rollup + erasure index |
-| Signature control | Quarantines broken financial math | Suppresses no-consent rows before they're ever processed |
+| | `advisory_transactions` | `web_events` | `product_inventory` |
+|---|---|---|---|
+| Domain | Wealth/brokerage | Digital analytics (clickstream) | Product / SKU catalog |
+| Cadence | Daily batch (07:00 UTC) | Hourly micro-batch (:05) | Daily batch (08:00 UTC) |
+| Regulation | SOX (7-yr retention, financial integrity) | GDPR (consent, right-to-erasure) | None (2-yr retention) |
+| Gold shape | Star schema (fact + 4 dims) | Hourly rollup + erasure index | Flat Iceberg (one row per sku) |
+| Sinks | Catalog + Redshift | Catalog only (TF PILOT-DISABLED) | Catalog only (no TF module yet) |
+| Signature control | Quarantines broken financial math | Suppresses no-consent rows before they're ever processed | Quarantines blank sku / negative on-hand |
 
 See the rendered picture: `docs/diagrams/adop-architecture.png`.
 

@@ -63,6 +63,29 @@ terraform_sync:
   status: enforced
   note: Terraform glue_jobs must match pipeline_steps (validated by tools/validate_compute.py).
 
+# MCP-first infrastructure ownership (M6b+). Terraform owns glue jobs, Lambdas, SFN, SNS only.
+infrastructure:
+  catalog:
+    owner: mcp
+    database: advisory_transactions_db
+  kms:
+    owner: mcp
+    zones: [bronze, silver, gold]
+  iam:
+    owner: mcp
+  lakeformation:
+    owner: mcp
+  glue_jobs:
+    owner: terraform
+  orchestration:
+    owner: terraform
+
+# Legacy alias — kept for tools that read catalog.owner directly.
+catalog:
+  owner: mcp
+  database: advisory_transactions_db
+  lf_tags: register_catalog_lambda  # SFN RegisterCatalog still applies LF-Tags post-Iceberg commit
+
 # Automatic resolution when ingest_job_type: auto or step omits job_type
 routing:
   rules:

@@ -4,7 +4,8 @@
 # Orchestration = Step Functions + EventBridge Scheduler (NO MWAA -> no ~$350/mo).
 
 locals {
-  name = "${var.workload}-${var.environment}"
+  name               = "${var.workload}-${var.environment}"
+  glue_database_name = "${var.workload}_db"
   tags = merge(var.tags, {
     Project    = "ADOP-Pilot"
     Workload   = var.workload
@@ -15,7 +16,7 @@ locals {
 
 # ---- Zone-scoped KMS (ADOP `zone-scoped-kms`: one CMK per Bronze/Silver/Gold) ----
 resource "aws_kms_key" "zone" {
-  for_each                = toset(["bronze", "silver", "gold"])
+  for_each                = var.kms_owner == "terraform" ? local.zone_names : []
   description             = "CMK for ${var.workload} ${each.key} zone"
   enable_key_rotation     = true # `kms-rotation` verifier check
   deletion_window_in_days = 7    # pilot minimum: destroyed keys still bill until the window closes
@@ -28,9 +29,16 @@ resource "aws_kms_alias" "zone" {
   target_key_id = each.value.key_id
 }
 
+data "aws_kms_key" "zone" {
+  for_each = var.kms_owner == "mcp" ? local.zone_names : []
+  key_id   = "alias/${var.workload}-${each.key}"
+}
+
 # ---- Glue Data Catalog database ----
+# When catalog_owner=mcp, database is created by tools/mcp_deploy_catalog.py (MCP Phase 5).
 resource "aws_glue_catalog_database" "db" {
-  name = "${var.workload}_db"
+  count = var.catalog_owner == "terraform" ? 1 : 0
+  name  = local.glue_database_name
 }
 
 # ---- SNS alert topic ----
@@ -57,9 +65,15 @@ data "aws_iam_policy_document" "sfn_assume" {
 }
 
 resource "aws_iam_role" "sfn" {
+  count              = var.iam_owner == "terraform" ? 1 : 0
   name               = "${local.name}-sfn-role"
   assume_role_policy = data.aws_iam_policy_document.sfn_assume.json
   tags               = local.tags
+}
+
+data "aws_iam_role" "sfn" {
+  count = var.iam_owner == "mcp" ? 1 : 0
+  name  = "${local.name}-sfn-role"
 }
 
 # Least-privilege: only the specific Glue jobs, Lambdas, and SNS topic used here.
@@ -84,8 +98,9 @@ data "aws_iam_policy_document" "sfn_permissions" {
 }
 
 resource "aws_iam_role_policy" "sfn" {
+  count  = var.iam_owner == "terraform" ? 1 : 0
   name   = "${local.name}-sfn-policy"
-  role   = aws_iam_role.sfn.id
+  role   = aws_iam_role.sfn[0].id
   policy = data.aws_iam_policy_document.sfn_permissions.json
 }
 
@@ -93,7 +108,7 @@ resource "aws_iam_role_policy" "sfn" {
 # Every workload's ASL file follows the "<workload>_state_machine.json" convention.
 resource "aws_sfn_state_machine" "pipeline" {
   name     = "${var.workload}_pipeline"
-  role_arn = aws_iam_role.sfn.arn
+  role_arn = local.sfn_role_arn
   definition = templatefile(
     "${path.module}/../../../../workloads/${var.workload}/orchestration/${var.workload}_state_machine.json",
     { account_id = var.account_id, aws_region = var.aws_region, workload = var.workload }
@@ -113,14 +128,21 @@ data "aws_iam_policy_document" "scheduler_assume" {
 }
 
 resource "aws_iam_role" "scheduler" {
+  count              = var.iam_owner == "terraform" ? 1 : 0
   name               = "${local.name}-scheduler-role"
   assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
   tags               = local.tags
 }
 
+data "aws_iam_role" "scheduler" {
+  count = var.iam_owner == "mcp" ? 1 : 0
+  name  = "${local.name}-scheduler-role"
+}
+
 resource "aws_iam_role_policy" "scheduler" {
-  name = "${local.name}-scheduler-policy"
-  role = aws_iam_role.scheduler.id
+  count = var.iam_owner == "terraform" ? 1 : 0
+  name  = "${local.name}-scheduler-policy"
+  role  = aws_iam_role.scheduler[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -140,7 +162,7 @@ resource "aws_scheduler_schedule" "trigger" {
   }
   target {
     arn      = aws_sfn_state_machine.pipeline.arn
-    role_arn = aws_iam_role.scheduler.arn
+    role_arn = local.scheduler_role_arn
     input    = jsonencode(var.state_machine_input)
     retry_policy {
       maximum_retry_attempts       = 3

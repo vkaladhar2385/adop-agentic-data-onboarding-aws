@@ -10,13 +10,20 @@ data "aws_iam_policy_document" "lambda_assume" {
 }
 
 resource "aws_iam_role" "lambda" {
+  count              = var.iam_owner == "terraform" ? 1 : 0
   name               = "${local.name}-lambda-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   tags               = local.tags
 }
 
+data "aws_iam_role" "lambda" {
+  count = var.iam_owner == "mcp" ? 1 : 0
+  name  = "${local.name}-lambda-role"
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda.name
+  count      = var.iam_owner == "terraform" ? 1 : 0
+  role       = aws_iam_role.lambda[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -50,7 +57,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
   statement {
     sid       = "KmsVerifyAndDecrypt"
     actions   = ["kms:DescribeKey", "kms:GetKeyRotationStatus", "kms:Decrypt", "kms:GenerateDataKey"]
-    resources = [for k in aws_kms_key.zone : k.arn]
+    resources = local.zone_kms_arns
   }
   statement {
     sid       = "StateMachineVerify"
@@ -90,8 +97,9 @@ data "aws_iam_policy_document" "lambda_permissions" {
 }
 
 resource "aws_iam_role_policy" "lambda" {
+  count  = var.iam_owner == "terraform" ? 1 : 0
   name   = "${local.name}-lambda-policy"
-  role   = aws_iam_role.lambda.id
+  role   = aws_iam_role.lambda[0].id
   policy = data.aws_iam_policy_document.lambda_permissions.json
 }
 
@@ -103,7 +111,7 @@ resource "aws_lambda_function" "fn" {
   for_each = var.lambda_functions
 
   function_name = "${var.workload}_${each.key}"
-  role          = aws_iam_role.lambda.arn
+  role          = local.lambda_role_arn
   runtime       = "python3.12"
   handler       = each.value.handler
   timeout       = each.value.timeout
@@ -114,7 +122,7 @@ resource "aws_lambda_function" "fn" {
 
   environment {
     variables = merge(
-      { GLUE_DATABASE = aws_glue_catalog_database.db.name, WORKLOAD = var.workload, DATA_LAKE_BUCKET = var.data_lake_bucket },
+      { GLUE_DATABASE = local.glue_database_name, WORKLOAD = var.workload, DATA_LAKE_BUCKET = var.data_lake_bucket },
       each.value.environment,
     )
   }

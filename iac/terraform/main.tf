@@ -21,6 +21,10 @@ provider "aws" {
 module "advisory_transactions" {
   source = "./modules/workload_pipeline"
 
+  catalog_owner       = "mcp" # Glue DB via mcp_deploy_infrastructure.py
+  kms_owner           = "mcp"
+  iam_owner           = "mcp"
+  lakeformation_owner = "mcp" # TF fallback: Glue jobs, Lambdas, SFN, Scheduler, SNS
   workload         = "advisory_transactions"
   environment      = var.environment
   aws_region       = var.aws_region

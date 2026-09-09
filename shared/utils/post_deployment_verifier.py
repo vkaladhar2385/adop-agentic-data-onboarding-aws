@@ -28,6 +28,26 @@ CHECKS = [
     "redis_quality_score_cached",
 ]
 
+# Step Functions ASL uses short names in PostDeploymentVerify Payload.checks
+SFN_CHECK_ALIASES = {
+    "tables_exist": "glue_tables_exist",
+    "lf_tags_applied": "lf_tags_applied_on_pii",
+    "kms_rotation": "kms_rotation_enabled",
+    "audit_logged": "cloudtrail_audit_logged",
+}
+
+
+def _resolve_checks(requested: list[str] | None) -> list[str]:
+    """Map SFN check names to internal keys; default to full CHECKS list."""
+    if not requested:
+        return list(CHECKS)
+    resolved: list[str] = []
+    for name in requested:
+        key = SFN_CHECK_ALIASES.get(name, name)
+        if key in CHECKS and key not in resolved:
+            resolved.append(key)
+    return resolved or list(CHECKS)
+
 
 def _dry_run(workload: str, database: str) -> dict[str, bool]:
     print(f"[verifier] DRY RUN for workload={workload} db={database}")
@@ -42,8 +62,10 @@ def _dry_run(workload: str, database: str) -> dict[str, bool]:
 def _check_glue_tables_exist(glue, database: str) -> bool:
     try:
         tables = glue.get_tables(DatabaseName=database)["TableList"]
+        print(f"[verifier] glue tables={len(tables)} in {database}")
         return len(tables) > 0
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        print(f"[verifier] glue get_tables exception: {exc}")
         return False
 
 
@@ -106,8 +128,11 @@ def _check_lf_tags_applied(lakeformation, database: str, table: str, pii_columns
         tagged = lakeformation.get_resource_lf_tags(
             Resource={"TableWithColumns": {"DatabaseName": database, "Name": table, "ColumnNames": pii_columns}}
         )
-        return bool(tagged.get("LFTagsOnColumns"))
-    except Exception:
+        ok = bool(tagged.get("LFTagsOnColumns"))
+        print(f"[verifier] lf_tags_on_columns={len(tagged.get('LFTagsOnColumns') or [])} expected={len(pii_columns)}")
+        return ok
+    except Exception as exc:  # noqa: BLE001
+        print(f"[verifier] lf_tags exception: {exc}")
         return False
 
 
@@ -179,11 +204,13 @@ def _check_redis_scores(workload: str) -> bool:
 
 
 def _live(workload: str, database: str, state_machine: str | None,
-          table: str = None, athena_output: str = None, pii_columns: list[str] = None) -> dict[str, bool]:  # pragma: no cover - requires AWS
+          table: str = None, athena_output: str = None, pii_columns: list[str] = None,
+          active_checks: list[str] | None = None) -> dict[str, bool]:  # pragma: no cover - requires AWS
     import boto3
 
     table = table or f"silver_{workload}"
     pii_columns = pii_columns or []
+    checks = _resolve_checks(active_checks)
     # `database` is NOT a valid fallback bucket name (it's a Glue Catalog
     # database name, e.g. "advisory_transactions_db" -- no such S3 bucket
     # exists). Fall back to DATA_LAKE_BUCKET (set on every workload Lambda,
@@ -198,18 +225,18 @@ def _live(workload: str, database: str, state_machine: str | None,
     lakeformation = boto3.client("lakeformation")
     cloudtrail = boto3.client("cloudtrail")
 
-    results = {
-        "glue_tables_exist": _check_glue_tables_exist(glue, database),
-        "state_machine_loads": _check_state_machine_loads(sfn, state_machine) if state_machine else True,
-        "kms_rotation_enabled": _check_kms_rotation(kms, workload),
-        "athena_returns_data": _check_athena_returns_data(athena, database, table, athena_output),
-        "lf_tags_applied_on_pii": _check_lf_tags_applied(lakeformation, database, table, pii_columns) if pii_columns else True,
-        "cloudtrail_audit_logged": _check_cloudtrail_audit_logged(cloudtrail),
-        "redshift_spectrum_returns_data": _check_redshift_spectrum(workload),
-        "opensearch_index_has_docs": _check_opensearch_index(workload),
-        "redis_quality_score_cached": _check_redis_scores(workload),
+    runners = {
+        "glue_tables_exist": lambda: _check_glue_tables_exist(glue, database),
+        "state_machine_loads": lambda: _check_state_machine_loads(sfn, state_machine) if state_machine else True,
+        "kms_rotation_enabled": lambda: _check_kms_rotation(kms, workload),
+        "athena_returns_data": lambda: _check_athena_returns_data(athena, database, table, athena_output),
+        "lf_tags_applied_on_pii": lambda: _check_lf_tags_applied(lakeformation, database, table, pii_columns) if pii_columns else True,
+        "cloudtrail_audit_logged": lambda: _check_cloudtrail_audit_logged(cloudtrail),
+        "redshift_spectrum_returns_data": lambda: _check_redshift_spectrum(workload),
+        "opensearch_index_has_docs": lambda: _check_opensearch_index(workload),
+        "redis_quality_score_cached": lambda: _check_redis_scores(workload),
     }
-    return results
+    return {key: runners[key]() for key in checks}
 
 
 def _report(results: dict[str, bool]) -> int:
@@ -246,24 +273,26 @@ def lambda_handler(event: dict, context) -> dict:  # pragma: no cover - requires
     event = {
       "workload": "advisory_transactions", "database": "advisory_transactions_db",
       "state_machine": "advisory_transactions_pipeline", "table": "silver_advisory_transactions",
-      "pii_columns": ["client_ssn", "client_email"], "checks": [...]   # checks list is informational
+      "pii_columns": ["client_ssn", "client_email"], "checks": [...]   # optional; SFN short names
     }
     """
     workload = event["workload"]
     database = event["database"]
+    active = _resolve_checks(event.get("checks"))
     try:
         import boto3  # noqa: F401
         results = _live(
             workload, database,
             event.get("state_machine"), event.get("table"),
             event.get("athena_output"), event.get("pii_columns"),
+            active_checks=active,
         )
     except ImportError:
         results = _dry_run(workload, database)
-    passed = all(results.get(c) for c in CHECKS)
+    passed = all(results.get(c) for c in active)
     if not passed:
-        raise RuntimeError(f"post-deployment verifier failed: { {c: results.get(c) for c in CHECKS} }")
-    return {"workload": workload, "passed": passed, "results": results}
+        raise RuntimeError(f"post-deployment verifier failed: { {c: results.get(c) for c in active} }")
+    return {"workload": workload, "passed": passed, "results": results, "checks_run": active}
 
 
 if __name__ == "__main__":

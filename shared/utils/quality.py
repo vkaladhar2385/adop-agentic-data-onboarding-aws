@@ -65,6 +65,10 @@ def unique(df: pd.DataFrame, column: str) -> tuple[float, int]:
     return _rate(~df[column].duplicated(keep=False))
 
 
+def unique_composite(df: pd.DataFrame, columns: list[str]) -> tuple[float, int]:
+    return _rate(~df.duplicated(subset=columns, keep=False))
+
+
 def in_set(df: pd.DataFrame, column: str, allowed: list[str]) -> tuple[float, int]:
     return _rate(df[column].isin(allowed))
 
@@ -127,6 +131,36 @@ def build_rule_library() -> dict[str, Callable[[pd.DataFrame], tuple[float, int]
         "validity_ip_dotted": lambda df: _rate(
             df["ip_address"].astype(str).str.match(r"^\d{1,3}(\.\d{1,3}){3}$", na=False)),
         "completeness_traffic_source": lambda df: not_null(df, "traffic_source"),
+        # product_inventory (catalog snapshot)
+        "completeness_sku": lambda df: not_null(df, "sku"),
+        "uniqueness_sku": lambda df: unique(df, "sku"),
+        "validity_on_hand_non_negative": lambda df: non_negative(df, "on_hand_qty"),
+        "completeness_product_name": lambda df: not_null(df, "product_name"),
+        "consistency_reserved_not_over_on_hand": lambda df: _rate(
+            pd.to_numeric(df["reserved_qty"], errors="coerce")
+            <= pd.to_numeric(df["on_hand_qty"], errors="coerce")
+        ),
+        "accuracy_list_price_gte_unit_cost": lambda df: _rate(
+            pd.to_numeric(df["list_price"], errors="coerce")
+            >= pd.to_numeric(df["unit_cost"], errors="coerce")
+        ),
+        # supplier_lead_times (procurement catalog)
+        "completeness_supplier_id": lambda df: not_null(df, "supplier_id"),
+        "uniqueness_supplier_category": lambda df: unique_composite(
+            df, ["supplier_id", "product_category"]
+        ),
+        "validity_lead_time_non_negative": lambda df: non_negative(df, "lead_time_days"),
+        "validity_lead_time_max_365": lambda df: _rate(
+            pd.to_numeric(df["lead_time_days"], errors="coerce").fillna(9999) <= 365
+        ),
+        "completeness_supplier_name": lambda df: not_null(df, "supplier_name"),
+        # customer_orders (Tier B MWAA proof)
+        "completeness_order_id": lambda df: not_null(df, "order_id"),
+        "uniqueness_order_id": lambda df: unique(df, "order_id"),
+        "validity_quantity_positive": lambda df: _rate(
+            pd.to_numeric(df["quantity"], errors="coerce").fillna(0) >= 1
+        ),
+        "validity_order_total_non_negative": lambda df: non_negative(df, "order_total"),
     }
 
 
