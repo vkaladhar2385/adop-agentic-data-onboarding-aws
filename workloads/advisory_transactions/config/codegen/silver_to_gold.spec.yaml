@@ -1,0 +1,6 @@
+schema_version: v1
+workload: advisory_transactions
+gold_spark_fn: silver_to_gold_tables
+silver_parquet: output/advisory_transactions/silver/silver_advisory_transactions.parquet
+# bronze_to_silver exports Parquet for quality gates at /quality_export (Iceberg lives at prefix root).
+silver_read_suffix: /quality_export

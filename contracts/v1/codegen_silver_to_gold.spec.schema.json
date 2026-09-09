@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/codegen_silver_to_gold.spec.schema.json",
+  "title": "Codegen spec — silver_to_gold",
+  "type": "object",
+  "required": ["schema_version", "workload", "gold_spark_fn", "silver_parquet"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "v1" },
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "template_id": { "type": "string" },
+    "gold_spark_fn": { "type": "string", "minLength": 1 },
+    "silver_parquet": { "type": "string", "minLength": 1 },
+    "silver_read_suffix": { "type": "string" }
+  }
+}

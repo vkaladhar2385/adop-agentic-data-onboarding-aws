@@ -52,8 +52,8 @@ def run_glue_spark():  # pragma: no cover
     )
     database = args["database"]
     silver_table = args["silver_table"]
-    bronze_path = args["bronze_path"].rstrip("/")
-    silver_path = args["silver_path"].rstrip("/")
+    bronze_path = args["bronze_path"].strip().rstrip("/")
+    silver_path = args["silver_path"].strip().rstrip("/")
 
     sc = SparkContext()
     glue_context = GlueContext(sc)
@@ -61,22 +61,26 @@ def run_glue_spark():  # pragma: no cover
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
+    warehouse = spark_transforms._warehouse_from_s3_path(silver_path)
+    spark_transforms.configure_iceberg_catalog(spark, warehouse)
+
     bronze_df = spark.read.parquet(bronze_path)
     input_rows = bronze_df.count()
     silver_df, quarantine_df = spark_transforms.bronze_to_silver_df(bronze_df)
 
-    spark_transforms.write_iceberg_table(silver_df, database, silver_table)
+    spark_transforms.write_iceberg_table(silver_df, database, silver_table, warehouse=warehouse)
 
-    silver_df.write.mode("overwrite").parquet(silver_path)
-    print(f"[silver] parquet export for quality gate -> {silver_path}")
+    export_path = f"{silver_path}/quality_export"
+    silver_df.write.mode("overwrite").parquet(export_path)
+    print(f"[silver] parquet export for quality gate -> {export_path}")
 
     q_count = quarantine_df.count()
     if q_count:
-        quarantine_path = silver_path.replace("/silver/", "/quarantine/").rstrip("/")
+        quarantine_path = bronze_path.replace("/bronze/", "/quarantine/") + "/csv_export"
         quarantine_df.coalesce(1).write.mode("overwrite").option("header", True).csv(
-            f"{quarantine_path}/"
+            quarantine_path
         )
-        print(f"[silver] quarantined rows: {q_count} -> {quarantine_path}/")
+        print(f"[silver] quarantined rows: {q_count} -> {quarantine_path}")
 
     clean_rows = silver_df.count()
     print(f"[silver] input={input_rows} clean={clean_rows} quarantined={q_count}")

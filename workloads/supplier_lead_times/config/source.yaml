@@ -1,0 +1,42 @@
+workload: supplier_lead_times
+domain: procurement
+description: >-
+  Weekly supplier lead-time feed by category. Catalog-only medallion (no extension sinks).
+
+source:
+  type: s3
+  format: csv
+  has_header: true
+  location: s3://data-lake-<account>-us-east-1/landing/supplier_lead_times/ingestion_date=YYYY-MM-DD/supplier_lead_times.csv
+  compression: none
+  primary_key: supplier_id
+  estimated_row_count: 120
+
+cadence:
+  mode: batch
+  frequency: weekly
+  time_utc: "06:00"
+
+zones:
+  bronze:
+    database: supplier_lead_times_db
+    table: bronze_supplier_lead_times
+    format: parquet
+  silver:
+    database: supplier_lead_times_db
+    table: silver_supplier_lead_times
+    format: iceberg
+  gold:
+    database: supplier_lead_times_db
+    table: gold_supplier_lead_times
+    schema_style: flat
+    format: iceberg
+
+compliance:
+  regulation: none
+  retention_years: 2
+  bronze_immutable: true
+
+orchestration:
+  engine: step_functions
+  schedule: eventbridge_scheduler

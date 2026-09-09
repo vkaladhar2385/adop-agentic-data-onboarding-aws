@@ -1,8 +1,8 @@
 # spec_hash: 27164d4468b473a4b238d0a3178b1de8016003a93996a3c17d453775bb461714
 # template_id: advisory_bronze_to_silver
-# template_hash: a6f3f112f542fae1a8d4b8676f554ad3e371e0fa251f58f6c333433f274ab249
+# template_hash: 3b715372cbd81aba347322cd48fedd953fd869d91ec6d6cef7b6ae14d7c1613d
 # schema_version: v1
-# rendered_at: 2026-09-08T16:16:06Z
+# rendered_at: 2026-09-09T18:51:09Z
 """Bronze -> Silver transform for `advisory_transactions`.
 
 Local mode uses pandas/local_runner (pytest source of truth). Glue ETL (PySpark)

@@ -1,0 +1,12 @@
+# Phase 1 Discovery Complete — advisory_transactions
+# Legacy hand-built pilot (pre-factory). Recorded 2026-09-08 for M3 deploy preflight.
+#
+# [x] Zone: full medallion
+# [x] PK: transaction_id | Dedup: keep_latest by ingestion_date
+# [x] PII: client_ssn, client_email, client_name (SOX)
+# [x] Gold: star schema
+# [x] Quality: defaults Silver >= 0.80, Gold >= 0.95
+# [x] Schedule: cron(0 7 * * ? *) UTC
+# [x] Orchestrator: Step Functions + EventBridge
+# [x] Sinks: catalog + Redshift (OpenSearch/Redis deferred in SFN)
+# [x] Compute: Iceberg Silver/Gold; mixed Shell + glueetl

@@ -1,0 +1,18 @@
+schema_version: v1
+template_id: state_machine
+workload: web_events
+silver_table: silver_web_events
+max_attempts: 3
+enable_redshift: false
+enable_opensearch: false
+enable_redis: false
+pii_columns:
+  - user_id
+  - user_email
+  - ip_address
+verifier_checks:
+  - tables_exist
+  - athena_returns_data
+  - lf_tags_applied
+  - kms_rotation
+  - audit_logged

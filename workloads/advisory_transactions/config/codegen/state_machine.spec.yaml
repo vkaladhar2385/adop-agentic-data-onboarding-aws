@@ -1,0 +1,16 @@
+schema_version: v1
+template_id: state_machine
+workload: advisory_transactions
+silver_table: silver_advisory_transactions
+max_attempts: 3
+enable_redshift: false
+enable_opensearch: false
+enable_redis: false
+pii_columns:
+  - client_ssn
+  - client_email
+verifier_checks:
+  - tables_exist
+  - athena_returns_data
+  - kms_rotation
+  - audit_logged

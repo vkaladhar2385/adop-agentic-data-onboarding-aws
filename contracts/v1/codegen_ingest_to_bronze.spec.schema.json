@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/codegen_ingest_to_bronze.spec.schema.json",
+  "title": "Codegen spec — ingest_to_bronze",
+  "type": "object",
+  "required": ["schema_version", "workload", "bronze_table", "source_sample"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "v1" },
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "template_id": { "type": "string" },
+    "bronze_table": { "type": "string", "minLength": 1 },
+    "source_sample": { "type": "string", "minLength": 1 },
+    "source_format": { "type": "string", "enum": ["csv", "jsonl"] }
+  }
+}

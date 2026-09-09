@@ -1,0 +1,15 @@
+schema_version: v1
+template_id: state_machine
+workload: product_inventory
+silver_table: silver_product_inventory
+max_attempts: 2
+enable_redshift: false
+enable_opensearch: false
+enable_redis: false
+pii_columns: []
+verifier_checks:
+  - tables_exist
+  - athena_returns_data
+  - kms_rotation
+  - audit_logged
+  - state_machine_loads

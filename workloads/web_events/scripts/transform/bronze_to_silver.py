@@ -1,10 +1,12 @@
-"""Bronze -> Silver transform entrypoint for `web_events` (Glue job wrapper).
+# spec_hash: 8a91d3facac5ca41b14a4a9d6a7bb31192c5a6a4ed9d4c277820a93a6278468a
+# template_id: web_events_bronze_to_silver
+# template_hash: 58372cf45557fad4b867b91f688534ef0bdb2fedbc0d40f1b7a95ea54d7cf7c9
+# schema_version: v1
+# rendered_at: 2026-09-09T05:13:34Z
+"""Bronze -> Silver transform entrypoint for `web_events` (GDPR clickstream).
 
-Production runs on AWS Glue writing Apache Iceberg to the Silver zone. The
-consent-filter/masking/quarantine rules are declared in
-config/transformations.yaml and executed by `local_runner.bronze_to_silver`,
-so the Glue job and the local demo apply identical logic. Kept as a separate
-file (mirroring advisory_transactions) so it maps 1:1 to a Glue job script.
+Consent-filter, masking, and quarantine rules live in config/transformations.yaml
+and local_runner.bronze_to_silver — local demo and future Glue path share logic.
 """
 from __future__ import annotations
 
@@ -12,11 +14,15 @@ import argparse
 import sys
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+_self = Path(__file__).resolve()
+_REPO_ROOT = _self.parents[4] if len(_self.parents) > 4 else _self.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from workloads.web_events.scripts.transform import local_runner  # noqa: E402
+try:
+    from workloads.web_events.scripts.transform import local_runner
+except ImportError:
+    import local_runner  # type: ignore
 
 
 def run_local(bronze_jsonl: str, out_dir: str) -> dict:
@@ -30,25 +36,27 @@ def run_local(bronze_jsonl: str, out_dir: str) -> dict:
     silver.to_parquet(out / "silver" / "silver_web_events.parquet", index=False)
     quarantine.to_csv(out / "quarantine" / "quarantine.csv", index=False)
     suppressed.to_csv(out / "quarantine" / "suppressed_no_consent.csv", index=False)
-    print(f"[silver] clean rows: {len(silver)}  |  quarantined: {len(quarantine)}  |  no-consent: {len(suppressed)}")
+    print(
+        f"[silver] clean rows: {len(silver)}  |  quarantined: {len(quarantine)}  |  "
+        f"no-consent: {len(suppressed)}"
+    )
     return {"silver": silver, "quarantine": quarantine, "suppressed_no_consent": suppressed}
 
 
-def run_glue():  # pragma: no cover - requires Glue runtime
-    """Production path (AWS Glue + Iceberg). Rules identical to local_runner.
-
-    GDPR: rows with consent_analytics=false are suppressed here and never
-    written to Silver/Gold (ADOP `consent-gate-before-processing`).
-    """
+def run_glue():  # pragma: no cover
+    """Production path (AWS Glue + Iceberg). Rules identical to local_runner."""
     raise SystemExit("Glue path runs inside AWS Glue; use --local for the demo.")
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--local", action="store_true")
-    ap.add_argument("--bronze", default="output/web_events/bronze/bronze_web_events.jsonl")
+    ap.add_argument(
+        "--bronze",
+        default="output/web_events/bronze/bronze_web_events.jsonl",
+    )
     ap.add_argument("--out", default="output/web_events")
-    args = ap.parse_args()
+    args, _unknown = ap.parse_known_args()
     if args.local:
         run_local(args.bronze, args.out)
     else:

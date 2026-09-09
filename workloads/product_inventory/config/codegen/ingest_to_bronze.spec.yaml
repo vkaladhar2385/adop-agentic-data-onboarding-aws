@@ -1,0 +1,4 @@
+schema_version: v1
+workload: product_inventory
+bronze_table: bronze_product_inventory
+source_sample: demo/sample_data/product_inventory.csv

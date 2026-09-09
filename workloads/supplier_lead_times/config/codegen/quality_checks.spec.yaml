@@ -1,0 +1,4 @@
+schema_version: v1
+workload: supplier_lead_times
+silver_s3_prefix: silver/supplier_lead_times/quality_export/
+gold_s3_prefix: gold/supplier_lead_times/gold_supplier_lead_times/

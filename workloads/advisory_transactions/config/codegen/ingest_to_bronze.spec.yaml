@@ -1,0 +1,4 @@
+schema_version: v1
+workload: advisory_transactions
+bronze_table: bronze_advisory_transactions
+source_sample: demo/sample_data/advisory_transactions.csv

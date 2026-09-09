@@ -1,0 +1,36 @@
+workload: supplier_lead_times
+
+gates:
+  silver: 0.80
+  gold: 0.95
+
+rules:
+  - id: completeness_supplier_id
+    dimension: completeness
+    critical: true
+    threshold: 1.00
+    description: supplier_id must never be null
+
+  - id: uniqueness_supplier_category
+    dimension: uniqueness
+    critical: true
+    threshold: 1.00
+    description: supplier_id + product_category unique after dedup
+
+  - id: validity_lead_time_non_negative
+    dimension: validity
+    critical: true
+    threshold: 1.00
+    description: lead_time_days >= 0
+
+  - id: validity_lead_time_max_365
+    dimension: validity
+    critical: false
+    threshold: 1.00
+    description: lead_time_days <= 365 (warning)
+
+  - id: completeness_supplier_name
+    dimension: completeness
+    critical: false
+    threshold: 1.00
+    description: supplier_name present (warning)

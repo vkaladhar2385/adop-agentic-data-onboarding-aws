@@ -1,0 +1,148 @@
+{
+  "Comment": "ADOP supplier_lead_times pipeline. codegen spec_hash=53dc9b70c992d6cb6668816a1bd2254d2bfb4baa5da2ac1849261a43f39242bf template_id=state_machine template_hash=7b98ff3ea0228358ed9668ee2b64480b3ccafe76b7b838c363a7c641f35badc9. Extensions: redshift=False opensearch=False redis=False.",
+  "StartAt": "IngestToBronze",
+  "TimeoutSeconds": 3600,
+  "States": {
+    "IngestToBronze": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "supplier_lead_times_ingest_to_bronze",
+        "Arguments": {
+          "--source_path.$": "$.source_path",
+          "--bronze_path.$": "$.bronze_path"
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "BronzeToSilver"
+    },
+    "BronzeToSilver": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "supplier_lead_times_bronze_to_silver",
+        "Arguments": {
+          "--bronze_path.$": "$.bronze_path",
+          "--silver_path.$": "$.silver_path",
+          "--enable-data-lineage": "true"
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "SilverQualityGate"
+    },
+    "SilverQualityGate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "supplier_lead_times_quality_silver",
+        "Arguments": { "--zone": "silver" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "QualityGateFailed" }],
+      "Next": "SilverToGold"
+    },
+    "SilverToGold": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "supplier_lead_times_silver_to_gold",
+        "Arguments": {
+          "--silver_path.$": "$.silver_path",
+          "--gold_path.$": "$.gold_path",
+          "--enable-data-lineage": "true"
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "GoldQualityGate"
+    },
+    "GoldQualityGate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "supplier_lead_times_quality_gold",
+        "Arguments": { "--zone": "gold" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "QualityGateFailed" }],
+      "Next": "RegisterCatalog"
+    },
+    "RegisterCatalog": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "supplier_lead_times_register_catalog",
+        "Payload": { "action": "register_and_tag" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "PostDeploymentVerify"
+    },
+    "PostDeploymentVerify": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "supplier_lead_times_post_deploy_verifier",
+        "Payload": {
+          "workload": "${workload}",
+          "database": "${workload}_db",
+          "state_machine": "${workload}_pipeline",
+          "table": "silver_supplier_lead_times",
+          "pii_columns": [],
+          "checks": ["tables_exist", "athena_returns_data", "kms_rotation", "audit_logged", "state_machine_loads"]
+        }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "Succeed"
+    },
+    "QualityGateFailed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:${aws_region}:${account_id}:${workload}-alerts",
+        "Subject": "supplier_lead_times: QUALITY GATE BLOCKED",
+        "Message": "A quality gate failed. Promotion stopped. Review quarantine table."
+      },
+      "Next": "Fail"
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:${aws_region}:${account_id}:${workload}-alerts",
+        "Subject": "supplier_lead_times: PIPELINE FAILURE",
+        "Message.$": "States.Format('Pipeline failed. Error: {}', $.Error)"
+      },
+      "Next": "Fail"
+    },
+    "Succeed": { "Type": "Succeed" },
+    "Fail": { "Type": "Fail", "Error": "PipelineFailed", "Cause": "See SNS alert and CloudWatch logs." }
+  }
+}

@@ -1,0 +1,190 @@
+{# template_id: state_machine #}
+{# required_slots: schema_version, workload, silver_table, max_attempts, enable_redshift, enable_opensearch, enable_redis, pii_columns, verifier_checks #}
+{
+  "Comment": "ADOP {{ workload }} pipeline. codegen spec_hash={{ spec_hash }} template_id={{ template_id }} template_hash={{ template_hash }}. Extensions: redshift={{ enable_redshift }} opensearch={{ enable_opensearch }} redis={{ enable_redis }}.",
+  "StartAt": "IngestToBronze",
+  "TimeoutSeconds": 3600,
+  "States": {
+    "IngestToBronze": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "{{ workload }}_ingest_to_bronze",
+        "Arguments": {
+          "--source_path.$": "$.source_path",
+          "--bronze_path.$": "$.bronze_path"
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": {{ max_attempts }},
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "BronzeToSilver"
+    },
+    "BronzeToSilver": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "{{ workload }}_bronze_to_silver",
+        "Arguments": {
+          "--bronze_path.$": "$.bronze_path",
+          "--silver_path.$": "$.silver_path",
+          "--enable-data-lineage": "true"
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": {{ max_attempts }},
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "SilverQualityGate"
+    },
+    "SilverQualityGate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "{{ workload }}_quality_silver",
+        "Arguments": { "--zone": "silver" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "QualityGateFailed" }],
+      "Next": "SilverToGold"
+    },
+    "SilverToGold": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "{{ workload }}_silver_to_gold",
+        "Arguments": {
+          "--silver_path.$": "$.silver_path",
+          "--gold_path.$": "$.gold_path",
+          "--enable-data-lineage": "true"
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": {{ max_attempts }},
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "GoldQualityGate"
+    },
+    "GoldQualityGate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "{{ workload }}_quality_gold",
+        "Arguments": { "--zone": "gold" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "QualityGateFailed" }],
+      "Next": "RegisterCatalog"
+    },
+    "RegisterCatalog": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "{{ workload }}_register_catalog",
+        "Payload": { "action": "register_and_tag" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "{% if enable_redshift %}RegisterRedshiftSpectrum{% elif enable_opensearch %}IndexGoldToOpenSearch{% elif enable_redis %}CacheQualityScores{% else %}PostDeploymentVerify{% endif %}"
+    },
+{% if enable_redshift %}
+    "RegisterRedshiftSpectrum": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "{{ workload }}_register_redshift_spectrum",
+        "Payload": { "action": "register" }
+      },
+      "ResultPath": null,
+      "Retry": [{ "ErrorEquals": ["States.ALL"], "IntervalSeconds": 15, "MaxAttempts": 2, "BackoffRate": 2.0 }],
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "{% if enable_opensearch %}IndexGoldToOpenSearch{% elif enable_redis %}CacheQualityScores{% else %}PostDeploymentVerify{% endif %}"
+    },
+{% endif %}
+{% if enable_opensearch %}
+    "IndexGoldToOpenSearch": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "{{ workload }}_index_gold_to_opensearch",
+        "Payload": { "action": "index" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "{% if enable_redis %}CacheQualityScores{% else %}PostDeploymentVerify{% endif %}"
+    },
+{% endif %}
+{% if enable_redis %}
+    "CacheQualityScores": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "{{ workload }}_cache_quality_scores",
+        "Payload": { "action": "cache" }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "PostDeploymentVerify"
+    },
+{% endif %}
+    "PostDeploymentVerify": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "{{ workload }}_post_deploy_verifier",
+        "Payload": {
+          "workload": "${workload}",
+          "database": "${workload}_db",
+          "state_machine": "${workload}_pipeline",
+          "table": "{{ silver_table }}",
+          "pii_columns": {{ pii_columns | tojson }},
+          "checks": {{ verifier_checks | tojson }}
+        }
+      },
+      "ResultPath": null,
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "NotifyFailure" }],
+      "Next": "Succeed"
+    },
+    "QualityGateFailed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:${aws_region}:${account_id}:${workload}-alerts",
+        "Subject": "{{ workload }}: QUALITY GATE BLOCKED",
+        "Message": "A quality gate failed. Promotion stopped. Review quarantine table."
+      },
+      "Next": "Fail"
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:${aws_region}:${account_id}:${workload}-alerts",
+        "Subject": "{{ workload }}: PIPELINE FAILURE",
+        "Message.$": "States.Format('Pipeline failed. Error: {}', $.Error)"
+      },
+      "Next": "Fail"
+    },
+    "Succeed": { "Type": "Succeed" },
+    "Fail": { "Type": "Fail", "Error": "PipelineFailed", "Cause": "See SNS alert and CloudWatch logs." }
+  }
+}

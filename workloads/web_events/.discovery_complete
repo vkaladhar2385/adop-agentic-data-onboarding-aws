@@ -1,0 +1,14 @@
+# Phase 1 Discovery Complete — web_events
+# Legacy hand-built GDPR workload. Recorded 2026-09-08 for M4 factory alignment.
+#
+# [x] Zone: full medallion
+# [x] Source: JSONL kinesis landing, PK event_id
+# [x] Dedup: keep_latest by event_ts
+# [x] GDPR: consent_analytics filter; hash user_id; mask email/IP
+# [x] Gold: rollups (gold_hourly_traffic), suppress email/IP
+# [x] Quality: defaults Silver >= 0.80, Gold >= 0.95
+# [x] Schedule: cron(5 * * * ? *) UTC
+# [x] Orchestrator: Step Functions + EventBridge
+# [x] Sinks: catalog only
+# [x] Compute: Iceberg Silver/Gold; Shell ingest + quality; glueetl transforms
+# [x] Terraform: PILOT-DISABLED (pending)

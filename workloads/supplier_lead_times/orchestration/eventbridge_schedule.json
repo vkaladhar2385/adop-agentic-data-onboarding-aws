@@ -1,0 +1,18 @@
+{
+  "Comment": "EventBridge Scheduler for supplier_lead_times weekly Monday 06:00 UTC.",
+  "Name": "supplier-lead-times-weekly",
+  "ScheduleExpression": "cron(0 6 ? * MON *)",
+  "ScheduleExpressionTimezone": "UTC",
+  "FlexibleTimeWindow": { "Mode": "OFF" },
+  "Target": {
+    "Arn": "arn:aws:states:us-east-1:<account>:stateMachine:supplier_lead_times_pipeline",
+    "RoleArn": "arn:aws:iam::<account>:role/supplier-lead-times-scheduler-role",
+    "Input": {
+      "source_path": "s3://data-lake-<account>-us-east-1/landing/supplier_lead_times/",
+      "bronze_path": "s3://data-lake-<account>-us-east-1/bronze/supplier_lead_times/",
+      "silver_path": "s3://data-lake-<account>-us-east-1/silver/supplier_lead_times/",
+      "gold_path": "s3://data-lake-<account>-us-east-1/gold/supplier_lead_times/"
+    },
+    "RetryPolicy": { "MaximumRetryAttempts": 2, "MaximumEventAgeInSeconds": 3600 }
+  }
+}

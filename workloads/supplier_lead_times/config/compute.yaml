@@ -1,0 +1,59 @@
+workload: supplier_lead_times
+
+profile:
+  estimated_rows_per_run: 120
+  peak_rows_per_run: 2000
+  silver_format: iceberg
+  gold_format: iceberg
+  compliance: none
+
+defaults:
+  transform_job_type: glueetl
+  quality_job_type: pythonshell
+  ingest_job_type: auto
+
+pipeline_steps:
+  ingest_to_bronze:
+    job_type: pythonshell
+    script: scripts/extract/ingest_to_bronze.py
+    rationale: small weekly CSV
+
+  bronze_to_silver:
+    job_type: glueetl
+    script: scripts/transform/bronze_to_silver.py
+    workers: 2
+    worker_type: G.1X
+    requires:
+      - datalake-formats=iceberg
+      - enable-data-lineage=true
+
+  quality_silver:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+  silver_to_gold:
+    job_type: glueetl
+    script: scripts/transform/silver_to_gold.py
+    workers: 2
+    worker_type: G.1X
+    requires:
+      - datalake-formats=iceberg
+      - enable-data-lineage=true
+
+  quality_gold:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+terraform_sync:
+  status: pending
+  note: Factory proof — artifacts + pytest only until DevOps wires main.tf.
+
+routing:
+  rules:
+    - id: iceberg_transform_requires_spark
+      when: "step in (bronze_to_silver, silver_to_gold)"
+      job_type: glueetl
+      override: true
+    - id: quality_gate_prefers_shell
+      when: "step matches quality_*"
+      job_type: pythonshell

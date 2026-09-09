@@ -1,0 +1,5 @@
+schema_version: v1
+workload: web_events
+bronze_table: bronze_web_events
+source_sample: demo/sample_data/web_events.jsonl
+source_format: jsonl

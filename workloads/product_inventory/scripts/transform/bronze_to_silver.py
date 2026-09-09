@@ -1,0 +1,129 @@
+# spec_hash: 0c786c6cb2bd9d2d15b633abc967ba6b8c5d56db3c7f41d356795b0978db8cdc
+# template_id: advisory_bronze_to_silver
+# template_hash: 3b715372cbd81aba347322cd48fedd953fd869d91ec6d6cef7b6ae14d7c1613d
+# schema_version: v1
+# rendered_at: 2026-09-09T05:13:33Z
+"""Bronze -> Silver transform for `product_inventory`.
+
+Local mode uses pandas/local_runner (pytest source of truth). Glue ETL (PySpark)
+writes Apache Iceberg to the Silver catalog table and exports Parquet to
+--silver_path for the Python Shell quality gate.
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+_self = Path(__file__).resolve()
+_REPO_ROOT = _self.parents[4] if len(_self.parents) > 4 else _self.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+try:
+    from workloads.product_inventory.scripts.transform import local_runner, spark_transforms
+except ImportError:
+    import local_runner  # type: ignore
+    import spark_transforms  # type: ignore
+
+
+def run_local(bronze_parquet: str, out_dir: str) -> dict:
+    import pandas as pd
+
+    cfg = local_runner.load_config("transformations.yaml")
+    bronze = pd.read_parquet(bronze_parquet)
+    silver, quarantine = local_runner.bronze_to_silver(bronze, cfg)
+
+    out = Path(out_dir)
+    (out / "silver").mkdir(parents=True, exist_ok=True)
+    (out / "quarantine").mkdir(parents=True, exist_ok=True)
+    silver.to_parquet(out / "silver" / "silver_product_inventory.parquet", index=False)
+    quarantine.to_csv(out / "quarantine" / "quarantine.csv", index=False)
+    print(f"[silver] clean rows: {len(silver)}  |  quarantined: {len(quarantine)}")
+    return {"silver": silver, "quarantine": quarantine}
+
+
+def run_glue_spark():  # pragma: no cover
+    from awsglue.context import GlueContext
+    from awsglue.job import Job
+    from awsglue.utils import getResolvedOptions
+    from pyspark.context import SparkContext
+
+    args = getResolvedOptions(
+        sys.argv,
+        ["JOB_NAME", "bronze_path", "silver_path", "database", "silver_table"],
+    )
+    database = args["database"]
+    silver_table = args["silver_table"]
+    bronze_path = args["bronze_path"].strip().rstrip("/")
+    silver_path = args["silver_path"].strip().rstrip("/")
+
+    sc = SparkContext()
+    glue_context = GlueContext(sc)
+    spark = glue_context.spark_session
+    job = Job(glue_context)
+    job.init(args["JOB_NAME"], args)
+
+    warehouse = spark_transforms._warehouse_from_s3_path(silver_path)
+    spark_transforms.configure_iceberg_catalog(spark, warehouse)
+
+    bronze_df = spark.read.parquet(bronze_path)
+    input_rows = bronze_df.count()
+    silver_df, quarantine_df = spark_transforms.bronze_to_silver_df(bronze_df)
+
+    spark_transforms.write_iceberg_table(silver_df, database, silver_table, warehouse=warehouse)
+
+    export_path = f"{silver_path}/quality_export"
+    silver_df.write.mode("overwrite").parquet(export_path)
+    print(f"[silver] parquet export for quality gate -> {export_path}")
+
+    q_count = quarantine_df.count()
+    if q_count:
+        quarantine_path = bronze_path.replace("/bronze/", "/quarantine/") + "/csv_export"
+        quarantine_df.coalesce(1).write.mode("overwrite").option("header", True).csv(
+            quarantine_path
+        )
+        print(f"[silver] quarantined rows: {q_count} -> {quarantine_path}")
+
+    clean_rows = silver_df.count()
+    print(f"[silver] input={input_rows} clean={clean_rows} quarantined={q_count}")
+    job.commit()
+
+
+def run_glue():  # pragma: no cover - legacy Python Shell path if invoked without Spark
+    try:
+        from shared.utils import s3_io
+    except ImportError:
+        import s3_io  # type: ignore
+
+    bronze_path = s3_io.get_arg("bronze_path")
+    silver_path = s3_io.get_arg("silver_path")
+    if not bronze_path or not silver_path:
+        raise SystemExit("run_glue requires --bronze_path and --silver_path")
+
+    cfg = local_runner.load_config("transformations.yaml")
+    bronze = s3_io.read_parquet_prefix(bronze_path)
+    silver, quarantine = local_runner.bronze_to_silver(bronze, cfg)
+    silver_target = silver_path.rstrip("/") + "/silver_product_inventory.parquet"
+    s3_io.write_parquet(silver, silver_target)
+    if len(quarantine):
+        quarantine_target = silver_path.rstrip("/").replace("/silver/", "/quarantine/") + "/quarantine.csv"
+        s3_io.write_csv(quarantine, quarantine_target)
+    print(f"[silver] clean rows: {len(silver)}  |  quarantined: {len(quarantine)}")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--local", action="store_true")
+    ap.add_argument(
+        "--bronze",
+        default="output/product_inventory/bronze/bronze_product_inventory.parquet",
+    )
+    ap.add_argument("--out", default="output/product_inventory")
+    args, _unknown = ap.parse_known_args()
+    if args.local:
+        run_local(args.bronze, args.out)
+    elif any(tok.startswith("--JOB_NAME") for tok in sys.argv):
+        run_glue_spark()
+    else:
+        run_glue()

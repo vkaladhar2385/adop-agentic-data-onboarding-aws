@@ -1,0 +1,4 @@
+schema_version: v1
+workload: web_events
+silver_s3_prefix: silver/web_events/quality_export/
+gold_s3_prefix: gold/web_events/gold_hourly_traffic/

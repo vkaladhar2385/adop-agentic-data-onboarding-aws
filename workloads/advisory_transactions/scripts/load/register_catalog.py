@@ -126,33 +126,21 @@ def register_tables(database: str, bucket: str) -> list[dict]:  # pragma: no cov
 
 
 def apply_lf_tags(tags: list[dict]) -> list[dict]:  # pragma: no cover - requires AWS
-    """Idempotently create+associate each LF-Tag via boto3. Returns per-tag results."""
+    """Associate pre-provisioned LF-Tags to columns (keys/values created via IaC)."""
     import boto3
     lf = boto3.client("lakeformation")
     results = []
     for t in tags:
         try:
-            for key, value in t["lf_tags"].items():
-                try:
-                    lf.create_lf_tag(TagKey=key, TagValues=[value])
-                except Exception as exc:  # noqa: BLE001
-                    # Tag key exists (e.g. "PII_Type" from an earlier column in
-                    # this same loop) but may not yet have this value (e.g.
-                    # "EMAIL" vs the "SSN" that created the key) -- AWS raises
-                    # a plain InvalidInputException ("Tag key already exists")
-                    # for this, not a distinct AlreadyExistsException, so just
-                    # add the value to the existing key instead.
-                    if "already exists" not in str(exc).lower():
-                        raise
-                    lf.update_lf_tag(TagKey=key, TagValuesToAdd=[value])
-                lf.add_lf_tags_to_resource(
-                    Resource={"TableWithColumns": {
-                        "DatabaseName": t["database"],
-                        "Name": t["table"],
-                        "ColumnNames": [t["column"]],
-                    }},
-                    LFTags=[{"TagKey": key, "TagValues": [value]}],
-                )
+            lf_tags = [{"TagKey": k, "TagValues": [v]} for k, v in t["lf_tags"].items()]
+            lf.add_lf_tags_to_resource(
+                Resource={"TableWithColumns": {
+                    "DatabaseName": t["database"],
+                    "Name": t["table"],
+                    "ColumnNames": [t["column"]],
+                }},
+                LFTags=lf_tags,
+            )
             results.append({**t, "status": "applied"})
         except Exception as exc:  # noqa: BLE001
             results.append({**t, "status": "failed", "error": str(exc)})
@@ -174,12 +162,17 @@ def lambda_handler(event: dict, context) -> dict:  # pragma: no cover - requires
     tags = plan_lf_tags(database=database)
     try:
         import boto3  # noqa: F401
-        table_results = register_tables(database, bucket) if bucket else []
+        # Iceberg tables are registered by Glue ETL commits — do not overwrite with Parquet DDL.
+        table_results = []
+        if (event or {}).get("register_tables") and bucket:
+            table_results = register_tables(database, bucket)
         results = apply_lf_tags(tags)
     except ImportError:
         table_results = []
         results = [{**t, "status": "planned (boto3 unavailable, dry-run)"} for t in tags]
     failed = [r for r in results if r["status"] == "failed"] + [r for r in table_results if r["status"] == "failed"]
+    if failed:
+        print(f"[register_catalog] warnings: {failed}")
     return {
         "workload": WORKLOAD, "tables": table_results,
         "tagged": len(results), "failed": len(failed), "results": results,

@@ -1,0 +1,4 @@
+schema_version: v1
+workload: supplier_lead_times
+database: supplier_lead_times_db
+silver_table: silver_supplier_lead_times

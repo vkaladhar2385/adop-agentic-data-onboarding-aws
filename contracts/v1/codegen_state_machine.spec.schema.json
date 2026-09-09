@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/codegen_state_machine.spec.schema.json",
+  "title": "Codegen spec — state_machine",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "workload",
+    "silver_table",
+    "max_attempts",
+    "enable_redshift",
+    "enable_opensearch",
+    "enable_redis",
+    "pii_columns",
+    "verifier_checks"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "v1" },
+    "template_id": { "type": "string" },
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "silver_table": { "type": "string", "minLength": 1 },
+    "max_attempts": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "enable_redshift": { "type": "boolean" },
+    "enable_opensearch": { "type": "boolean" },
+    "enable_redis": { "type": "boolean" },
+    "pii_columns": { "type": "array", "items": { "type": "string" } },
+    "verifier_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

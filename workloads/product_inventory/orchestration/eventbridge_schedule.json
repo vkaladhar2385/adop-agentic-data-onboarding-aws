@@ -1,0 +1,18 @@
+{
+  "Comment": "EventBridge Scheduler for product_inventory daily at 08:00 UTC.",
+  "Name": "product-inventory-daily",
+  "ScheduleExpression": "cron(0 8 * * ? *)",
+  "ScheduleExpressionTimezone": "UTC",
+  "FlexibleTimeWindow": { "Mode": "OFF" },
+  "Target": {
+    "Arn": "arn:aws:states:us-east-1:<account>:stateMachine:product_inventory_pipeline",
+    "RoleArn": "arn:aws:iam::<account>:role/product-inventory-scheduler-role",
+    "Input": {
+      "source_path": "s3://data-lake-<account>-us-east-1/landing/product_inventory/",
+      "bronze_path": "s3://data-lake-<account>-us-east-1/bronze/product_inventory/",
+      "silver_path": "s3://data-lake-<account>-us-east-1/silver/product_inventory/",
+      "gold_path": "s3://data-lake-<account>-us-east-1/gold/product_inventory/"
+    },
+    "RetryPolicy": { "MaximumRetryAttempts": 2, "MaximumEventAgeInSeconds": 3600 }
+  }
+}

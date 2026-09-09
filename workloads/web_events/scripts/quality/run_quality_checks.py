@@ -1,26 +1,37 @@
-"""Quality gate runner for `web_events`.
-
-Grades a zone's dataframe against config/quality_rules.yaml using the shared
-quality engine and enforces GDPR/quality gates (Silver >= 0.80, Gold >= 0.95).
-Any critical-rule failure blocks promotion regardless of overall score.
-Mirrors advisory_transactions' quality runner but points at this workload's
-own config, so the two workloads never cross-import each other.
-"""
+# spec_hash: b8384adde871f152badd20d1d71ca74230e74dbd81e74b3d92d9325837193efb
+# template_id: quality_checks
+# template_hash: ad105c88d04422ad0fecb6fd16d46fefeb7af70807681676d5541aa66b17f771
+# schema_version: v1
+# rendered_at: 2026-09-09T05:13:34Z
+"""Quality gate runner for `web_events`."""
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 import pandas as pd
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+_self = Path(__file__).resolve()
+_REPO_ROOT = _self.parents[4] if len(_self.parents) > 4 else _self.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from shared.utils.quality import run_quality  # noqa: E402
-from workloads.web_events.scripts.transform import local_runner  # noqa: E402
+try:
+    from shared.utils.quality import run_quality
+    from shared.utils.structured_logger import StructuredLogger
+    from workloads.web_events.scripts.transform import local_runner
+except ImportError:
+    from quality import run_quality  # type: ignore
+    import local_runner  # type: ignore
+    try:
+        from structured_logger import StructuredLogger  # type: ignore
+    except ImportError:
+        StructuredLogger = None  # type: ignore
+
+_LOG = StructuredLogger("quality", "web_events", "gate") if StructuredLogger else None
 
 
 def evaluate(df: pd.DataFrame, zone: str, rules_cfg: dict | None = None) -> dict:
@@ -39,21 +50,40 @@ def _print_report(report: dict) -> None:
     for r in report["results"]:
         mark = "ok " if r["passed"] else "XX "
         crit = "*" if r["critical"] else " "
-        print(f"  {mark}{crit} {r['rule_id']:<34} rate={r['pass_rate']:.3f} failed={r['failed_rows']}")
+        print(f"  {mark}{crit} {r['rule_id']:<42} rate={r['pass_rate']:.3f} failed={r['failed_rows']}")
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--zone", choices=["silver", "gold"], required=True)
-    ap.add_argument("--parquet", required=True, help="path to the zone parquet to grade")
+    ap.add_argument("--parquet", default=None)
+    ap.add_argument("--data_lake_bucket", default=None)
     ap.add_argument("--json-out", default=None)
-    args = ap.parse_args()
+    args, _unknown = ap.parse_known_args()
 
-    df = pd.read_parquet(args.parquet)
+    if args.parquet:
+        df = pd.read_parquet(args.parquet)
+    else:
+        try:
+            from shared.utils import s3_io
+        except ImportError:
+            import s3_io  # type: ignore
+        bucket = args.data_lake_bucket or os.environ.get("DATA_LAKE_BUCKET")
+        if not bucket:
+            raise SystemExit("requires --parquet or --data_lake_bucket")
+        prefix = "gold/web_events/gold_hourly_traffic/" if args.zone == "gold" else "silver/web_events/quality_export/"
+        df = s3_io.read_parquet_prefix(f"s3://{bucket}/{prefix}")
+
     report = evaluate(df, args.zone)
+    if _LOG:
+        _LOG.info(
+            "quality_gate",
+            zone=args.zone,
+            passed=report["passed"],
+            score=report["overall_score"],
+        )
     _print_report(report)
     if args.json_out:
         Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.json_out).write_text(json.dumps(report, indent=2, default=str))
-
     raise SystemExit(0 if report["passed"] else 1)

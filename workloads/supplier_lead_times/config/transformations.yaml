@@ -1,0 +1,27 @@
+workload: supplier_lead_times
+
+bronze_to_silver:
+  dedup:
+    keys: [supplier_id, product_category]
+    keep: latest_by
+    order_by: updated_at
+  casts:
+    lead_time_days: integer
+    min_order_qty: integer
+  string_ops:
+    trim: all
+    uppercase: [product_category, country_code]
+  pii_masking: []
+  quarantine_when:
+    - missing_supplier_id
+    - invalid_lead_time
+  derived:
+    lead_time_weeks: "lead_time_days / 7.0"
+
+silver_to_gold:
+  schema_style: flat
+  table: gold_supplier_lead_times
+  grain: supplier_id, product_category
+  measures: [lead_time_days, min_order_qty, lead_time_weeks]
+  gold_pii_policy:
+    suppress: []

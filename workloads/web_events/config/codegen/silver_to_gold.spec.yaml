@@ -1,0 +1,4 @@
+schema_version: v1
+workload: web_events
+gold_spark_fn: silver_to_gold_tables
+silver_parquet: output/web_events/silver/silver_web_events.parquet

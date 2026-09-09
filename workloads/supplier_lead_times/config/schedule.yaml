@@ -1,0 +1,23 @@
+workload: supplier_lead_times
+orchestrator: step_functions
+
+schedule:
+  engine: eventbridge_scheduler
+  cron: "cron(0 6 ? * MON *)"
+  timezone: UTC
+  flexible_time_window: "OFF"
+
+execution:
+  state_machine: supplier_lead_times_pipeline
+  retries: 2
+  backoff: exponential
+  backoff_rate: 2.0
+  interval_seconds: 30
+  timeout_minutes: 60
+
+failure_handling:
+  on_failure: notify
+  sns_topic: supplier-lead-times-alerts
+  quarantine_review_required: false
+
+dependencies: []

@@ -198,13 +198,41 @@ def _warehouse_from_s3_path(path: str) -> str:
     return f"s3://{bucket}/"
 
 
+def _drop_non_iceberg_glue_table(
+    database: str, table: str, *, expected_path_fragment: str | None = None
+) -> None:
+    """Remove catalog entries that block Iceberg overwrite (Parquet DDL or wrong warehouse path)."""
+    import boto3
+    glue = boto3.client("glue")
+    try:
+        existing = glue.get_table(DatabaseName=database, Name=table)["Table"]
+        params = existing.get("Parameters") or {}
+        meta = params.get("metadata_location", "")
+        if params.get("table_type", "").upper() == "ICEBERG":
+            if expected_path_fragment and expected_path_fragment in meta:
+                return
+            if expected_path_fragment and expected_path_fragment not in meta:
+                glue.delete_table(DatabaseName=database, Name=table)
+                print(f"[iceberg] dropped misplaced iceberg table {database}.{table} ({meta})")
+                return
+            return
+        glue.delete_table(DatabaseName=database, Name=table)
+        print(f"[iceberg] dropped non-iceberg catalog entry {database}.{table}")
+    except glue.exceptions.EntityNotFoundException:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        print(f"[iceberg] could not drop {database}.{table}: {exc}")
+
+
 def write_iceberg_table(
-    df: DataFrame, database: str, table: str, warehouse: str | None = None
+    df: DataFrame, database: str, table: str, warehouse: str | None = None,
+    *, expected_path_fragment: str | None = None,
 ) -> None:
     spark = df.sparkSession
     if warehouse is None:
         warehouse = "s3://"
     configure_iceberg_catalog(spark, warehouse)
     full_name = f"glue_catalog.{database}.{table}"
+    _drop_non_iceberg_glue_table(database, table, expected_path_fragment=expected_path_fragment)
     df.write.format("iceberg").mode("overwrite").saveAsTable(full_name)
     print(f"[iceberg] wrote {full_name} rows={df.count()}")

@@ -39,7 +39,12 @@ def parse_header(content: str) -> dict | None:
     }
 
 
-def verify_artifact(artifact_path: Path, spec_path: Path, schema_name: str) -> DriftReport:
+def verify_artifact(
+    artifact_path: Path,
+    spec_path: Path,
+    schema_name: str,
+    template_id: str | None = None,
+) -> DriftReport:
     artifact_path = Path(artifact_path)
     spec_path = Path(spec_path)
     if not artifact_path.is_file():
@@ -48,12 +53,26 @@ def verify_artifact(artifact_path: Path, spec_path: Path, schema_name: str) -> D
         return DriftReport(str(artifact_path), False, "spec missing")
 
     content = artifact_path.read_text(encoding="utf-8")
-    header = parse_header(content)
-    if header is None:
-        return DriftReport(str(artifact_path), False, "missing 5-line codegen header")
-
     spec = load_yaml_spec(spec_path)
     spec_hash = compute_spec_hash(spec)
+    header = parse_header(content)
+
+    if header is None:
+        if artifact_path.suffix != ".json":
+            return DriftReport(str(artifact_path), False, "missing 5-line codegen header")
+        tid = template_id or spec.get("template_id")
+        if not tid:
+            return DriftReport(str(artifact_path), False, "JSON artifact needs template_id")
+        expected = render(
+            spec,
+            spec_hash,
+            tid,
+            schema_version=spec.get("schema_version", "v1"),
+        )
+        if content != expected:
+            return DriftReport(str(artifact_path), False, "body drift (re-render differs from file)")
+        return DriftReport(str(artifact_path), True)
+
     if header["spec_hash"] != spec_hash:
         return DriftReport(
             str(artifact_path),

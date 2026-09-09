@@ -1,0 +1,21 @@
+workload: supplier_lead_times
+namespace: procurement
+
+entities:
+  - name: SupplierLeadTime
+    grain: one row per supplier_id + product_category
+    primary_key: [supplier_id, product_category]
+
+columns:
+  supplier_id:      { role: identifier, type: string, pii: false }
+  supplier_name:    { role: attribute,  type: string, pii: false }
+  product_category: { role: dimension,  type: string, pii: false }
+  lead_time_days:   { role: measure,    type: integer, pii: false }
+  min_order_qty:    { role: measure,    type: integer, pii: false }
+  country_code:     { role: dimension,  type: string, pii: false }
+  is_preferred:     { role: flag,       type: boolean, pii: false }
+  effective_date:   { role: temporal,   type: date,    pii: false }
+  updated_at:       { role: temporal,   type: timestamp, pii: false }
+  lead_time_weeks:  { role: measure,    type: decimal, pii: false, derived: true }
+
+lf_tags: []

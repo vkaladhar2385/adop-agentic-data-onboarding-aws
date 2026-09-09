@@ -1,0 +1,4 @@
+schema_version: v1
+workload: product_inventory
+silver_s3_prefix: silver/product_inventory/quality_export/
+gold_s3_prefix: gold/product_inventory/gold_product_inventory/

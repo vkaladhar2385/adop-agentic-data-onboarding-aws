@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/codegen_quality_checks.spec.schema.json",
+  "title": "Codegen spec — quality_checks",
+  "type": "object",
+  "required": ["schema_version", "workload", "silver_s3_prefix", "gold_s3_prefix"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "v1" },
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "template_id": { "type": "string" },
+    "silver_s3_prefix": { "type": "string", "minLength": 1 },
+    "gold_s3_prefix": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/codegen_bronze_to_silver.spec.schema.json",
+  "title": "Codegen spec — bronze_to_silver",
+  "type": "object",
+  "required": ["schema_version", "workload"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "v1" },
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "template_id": { "type": "string" },
+    "database": { "type": "string", "minLength": 1 },
+    "silver_table": { "type": "string", "minLength": 1 }
+  },
+  "oneOf": [
+    {
+      "required": ["database", "silver_table"],
+      "properties": { "template_id": { "not": { "const": "web_events_bronze_to_silver" } } }
+    },
+    {
+      "required": ["template_id"],
+      "properties": { "template_id": { "const": "web_events_bronze_to_silver" } }
+    }
+  ]
+}

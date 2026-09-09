@@ -1,0 +1,24 @@
+# Phase 1 Discovery Complete — product_inventory
+# All mandatory questions answered by user on 2026-09-08 ("use recommended" / "go ahead")
+#
+# [x] Zone identified: full medallion Bronze -> Silver -> Gold
+# [x] Source: local demo CSV demo/sample_data/product_inventory.csv
+#     landing placeholder: s3://data-lake-<account>-us-east-1/landing/product_inventory/ingestion_date=YYYY-MM-DD/product_inventory.csv
+#     format: CSV with header; credentials: none
+# [x] Volume: typical ~200, peak <= 5000
+# [x] PK: sku | Dedup: keep_latest by updated_at
+# [x] Null handling: quarantine blank sku and negative on_hand_qty;
+#     warning on blank product_name; other columns allow null
+# [x] Transformations: trim; qty->int; money->decimal; uppercase category/status/warehouse_id;
+#     derived available_qty, inventory_value, margin_pct;
+#     over-reserved is warning only
+# [x] Gold schema: flat_iceberg, grain = sku
+#     KPIs: on-hand, reserved, available, inventory value, margin
+# [x] PII: none | Masking: none | Regulation: none | Retention: 2 years
+# [x] Quality: defaults Silver >= 0.80, Gold >= 0.95
+#     critical: sku present, sku unique after dedup, on_hand_qty >= 0
+#     warning: blank product_name, reserved > on_hand, list_price < unit_cost
+# [x] Schedule: cron(0 8 * * ? *) UTC daily; 2 retries then SNS
+# [x] Orchestrator: Step Functions + EventBridge
+# [x] Extension sinks: catalog only
+# [x] Compute: Iceberg Silver/Gold; pythonshell ingest + quality; glueetl transforms

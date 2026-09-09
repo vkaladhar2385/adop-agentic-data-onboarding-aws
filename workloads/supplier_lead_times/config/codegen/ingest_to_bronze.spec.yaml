@@ -1,0 +1,4 @@
+schema_version: v1
+workload: supplier_lead_times
+bronze_table: bronze_supplier_lead_times
+source_sample: demo/sample_data/supplier_lead_times.csv

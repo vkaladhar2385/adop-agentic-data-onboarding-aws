@@ -1,0 +1,5 @@
+schema_version: v1
+workload: product_inventory
+gold_spark_fn: silver_to_gold_dfs
+silver_parquet: output/product_inventory/silver/silver_product_inventory.parquet
+silver_read_suffix: /quality_export

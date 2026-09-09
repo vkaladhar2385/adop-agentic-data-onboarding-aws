@@ -1,0 +1,5 @@
+schema_version: v1
+workload: supplier_lead_times
+gold_spark_fn: silver_to_gold_dfs
+silver_parquet: output/supplier_lead_times/silver/silver_supplier_lead_times.parquet
+silver_read_suffix: /quality_export

@@ -24,8 +24,11 @@ jobs:
         run: |
           python demo/data_generators/generate_advisory_transactions.py
           python demo/data_generators/generate_web_events.py
+          python demo/data_generators/generate_product_inventory.py
+          python demo/data_generators/generate_supplier_lead_times.py
+          python demo/data_generators/generate_customer_orders.py
       - name: Run tests
-        run: pytest workloads/ -v
+        run: pytest workloads/ tests/ -v
 
   validate-config:
     name: validate configs + orchestration
@@ -37,12 +40,20 @@ jobs:
           python-version: "3.12"
       - name: Install deps
         run: pip install -r requirements.txt
+      - name: Validate MCP registry sync
+        run: python tools/validate_mcp_registry.py
+      - name: MCP Phase 0 preflight (skip AWS in CI)
+        run: python tools/mcp_health_check.py --skip-aws
       - name: Validate JSON Schema contracts
         run: python tools/validate_configs.py
+      - name: Validate Cedar policies (Tier B)
+        run: python tools/validate_cedar_policies.py
+      - name: Tier B local acceptance (customer_orders)
+        run: python tools/tier_b_acceptance.py --workload customer_orders
       - name: Validate compute.yaml vs Terraform glue_jobs (ADOP drift pattern)
         run: python tools/validate_compute.py
-      - name: Check codegen drift (bronze_to_silver)
-        run: python tools/render_workload.py --workload advisory_transactions --check-drift
+      - name: Check codegen drift (all workloads with specs)
+        run: python tools/check_codegen_drift.py
       - name: Validate Step Functions ASL is valid JSON
         run: |
           python - <<'PY'
