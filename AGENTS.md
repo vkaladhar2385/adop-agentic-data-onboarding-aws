@@ -55,7 +55,7 @@ The human provides the rules. The agent does NOT guess or infer them.
 [ ] PII columns and compliance framework confirmed by user
 [ ] Quality thresholds explicitly stated (or user says "use defaults" for each zone)
 [ ] Schedule explicitly stated by user
-[ ] Orchestrator choice confirmed (default: Step Functions + EventBridge for this repo)
+[ ] Orchestrator choice confirmed (`step_functions` default if omitted; `mwaa` only when user opts in)
 [ ] Extension sinks confirmed if any (catalog only vs Redshift / OpenSearch / Redis)
 [ ] Gold schema shape confirmed (star schema, flat Iceberg, rollup — per ADOP Phase 1)
 [ ] Compute profile confirmed (row volume, Iceberg zones, which steps may use Python Shell vs Spark)
@@ -232,7 +232,7 @@ You MAY profile data and PRESENT observations, then MUST ask: "How would you lik
 | 1 | Discovery | Ask questions, profile sample data | Generate workload artifacts |
 | 2 | Dedup | Scan `workloads/*/config/source.yaml` for overlapping paths/keys | Skip overlap check |
 | 3 | Profile | Present schema/null/PII observations | Infer business rules from profile |
-| 4 | Build | Write specs + scripts + tests under `workloads/{name}/` | Apply Terraform or touch AWS |
+| 4 | Build | Write specs + sql + tests; **render** scripts/SFN via codegen | Apply Terraform or touch AWS; hand-write generated scripts |
 | 5 | Deploy | Run `package_and_sync.py`, `terraform plan/apply` **after approval** | Deploy without verifier step |
 | 6 | Verify | Run post-deploy verifier (Lambda or local checks) | Mark deploy complete if checks fail |
 
@@ -240,11 +240,11 @@ You MAY profile data and PRESENT observations, then MUST ask: "How would you lik
 
 Even when one Cursor session performs all steps:
 
-- **Build phases (1–4):** produce files only — `config/`, `scripts/`, `orchestration/`, `sql/`, `tests/`
-- **Deploy phase (5):** Terraform + sync + CI — only after human approves the artifact plan
+- **Build phases (1–4):** produce files only — `config/`, `config/codegen/`, `sql/`, `tests/`; run `render_workload.py` for `scripts/` and `*_state_machine.json`
+- **Deploy phase (5):** MCP catalog/LF/verify + Terraform fallback — only after human approves the artifact plan
 
-Reference workloads: `advisory_transactions` (SOX, star schema, extensions),
-`web_events` (GDPR, rollups).
+Reference workloads: `advisory_transactions` (SOX, star schema, Redshift),
+`web_events` (GDPR, rollups, TF disabled), `product_inventory` (catalog-only factory proof).
 
 ---
 
@@ -290,14 +290,36 @@ Gold shape is a Phase 1 discovery answer (official ADOP options):
 
 ---
 
-## Deploy path (Track A — not official MCP)
+---
 
-After Phase 4 artifacts pass `pytest workloads/{name}/ -v`:
+## Deterministic codegen (non-negotiable)
 
-1. `python tools/package_and_sync.py` — sync Glue scripts, build Lambda zips
-2. `terraform plan` / `terraform apply` in `iac/terraform/` — user approval required
-3. Trigger Step Functions execution or wait for EventBridge schedule
-4. **Post-deploy verifier** — `shared/utils/post_deployment_verifier.py` (9 checks in extended pipeline); deployment is not complete until all pass
+Artifacts under `workloads/*/scripts/` and `orchestration/*_state_machine.json` MUST be
+produced by `tools/render_workload.py` (which sets `ADOP_RENDERER_TOKEN` while writing).
+
+1. Sub-agents output **YAML specs** in `config/codegen/*.spec.yaml`, not Python/ASL bodies.
+2. **Hooks block direct writes:** `.cursor/hooks.json`, `.claude/settings.json` →
+   `shared/codegen/write_guard.py`.
+3. Every generated Python file has a 5-line header (`spec_hash`, `template_id`, …).
+4. CI runs `tools/check_codegen_drift.py` — drift fails the build.
+
+**Legacy exception:** `web_events` ingest + bronze→silver remain hand-authored until JSONL
+codegen specs exist.
+
+Prefer editing specs and `shared/templates/*.j2` over embedding business logic in scripts.
+
+---
+
+## Deploy path (Track A — MCP-first, Terraform fallback)
+
+After Phase 4 artifacts pass `pytest workloads/{name}/ -v` and codegen drift is clean:
+
+1. `python tools/check_codegen_drift.py`
+2. `python tools/package_and_sync.py` — sync rendered Glue scripts, build Lambda zips
+3. **Terraform fallback:** `terraform plan` / `apply` — Glue jobs, SFN, Lambdas (user approval)
+4. **MCP:** catalog tables, LF-Tags/grants, verify queries — see `docs/MCP_GUARDRAILS.md`
+5. Trigger Step Functions (CLI) or wait for EventBridge schedule
+6. **Post-deploy verifier** — must pass before declaring success
 
 Optional extensions (per workload): Redshift Spectrum, OpenSearch, Redis — see `docs/EXTENDING_TO_NEW_SERVICES.md`.
 
@@ -317,13 +339,21 @@ After deploy verification passes, offer (do not skip):
 | File | Read when |
 |---|---|
 | `AGENTS.md` | Every session — this contract |
+| `SKILLS.md` | Agent + skill catalog (stations, AgentOutput, compute, orchestration) |
 | `docs/TRACK_B.md` | Comparing to official ADOP / Phase 7 planning |
-| `../agentic-projects/ADOP/` | Track B study clone (CLAUDE.md, SKILLS.md, codegen, workloads) |
+| `../agentic-projects/ADOP/` | Track B study clone (upstream SKILLS.md, codegen, workloads) |
 | `docs/ARCHITECTURE.md` | Artifact map, SFN flow, module layout |
 | `docs/ADAPTATION_GAP.md` | Enterprise consulting backlog |
 | `docs/EXTENDING_TO_NEW_SERVICES.md` | Adding Redshift / OpenSearch / Redis / new sinks |
 | `docs/PILOT_FAILURES_AND_FIXES.md` | Known sandbox pitfalls |
+| `TOOL_ROUTING.md` | Track A tool selection (MCP-first ownership, main vs sub-agent) |
+| `docs/MCP_WIRING.md` | Generate `.mcp.json`, Phase 0 health check |
+| `docs/MCP_WIRING.md` | Generate `.mcp.json`, Phase 0 health check |
+| `docs/MCP_GUARDRAILS.md` | Phase 5 MCP steps (catalog/LF/verify) |
+| `.cursor/commands/onboard-workflow.md` | Agent Factory onboarding entry point |
+| `.cursor/commands/devops-workflow.md` | DevOps / Terraform plan after onboard |
 | `.cursor/rules/adop-onboarding.mdc` | Path-scoped onboarding gate |
+| `.cursor/rules/agent-factory-build-deploy.mdc` | Build vs deploy separation |
 
 ---
 
@@ -336,16 +366,22 @@ These layers turn this repo into a full agentic framework (Phase 7):
 | **Compute routing spec** | **Draft** (example workload) | `workloads/*/config/compute.yaml` |
 | **Compute drift validator** | **Done** | `tools/validate_compute.py` (CI in validate-config job) |
 | **JSON Schema contracts** | **Done** (compute + transformations) | `contracts/v1/` + `tools/validate_configs.py` |
-| **Codegen (one template)** | **Done** (bronze_to_silver) | `shared/codegen/`, `shared/templates/advisory_bronze_to_silver.py.j2`, `tools/render_workload.py` |
+| **Codegen (M2 templates)** | **Done** | `shared/templates/*.j2`, `tools/render_workload.py --all` |
 | **PySpark + Iceberg migration** (pilot workloads) | **Partial** (code + sync; sandbox apply pending) | `spark_transforms.py`, `glue.tf`, `main.tf` |
-| `StructuredLogger` | Not started | `shared/utils/structured_logger.py` |
-| Tool registry (MCP / CLI routing) | Partial | Cursor `aws-mcp`; official 13-server set in Track B |
-| Agent trace logs | Not started | `workloads/*/logs/trace_events.jsonl` |
-| `/onboard-workflow` command | Not started | `.cursor/commands/` or docs prompt |
+| `StructuredLogger` | **Done** (M4) | `shared/utils/structured_logger.py` |
+| **Codegen write guard** | **Done** | `.cursor/hooks.json`, `.claude/settings.json`, `shared/codegen/write_guard.py` |
+| **MCP-first deploy contract** | **Done** (docs) | `TOOL_ROUTING.md`, `docs/MCP_GUARDRAILS.md` |
+| Tool registry (MCP / CLI routing) | **Done** (wire + health) | `tool-registry/`, `tools/generate_mcp_config.py`, `tools/mcp_health_check.py` |
+| Agent trace logs | **Done** (M3 helper) | `shared/utils/agent_trace.py` → `workloads/*/logs/trace_events.jsonl` |
+| **AgentOutput contract** | **Done** (Tier A) | `shared/templates/agent_output_schema.py`, `shared/utils/agent_output_io.py` |
+| **`SKILLS.md` catalog** | **Done** (Tier A) | Repo root — Track A agent + skill definitions |
+| **Tier A factory complete** | **Done** | `supplier_lead_times` workload #4; see `docs/STATUS.md` |
+| `/onboard-workflow` command | **Done** (M1) | `.cursor/commands/onboard-workflow.md`, `prompts/onboarding/` |
+| `/devops-workflow` command | **Done** (M3) | `.cursor/commands/devops-workflow.md`, `prompts/devops/` |
+| **OpenSearch + Redis SFN steps** | **Deferred** (Agent Factory priority) | Re-enable `IndexGoldToOpenSearch` / `CacheQualityScores` in `advisory_transactions_state_machine.json` when extension work resumes |
 
-Until codegen exists, agents may hand-author PySpark scripts **only after Phase 1 gate
-passes**, following `../agentic-projects/ADOP/workloads/*/scripts/`. Prefer editing specs
-(`config/*.yaml`) over embedding business logic in scripts.
+Until all workloads have codegen specs, legacy hand-authored scripts may remain (`web_events`).
+Prefer editing specs (`config/*.yaml`, `config/codegen/*.spec.yaml`) over scripts.
 
 ### PySpark + Iceberg migration sequence (pilot workloads)
 

@@ -1,0 +1,35 @@
+---
+description: Agent Factory build vs deploy — sub-agents write files; deploy requires explicit approval
+globs:
+  - workloads/**/*
+  - tools/**/*
+  - iac/**/*
+alwaysApply: false
+---
+
+# Build vs deploy separation
+
+## Build (Phases 1–4)
+
+- Phase 1 discovery gate: see `AGENTS.md`, `SKILLS.md`, and `/onboard-workflow`.
+- Sub-agents (`prompts/onboarding/01-*.md` … `04-*.md`) **never** call AWS, MCP, or Terraform.
+- Allowed: write under `workloads/{name}/`, run `pytest`, `validate_configs.py`, `validate_compute.py`, `render_workload.py`.
+- **Do not** Write/Edit `workloads/*/scripts/**` or `orchestration/*_state_machine.json` directly — `.cursor/hooks.json` and `.claude/settings.json` block agent writes; use codegen specs + renderer.
+- Stop after tests pass and present artifacts for human approval.
+
+## Deploy (Phase 5)
+
+- **Main agent only**, and only after the user explicitly requests deploy.
+- Read `docs/MCP_GUARDRAILS.md` — MCP-first catalog/LF/verify; Terraform fallback for jobs/SFN.
+- Preflight: `python tools/deploy_workload.py --workload {name} --dry-run`
+- Live plan: `python tools/deploy_workload.py --workload {name} --bucket {bucket}`
+- `terraform apply` requires `--approve-apply` **and** user confirmation in chat.
+- Wrapper refuses apply if `terraform_sync.status=pending` or no `module "{name}"` in `main.tf`.
+- Record successful SFN execution in `docs/STATUS.md`.
+- Append phases to `workloads/{name}/logs/trace_events.jsonl` via `shared.utils.agent_trace`.
+
+## Command entry points
+
+`.cursor/commands/onboard-workflow.md` — build.
+`.cursor/commands/devops-workflow.md` — Terraform + plan after onboard.
+Tool selection: `TOOL_ROUTING.md`.

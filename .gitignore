@@ -17,6 +17,18 @@ iac/terraform/*.tfstate*
 iac/terraform/terraform.tfvars
 iac/terraform/tfplan
 iac/terraform/*.tfplan
+iac/terraform/tfplan_*
+
+# Terraform sandbox scratch (CLI debug dumps — not source)
+iac/terraform/destroy_*.txt
+iac/terraform/glue_*.json
+iac/terraform/glue_error*.txt
+iac/terraform/sfn_hist*.json
+iac/terraform/sfn_input.json
+iac/terraform/lambda_out.json
+iac/terraform/lf_resource.json
+iac/terraform/register_*.json
+iac/terraform/verifier_test_payload.json
 
 # Regenerated Lambda packaging (redis-py tree is huge)
 build/
@@ -32,6 +44,9 @@ glue_error*.txt
 sfn_fail.txt
 verifier_log.txt
 *.jsonl
+
+# AgentCore Gateway — sandbox-specific URL (commit .mcp.gateway.json.example instead)
+.mcp.gateway.json
 
 # IDE
 .pytest_cache/

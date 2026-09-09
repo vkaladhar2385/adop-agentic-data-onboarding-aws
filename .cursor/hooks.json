@@ -1,0 +1,12 @@
+﻿{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "python .cursor/hooks/enforce_template_codegen.py",
+        "matcher": "Write|StrReplace",
+        "failClosed": true
+      }
+    ]
+  }
+}
