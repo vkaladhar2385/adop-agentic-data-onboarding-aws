@@ -37,6 +37,10 @@ resource "aws_codebuild_project" "factory" {
       name  = "TF_STATE_REGION"
       value = var.aws_region
     }
+    environment_variable {
+      name  = "ADOP_FACTORY_MODE"
+      value = "full"
+    }
   }
 
   source {

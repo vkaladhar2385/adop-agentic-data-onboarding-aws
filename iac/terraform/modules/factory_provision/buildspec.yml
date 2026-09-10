@@ -27,7 +27,7 @@ phases:
           -backend-config="region=${TF_STATE_REGION}" \
           -backend-config="encrypt=true"
       - cd "$CODEBUILD_SRC_DIR"
-      - export ADOP_FACTORY_MODE="${ADOP_FACTORY_MODE:-resync}"
+      - export ADOP_FACTORY_MODE="${ADOP_FACTORY_MODE:-full}"
       - python tools/factory_codebuild_deploy.py
   post_build:
     commands:

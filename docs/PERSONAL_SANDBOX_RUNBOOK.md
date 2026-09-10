@@ -74,9 +74,11 @@ python tools/harness_smoke_test.py --live --profile aws-agent
 aws stepfunctions describe-state-machine --name adop_factory_provision --profile aws-agent --region us-east-1
 ```
 
-### Step A1b — Deploy workload pipeline (required for E2E)
+### Step A1b — Optional: laptop-only deploy (skip for Option B demo)
 
-After a full destroy, CodeBuild runs in **resync** mode (scripts + landing sync only — **no** Terraform). Harness E2E needs `supplier_lead_times_pipeline` to already exist:
+Factory provision CodeBuild runs **`ADOP_FACTORY_MODE=full`** (terraform + sync) **before** E2E, so you do **not** need a separate `provision_client_workload.py` after destroy.
+
+Use laptop deploy only when debugging Terraform without Harness:
 
 ```powershell
 python tools/provision_client_workload.py `
@@ -85,11 +87,11 @@ python tools/provision_client_workload.py `
   --aws-profile aws-agent
 ```
 
-**One-time per rebuild** (~10 min). Skip only if you set CodeBuild `ADOP_FACTORY_MODE=full` (needs LF grants on CodeBuild role).
+After changing factory buildspec/SFN, re-upload artifact + re-apply factory module (Step A1).
 
 ### Step A2 — Optional: laptop onboarding demo (Acts 1–2)
 
-Only if you want to show `/onboard-workflow` in Cursor **before** the no-laptop act (specs + pytest in Cursor, then use A1b for deploy).
+Only if you want to show `/onboard-workflow` in Cursor **before** the no-laptop act (specs + pytest in Cursor; deploy still via Harness APPROVE in Act 6).
 
 ### Step A3 — Cursor MCP (for discovery / hybrid tools in room)
 

@@ -26,7 +26,7 @@
     "RunDeploy": {
       "Type": "Task",
       "Resource": "arn:aws:states:::codebuild:startBuild.sync",
-      "Comment": "Runs deploy_workload equivalent from repo artifact (package_and_sync + terraform apply)",
+      "Comment": "deploy_workload --approve-apply via CodeBuild (terraform + package_and_sync before E2E)",
       "Parameters": {
         "ProjectName": "${factory_codebuild_project}",
         "EnvironmentVariablesOverride": [
@@ -38,6 +38,11 @@
           {
             "Name": "ADOP_BUCKET",
             "Value.$": "$.bucket",
+            "Type": "PLAINTEXT"
+          },
+          {
+            "Name": "ADOP_FACTORY_MODE",
+            "Value": "full",
             "Type": "PLAINTEXT"
           },
           {

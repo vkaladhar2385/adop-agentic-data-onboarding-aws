@@ -2,8 +2,8 @@
 """CodeBuild entry for factory provision (Option B).
 
 Modes (``ADOP_FACTORY_MODE`` env):
-  resync (default) — validate, pytest, package_and_sync, sync landing (no terraform)
-  full             — ``deploy_workload.py --approve-apply`` (needs LF/Terraform perms on role)
+  full (default)   — ``deploy_workload.py --approve-apply`` (terraform + sync; required before E2E)
+  resync           — validate, pytest, package_and_sync, sync landing only (no terraform)
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def _run(cmd: list[str]) -> None:
 def main() -> int:
     workload = os.environ.get("ADOP_WORKLOAD", "").strip()
     bucket = os.environ.get("ADOP_BUCKET", "").strip()
-    mode = os.environ.get("ADOP_FACTORY_MODE", "resync").strip().lower()
+    mode = os.environ.get("ADOP_FACTORY_MODE", "full").strip().lower()
 
     if not workload or not bucket:
         print("error: ADOP_WORKLOAD and ADOP_BUCKET required", file=sys.stderr)

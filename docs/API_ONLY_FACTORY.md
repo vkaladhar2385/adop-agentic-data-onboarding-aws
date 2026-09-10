@@ -3,7 +3,7 @@
 **Goal:** Provision a **pre-onboarded** workload and run the full pipeline **from AWS** after the client types **APPROVE** in Harness chat. No `terraform apply`, no `deploy_workload.py`, and no Cursor on the deploy path.
 
 **Demo workload:** `supplier_lead_times`  
-**Typical runtime:** ~12–15 minutes (CodeBuild resync + Step Functions E2E)  
+**Typical runtime:** ~20–25 minutes (CodeBuild full deploy + workload E2E)  
 **Status:** Green in sandbox (Harness → `trigger_provision` → factory SFN → CodeBuild → workload pipeline **SUCCEEDED**).
 
 **Related:** architecture and components → [`FACTORY_PROVISION_DESIGN.md`](FACTORY_PROVISION_DESIGN.md) · Harness setup → [`MODE_C1_HARNESS.md`](MODE_C1_HARNESS.md) · laptop demo → [`CLIENT_DEMO_RUNBOOK.md`](CLIENT_DEMO_RUNBOOK.md) Act 6.
@@ -38,11 +38,10 @@ Run once per sandbox account (or after factory module changes).
 | 4 | Repo zip for CodeBuild | `python tools/package_factory_artifact.py --bucket adop-datalake-<account>-us-east-1 --profile aws-agent` |
 | 5 | Factory module (SFN, CodeBuild, Lambdas + audit) | `python tools/deploy_factory_provision.py --profile aws-agent-terraform` |
 | 6 | Smoke test | `python tools/harness_smoke_test.py --live --profile aws-agent` → **2/2 PASS** |
-| 7 | **Workload pipeline** (after full destroy) | `python tools/provision_client_workload.py --workload supplier_lead_times --bucket adop-datalake-<account>-us-east-1 --aws-profile aws-agent` |
 
-CodeBuild **resync** mode does not run Terraform — E2E needs `supplier_lead_times_pipeline` to exist (step 7). See [`PERSONAL_SANDBOX_RUNBOOK.md`](PERSONAL_SANDBOX_RUNBOOK.md) Step A1b.
+CodeBuild runs **`ADOP_FACTORY_MODE=full`** (`deploy_workload --approve-apply`) before optional E2E — no separate laptop deploy after destroy.
 
-After pulling audit-trail changes, re-run step 5 so the SFN gains `WriteProvisionAudit` and the audit Lambda is deployed.
+After pulling factory/SFN changes, re-run steps 4–5 (artifact zip + `deploy_factory_provision.py`).
 
 **Bedrock:** Enable `us.anthropic.claude-sonnet-4-6`. Nova does **not** support Gateway tool-use in this account.
 
