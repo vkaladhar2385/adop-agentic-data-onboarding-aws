@@ -76,9 +76,8 @@ consulting value the client cannot get from the open-source repo alone.
 ---
 
 ## Closed since the last review ("close the gap" pass)
-These were previously listed as gaps in this document / `PHASE3_SANDBOX_DEPLOY.md`
-and are now implemented in the repo (still sandbox-grade, not enterprise-hardened
-— that's still items 1–10 above):
+These were previously listed as gaps in this document and are now implemented in the repo
+(still sandbox-grade, not enterprise-hardened — that's still items 1–10 above):
 
 | Was a gap | Now |
 |---|---|
@@ -91,6 +90,5 @@ and are now implemented in the repo (still sandbox-grade, not enterprise-hardene
 | Single-workload Terraform (`var.workload` default) | Reusable module, root `main.tf` instantiates it once per workload |
 | Lambda packaging undefined | `deploy.yml` builds lean, dependency-free zips (stdlib + boto3 only) and uploads to S3 before `terraform apply` |
 
-Remaining before an actual `terraform apply` in a live sandbox: nothing code-side
-— see `docs/PHASE3_SANDBOX_DEPLOY.md` for the run-it-once checklist (still a
-deliberate choice to skip, not a blocked gap).
+Remaining before an actual `terraform apply` in a live sandbox: nothing code-side — use
+`tools/provision_sandbox.py` or `tools/deploy_workload.py` when ready (`docs/SANDBOX_LIFECYCLE.md`).

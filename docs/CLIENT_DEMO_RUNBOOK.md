@@ -7,6 +7,10 @@ specs → render → deploy → E2E pipeline on AWS. Default demo workload:
 **Prerequisites:** AWS profile `aws-agent` (or your sandbox profile), Cursor with MCP
 loaded, ~$2–5 sandbox spend for one deploy + one pipeline run.
 
+**Related:** timing/cost/keep-vs-destroy → `docs/DEMO_RUNBOOK.md` · full sandbox up/down →
+`docs/SANDBOX_LIFECYCLE.md` · Gateway hybrid → `docs/MODE_B_SETUP.md` · Harness API →
+`docs/MODE_C1_HARNESS.md`.
+
 ---
 
 ## Before the room (15 min)

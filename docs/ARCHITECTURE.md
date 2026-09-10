@@ -2,12 +2,14 @@
 
 This is the build/review reference for the repo: what exists, why it's shaped
 this way, how the pieces connect, and where the honest edges are. Read this
-before extending the pattern to a third workload or wiring Phase 3.
+before extending the pattern to a new workload or redeploying the sandbox.
 
 - Client-facing story: [`docs/CLIENT_PITCH.md`](CLIENT_PITCH.md)
 - Time/cost comparison: [`docs/BEFORE_AFTER.md`](BEFORE_AFTER.md)
 - What's demo-grade vs. enterprise-grade: [`docs/ADAPTATION_GAP.md`](ADAPTATION_GAP.md)
-- What running this on real AWS involves: [`docs/PHASE3_SANDBOX_DEPLOY.md`](PHASE3_SANDBOX_DEPLOY.md)
+- Sandbox provision / destroy: [`docs/SANDBOX_LIFECYCLE.md`](SANDBOX_LIFECYCLE.md)
+- Current milestone status: [`docs/STATUS.md`](STATUS.md)
+- Agentic layer (Gateway + Harness): [`docs/MODE_B_SETUP.md`](MODE_B_SETUP.md), [`docs/MODE_C1_HARNESS.md`](MODE_C1_HARNESS.md)
 
 ---
 
@@ -43,16 +45,16 @@ flowchart LR
   SEC[KMS + Lake Formation LF-Tags<br/>+ CloudTrail] -. secures .-> Lake
 ```
 
-Three workloads share one pattern and one codebase layout:
+Five workloads share one pattern and one codebase layout (Tier A factory proofs + Tier B demo):
 
-| | `advisory_transactions` | `web_events` | `product_inventory` |
-|---|---|---|---|
-| Domain | Wealth/brokerage | Digital analytics (clickstream) | Product / SKU catalog |
-| Cadence | Daily batch (07:00 UTC) | Hourly micro-batch (:05) | Daily batch (08:00 UTC) |
-| Regulation | SOX (7-yr retention, financial integrity) | GDPR (consent, right-to-erasure) | None (2-yr retention) |
-| Gold shape | Star schema (fact + 4 dims) | Hourly rollup + erasure index | Flat Iceberg (one row per sku) |
-| Sinks | Catalog + Redshift | Catalog only (TF PILOT-DISABLED) | Catalog only (no TF module yet) |
-| Signature control | Quarantines broken financial math | Suppresses no-consent rows before they're ever processed | Quarantines blank sku / negative on-hand |
+| | `advisory_transactions` | `web_events` | `product_inventory` | `supplier_lead_times` | `customer_orders` |
+|---|---|---|---|---|---|
+| Domain | Wealth/brokerage | Clickstream | Product / SKU | Supplier lead times | E-commerce orders |
+| Cadence | Daily 07:00 UTC | Hourly :05 | Daily 08:00 UTC | Weekly | Daily |
+| Regulation | SOX | GDPR | None | None | None |
+| Gold shape | Star schema | Hourly rollup | Flat Iceberg | Flat Iceberg | Flat Iceberg |
+| Orchestrator | Step Functions | SFN (TF disabled) | Step Functions | Step Functions | MWAA (SFN export optional) |
+| Role | SOX pilot + extensions | GDPR contrast | Factory #3 | Factory #4 E2E | Tier B #5 |
 
 See the rendered picture: `docs/diagrams/adop-architecture.png`.
 
@@ -63,7 +65,7 @@ See the rendered picture: `docs/diagrams/adop-architecture.png`.
 ADOP's agents each own one layer of generated artifact. This repo's files are
 organized so you can point at a file and say which agent would generate it:
 
-| Agent (pilot plan) | What it owns | Files in this repo |
+| Agent (AGENTS.md contract) | What it owns | Files in this repo |
 |---|---|---|
 | Metadata Agent | Source shape, semantics, compliance flags | `workloads/<w>/config/{source,semantic}.yaml` |
 | Transformation Agent | Cleaning/masking/dedup/star-schema rules + SQL DDL | `workloads/<w>/config/transformations.yaml`, `workloads/<w>/sql/**/*.sql`, `workloads/<w>/scripts/transform/*.py` |
@@ -292,7 +294,7 @@ therefore skip importing pandas) entirely.
 | `.github/workflows/deploy.yml` | manual `workflow_dispatch` (qa/staging/prod) | OIDC auth → sync scripts + build/upload Lambda zips → `terraform apply` (GitHub Environment = human approval gate) → live post-deploy verifier for both workloads |
 
 Nothing deploys on merge. `deploy.yml` requires an explicit human trigger and
-a GitHub Environment approval, matching the pilot plan's "agents generate,
+a GitHub Environment approval, matching the AGENTS.md "agents generate,
 humans promote" boundary.
 
 ---
@@ -314,11 +316,10 @@ pytest workloads/ -v
 
 The **same rule files** (`config/*.yaml`) drive both the local pandas path and
 the (stubbed) Glue/Spark path — see `run_glue()` in each transform script —
-so local demo behavior cannot drift from what would run on AWS. The one
-deliberate exception is `run_glue()` for the two Spark transform jobs
-(`bronze_to_silver.py`, `silver_to_gold.py` in each workload): those remain
-stubs that `raise SystemExit`, since filling them in requires an actual Spark
-runtime to test against — see `PHASE3_SANDBOX_DEPLOY.md` gap #1.
+so local demo behavior cannot drift from what would run on AWS. Production transform steps declared as `glueetl` in `config/compute.yaml` use PySpark +
+Iceberg via `spark_transforms.py` (see `framework-e2e-v6` and `tier-b-e2e-fix-v3` in
+`docs/STATUS.md`). Quality gates stay Python Shell. Local tests use `local_runner.py` or
+Spark-local fixtures where wired.
 
 ---
 
@@ -345,7 +346,7 @@ ADOP/
 │       └── README.md
 ├── iac/terraform/                  # see section 7
 ├── .github/workflows/{ci,deploy}.yml
-└── docs/                           # this file, pitch, before/after, gap, phase-3, diagrams, presentations
+└── docs/                           # STATUS, SANDBOX_LIFECYCLE, MCP_WIRING, presentations, …
 ```
 
 ---

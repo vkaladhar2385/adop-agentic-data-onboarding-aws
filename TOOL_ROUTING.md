@@ -36,7 +36,9 @@ Prompt files: `prompts/onboarding/01-dedup-agent.md` … `04-deploy-agent.md`.
 | 4e | Ontology (opt-in) | Sub-agent `05-ontology-agent.md` → `shared.semantic_layer.induce_and_stage()` |
 | 5 | Deploy | MCP catalog/LF/verify → TF fallback for compute/orchestration (see Step 3) |
 | 5b | MWAA (when `orchestrator: mwaa`) | `tools/sync_mwaa_dags.py --workload {name} --s3-uri s3://…/dags/` |
-| 5c | Gateway (Tier B AWS) | `tools/generate_mcp_gateway_config.py` → `mcp_health_check.py --config .mcp.gateway.json` |
+| 5c | Gateway (Tier B AWS) | `tools/deploy_mcp_gateway.py` → `switch_mcp_mode.py` → `verify_gateway_mcp.py` |
+| 5d | Sandbox lifecycle | `tools/provision_sandbox.py` / `tools/destroy_sandbox.py` — see `docs/SANDBOX_LIFECYCLE.md` |
+| 5e | Factory provision (Option B) | `tools/deploy_factory_provision.py`; Harness `factory.trigger_provision` via Gateway |
 
 ---
 
@@ -133,7 +135,9 @@ Cursor `user-aws-mcp` is optional for docs/reads; do not mix with the official 1
 |------|--------|
 | OpenSearch / Redis SFN steps | Off live advisory SFN; enable via `state_machine.spec.yaml` flags |
 | MWAA live sync | `tools/sync_mwaa_dags.py` after sandbox MWAA bucket exists |
-| AgentCore Gateway cutover | `prompts/environment-setup/09-deploy-agentcore-gateway.md` |
+| AgentCore Gateway cutover | `tools/deploy_mcp_gateway.py`, `docs/MODE_B_SETUP.md` |
+| Sandbox one-command lifecycle | `tools/provision_sandbox.py`, `tools/destroy_sandbox.py` |
+| Factory provision (Harness-only path) | `docs/FACTORY_PROVISION_DESIGN.md`, `tools/deploy_factory_provision.py` |
 | MCP `create_job` / `CreateStateMachine` | Backlog to shrink Terraform further |
 | Full Phase 7 multi-cloud abstractions | After Track B |
 

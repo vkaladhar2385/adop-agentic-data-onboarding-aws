@@ -2,7 +2,13 @@
 
 Last verified live AWS run: Step Functions `tier-b-e2e-fix-v3-20260909-124345` (**SUCCEEDED**).
 
-Previous green run: `framework-e2e-v6-20260908-185515`.
+Previous green run: `framework-e2e-v6-20260908-185515` (Iceberg + Redshift path).
+
+**Sandbox state (2026-09-10):** Pipeline Terraform **destroyed** (state empty; KMS keys may be in
+7-day deletion window). AgentCore Gateway / Harness / MCP Lambdas may still exist until
+`python tools/destroy_sandbox.py --yes`. Redeploy via `provision_sandbox.py` or per-workload deploy.
+
+**Corporate repo:** [Perficient-Corporate/ai-agentic-data-onboarding](https://github.com/Perficient-Corporate/ai-agentic-data-onboarding)
 
 Previous failures (resolved):
 
@@ -19,7 +25,7 @@ Previous failures (resolved):
 
 | Milestone | Target | Factory % (weighted) | Status |
 |-----------|--------|----------------------|--------|
-| **Today** (pre-M1) | One hand-built pilot + partial codegen | **~35–40%** | In progress |
+| **Today** | Tier A complete + Tier B scaffolding on disk | **~94%** (M6b) | Tier A ☑; Tier B files ☑; live Gateway/Harness optional |
 | **M1** | `/onboard-workflow` + sub-agents + workload #2 via factory | **~55–60%** | Row 10 done; row 9 deferred (E2E / LF-IAM) |
 | **M2** | Full codegen templates (ingest, silver→gold, quality, SFN JSON) | ~70% | **Done** — both workloads render from shared templates |
 | **M3** | `/devops-workflow`, trace logs, deploy wrapper hardened | ~80% | **Done** — command + dry-run/apply gates |
@@ -64,7 +70,7 @@ pass; no hand-edits to `scripts/` or `*_state_machine.json`; MCP health passes w
 | **A12** | CI drift + schema validators | `tools/check_codegen_drift.py`, `tools/validate_configs.py`, `.github/workflows/ci.yml` | ☑ |
 | **A13** | **Expand JSON Schema contracts** (spec types) | `contracts/v1/codegen_*.spec.schema.json` (5) + `validate_configs.py` | ☑ |
 | **A14** | **Self-contained MCP servers** | `mcp-servers/` vendored; `generate_mcp_config.py` + `mcp_health_check.py` prefer local tree | ☑ |
-| **A15** | MCP registry + health (13 servers) | `tool-registry/servers.yaml`, `tools/mcp_health_check.py` | ☑ (paths external today) |
+| **A15** | MCP registry + health (13 servers) | `tool-registry/servers.yaml`, `tools/mcp_health_check.py` | ☑ (self-contained `mcp-servers/`) |
 | **A16** | Factory proof workload #2 | `workloads/product_inventory/` | ☑ |
 | **A17** | **Factory proof workload #4** (end-to-end Tier A test) | `workloads/supplier_lead_times/` — 8 pytest, drift clean, AgentOutput logs | ☑ |
 | **A18** | Orchestration choice at discovery | `config/schedule.yaml` → `orchestrator: step_functions \| mwaa`; **default `step_functions` if omitted** | ☑ |
@@ -107,8 +113,9 @@ ontology artifacts staged when user opts in; deploy uses MCP-first path on Gatew
 
 | # | Deliverable | Location / action | Done |
 |---|-------------|-------------------|------|
-| **B1** | **AgentCore Gateway** (13 MCP servers cloud-hosted) | `docs/MODE_B_SETUP.md`; `config/agentcore/gateway_targets.yaml`; `tools/switch_mcp_mode.py` | ☑ Gateway live — **2/13 targets** (glue-athena, lakeformation); hybrid cutover pending user reload |
-| **B2** | AgentCore Harness (C1 API agent) | `docs/MODE_C1_HARNESS.md`; `tools/deploy_agentcore_harness.py` | ☑ code ready; AWS deploy pending user run |
+| **B1** | **AgentCore Gateway** (13 MCP + `factory` target) | `docs/MODE_B_SETUP.md`; `config/agentcore/gateway_targets.yaml` (**14 targets**); `tools/deploy_mcp_gateway.py`; `tools/switch_mcp_mode.py` | ☑ manifest + Lambda handlers complete; deploy with `deploy_mcp_gateway.py`; modes local / hybrid / gateway |
+| **B2** | AgentCore Harness (C1 API agent) | `docs/MODE_C1_HARNESS.md`; `tools/deploy_agentcore_harness.py` | ☑ deploy script + system prompt; optional AWS run; pairs with Gateway |
+| **B2a** | **Factory provision (Option B)** | `docs/FACTORY_PROVISION_DESIGN.md`; `factory` Gateway target; `tools/deploy_factory_provision.py` | ☑ SFN + CodeBuild module on disk; apply + repo zip for no-laptop path |
 | **B2b** | AgentCore Runtime container (C2) | Deferred — analyze after C1 | ☐ |
 | **B3** | **Cedar / AVP** sub-agent policy enforcement | Port `shared/policies/` from official ADOP; `sub-agent-no-mcp.cedar`; pre-commit validator | ☑ policies + `tools/validate_cedar_policies.py` + `shared/utils/cedar_policy.py` |
 | **B4** | **Ontology Staging Agent** (opt-in at discovery) | `prompts/onboarding/05-ontology-agent.md`; `shared/semantic_layer/`; emit `ontology.ttl`, `mappings.ttl` | ☑ local staging |
@@ -135,7 +142,7 @@ recommendation to omit Gateway, Cedar, or ontology permanently. Your target is *
 | **10** | Port MWAA DAG template + `dag_spec.schema.json`; extend renderer (B5–B6) | **Done** — `customer_orders` renders `dags/` |
 | **11** | Port Cedar policies + validator (B3) | **Done** — pytest denies sub-agent MCP |
 | **12** | Port ontology agent + semantic_layer (B4) | **Done** — `customer_orders` TTL + manifest |
-| **13** | Deploy AgentCore Gateway; switch to `.mcp.gateway.json` (B1) | **Done** — `adop-mcp-gateway-ztpftsljts` + glue-athena target; `.mcp.gateway.json` |
+| **13** | Deploy AgentCore Gateway; switch to `.mcp.gateway.json` (B1) | **Done** — `deploy_mcp_gateway.py` registers **14 targets**; `switch_mcp_mode.py` + stdio proxy for Cursor |
 | **14** | MWAA sync (**optional demo only**, not default) | **Skipped** (per user — demo later via `--mwaa-demo`) |
 | **15** | Tier B E2E (B10) | **Done** — SFN `tier-b-e2e-fix-v3-20260909-124345` through PostDeploymentVerify (fixes: `silver_read_suffix=/quality_export`, SFN catalog-only, Glue `glue.id` + LF `GetDataAccess`) |
 
@@ -251,6 +258,7 @@ need no more than minor hand edits. Row 9 is **not blocking M2**.
 | 4 | Lake Formation LF-Tags via `register_catalog` | **Done** |
 | 5 | Live `post_deployment_verifier` | **Done** (6 checks on Redshift-only path) |
 | 6 | Same-day teardown (`terraform destroy`) | **Done** (2026-09-09) — state empty; KMS keys in 7-day deletion window |
+| 6b | One-command sandbox lifecycle | **Done** — `provision_sandbox.py` / `destroy_sandbox.py`; tags in `config/sandbox_tags.yaml`; see `docs/SANDBOX_LIFECYCLE.md` |
 | 7 | Cloud-native multi-provider framework design | **Not done** — after Track B |
 
 ---
@@ -272,10 +280,12 @@ IngestToBronze → BronzeToSilver → SilverQualityGate → SilverToGold
 
 ## Next decisions
 
-**Primary track — Tier A then Tier B (full ADOP-shaped factory):**
+**Primary track — Tier A + Tier B (full ADOP-shaped factory):**
 
-1. **Steps 1–8** — Tier A (AgentOutput, guard, SKILLS, codegen, MCP self-contained, workload #4).
-2. **Steps 9–15** — Tier B (dual orchestration, Cedar, ontology, Gateway, workload #5).
-3. **Redeploy sandbox** when ready for Gateway/MWAA/SFN E2E (`docs/DEMO_RUNBOOK.md`).
+1. **Tier A** — complete (workload #4 `supplier_lead_times` acceptance passed).
+2. **Tier B files** — complete (Gateway manifest, Cedar, ontology, MWAA codegen, workload #5).
+3. **Live AWS** — redeploy when demoing: `python tools/provision_sandbox.py --bucket …` or
+   `deploy_workload.py`; tear down with `destroy_sandbox.py` (`docs/SANDBOX_LIFECYCLE.md`).
+4. **Client demo script** — `docs/CLIENT_DEMO_RUNBOOK.md` (factory) + timing/cost in `docs/DEMO_RUNBOOK.md`.
 
-Sandbox is destroyed; steps 1–8 are files-only. Tier B step 13+ needs AWS for Gateway.
+Historical Phase 3 sandbox narrative was removed; see `docs/PILOT_FAILURES_AND_FIXES.md` for resolved E2E issues.

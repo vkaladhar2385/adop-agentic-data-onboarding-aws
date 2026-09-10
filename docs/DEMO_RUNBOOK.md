@@ -1,5 +1,9 @@
 # Demo runbook — time, cost, what to keep
 
+**Sandbox lifecycle:** prefer `python tools/provision_sandbox.py --bucket …` to bring up Gateway +
+workloads, and `python tools/destroy_sandbox.py --yes` when done. See `docs/SANDBOX_LIFECYCLE.md`.
+**Live client script:** `docs/CLIENT_DEMO_RUNBOOK.md`.
+
 ## 1. From-scratch time (clean replay, credentials already logged in)
 
 A **first-time** `terraform apply` in an empty account is dominated by
@@ -13,7 +17,7 @@ OpenSearch, not by Glue or Step Functions.
 | Terraform: Redshift Serverless | 3–8 min | Namespace + workgroup ENIs |
 | Terraform: OpenSearch domain | **15–25 min** | One-node `t3.small.search` |
 | One-time Lake Formation grants + Athena workgroup | 2–5 min | Admin must be an LF admin |
-| First Step Functions run | 6–9 min | 5 Glue Python Shell jobs + 5 Lambdas |
+| First Step Functions run | 6–12 min | Mixed Glue ETL (Iceberg transforms) + Python Shell quality gates + Lambdas |
 | **Total, no surprises** | **~35–50 min** | |
 
 The first time we did this it took **hours**, almost all of it credential

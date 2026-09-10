@@ -56,9 +56,9 @@
   <div class="row" style="flex:0; margin-top:22px;">
     <div class="stat"><b>~95%</b><span>Factory &amp; codegen (spec → render → test)</span></div>
     <div class="stat"><b>~90%</b><span>MCP-first deploy policy + implementation</span></div>
-    <div class="stat"><b>In progress</b><span>Live E2E on fresh sandbox after MCP cutover</span></div>
+    <div class="stat"><b>Tier B ☑</b><span>Gateway 14 targets + Harness + sandbox lifecycle on disk</span></div>
   </div>
-  <p class="callout" style="margin-top:20px;">One-line: <strong>The factory is built; we are re-proving end-to-end on AWS after cost teardown and MCP-first infrastructure cutover.</strong></p>
+  <p class="callout" style="margin-top:20px;">One-line: <strong>Factory + Tier B scaffolding complete; live AWS is optional via provision_sandbox / destroy_sandbox.</strong></p>
   <div class="foot"><span>ADOP Track A · internal pilot</span><span>1 / 6</span></div>
 </section>
 
@@ -100,7 +100,8 @@
     <tr><td>Step Functions default orchestration</td><td><span class="badge done">Done</span></td><td>MWAA codegen optional, demo skipped</td></tr>
     <tr><td>Medallion + quality + PII / LF-Tags</td><td><span class="badge done">Done</span></td><td>SOX + GDPR proof workloads</td></tr>
     <tr><td>13 MCP servers + health check</td><td><span class="badge done">Done</span></td><td>Self-contained mcp-servers/</td></tr>
-    <tr><td>Tier B (Gateway, Cedar, ontology)</td><td><span class="badge done">Done</span></td><td>Files + Gateway config; live demo partial</td></tr>
+    <tr><td>Tier B (Gateway, Cedar, ontology)</td><td><span class="badge done">Done</span></td><td>14 Gateway targets incl. factory; E2E tier-b-e2e-fix-v3 green</td></tr>
+    <tr><td>Sandbox lifecycle (provision / destroy)</td><td><span class="badge done">Done</span></td><td>config/sandbox_tags.yaml + CLI tools</td></tr>
   </table>
   <div class="foot"><span>Source: docs/STATUS.md · Tier A checklist A1–A18</span><span>3 / 6</span></div>
 </section>
@@ -113,12 +114,12 @@
     <tr><td>MCP-first: catalog, KMS, IAM, LF</td><td><span class="badge done">Done</span></td><td>mcp_deploy_infrastructure.py + conditional TF</td></tr>
     <tr><td>TF fallback: jobs, Lambdas, SFN, SNS</td><td><span class="badge done">Done</span></td><td>Ownership in compute.yaml + TOOL_ROUTING.md</td></tr>
     <tr><td>PySpark + Iceberg Silver/Gold</td><td><span class="badge mostly">Mostly</span></td><td>compute.yaml + Glue ETL; E2E stabilizing</td></tr>
-    <tr><td>Live E2E on sandbox</td><td><span class="badge progress">In progress</span></td><td>v6 SUCCEEDED pre-destroy; redeploy + fix underway</td></tr>
+    <tr><td>Live E2E on sandbox</td><td><span class="badge mostly">Mostly</span></td><td>tier-b-e2e-fix-v3 SUCCEEDED; TF destroyed — redeploy when demoing</td></tr>
     <tr><td>Extensions (Redshift / OpenSearch / Redis)</td><td><span class="badge partial">Partial</span></td><td>Redshift on SFN; OS/Redis deferred (cost)</td></tr>
     <tr><td>Tier-2 aws-mcp (Glue jobs via MCP)</td><td><span class="badge not">Not started</span></td><td>Optional TF shrink — backlog</td></tr>
     <tr><td>Phase 7 multi-cloud framework</td><td><span class="badge not">Not started</span></td><td>After Track B mastery</td></tr>
   </table>
-  <div class="foot"><span>Last green run: framework-e2e-v6 · destroy 2026-09-09</span><span>4 / 6</span></div>
+  <div class="foot"><span>Last green: tier-b-e2e-fix-v3 · TF destroy 2026-09-09</span><span>4 / 6</span></div>
 </section>
 
 <section class="slide">
@@ -126,24 +127,24 @@
   <h2>Completion by dimension</h2>
   <div class="bar"><div class="label">Factory &amp; codegen</div><div class="track"><div class="fill teal" style="width:95%"></div></div><div class="n">~95%</div></div>
   <div class="bar"><div class="label">MCP-first architecture</div><div class="track"><div class="fill teal" style="width:90%"></div></div><div class="n">~90%</div></div>
-  <div class="bar"><div class="label">Tier B file parity</div><div class="track"><div class="fill" style="width:85%"></div></div><div class="n">~85%</div></div>
-  <div class="bar"><div class="label">Live AWS E2E (today)</div><div class="track"><div class="fill amber" style="width:40%"></div></div><div class="n">~40%</div></div>
-  <div class="bar"><div class="label">Gateway / MWAA live demo</div><div class="track"><div class="fill amber" style="width:60%"></div></div><div class="n">~60%</div></div>
+  <div class="bar"><div class="label">Tier B file parity</div><div class="track"><div class="fill teal" style="width:92%"></div></div><div class="n">~92%</div></div>
+  <div class="bar"><div class="label">Live AWS E2E (today)</div><div class="track"><div class="fill amber" style="width:75%"></div></div><div class="n">~75%</div></div>
+  <div class="bar"><div class="label">Gateway / Harness live</div><div class="track"><div class="fill amber" style="width:80%"></div></div><div class="n">~80%</div></div>
   <p class="callout" style="margin-top:16px;">Milestone labels (M1–M6b ≈ 94%) measure <em>factory scaffolding</em>, not “% of AWS owned by MCP.” Policy target: ~62% MCP / ~38% TF for core pipeline.</p>
   <div class="foot"><span>Internal metrics · not client-facing SLA</span><span>5 / 6</span></div>
 </section>
 
 <section class="slide">
   <div class="kicker">Current focus</div>
-  <h2>While E2E fix completes</h2>
+  <h2>Demo-ready paths</h2>
   <ol class="tight" style="font-size:16px; color:var(--slate); padding-left:22px;">
-    <li><strong style="color:var(--navy)">Terraform apply</strong> on clean sandbox (40 resources planned)</li>
-    <li><strong style="color:var(--navy)">Green Step Functions run</strong> — medallion + register_catalog + verifier</li>
-    <li><strong style="color:var(--navy)">Confirm MCP cutover</strong> — data plane live before TF control plane</li>
+    <li><strong style="color:var(--navy)">Local factory</strong> — onboard → render → pytest (no AWS)</li>
+    <li><strong style="color:var(--navy)">provision_sandbox.py</strong> — Gateway + workload TF in one command</li>
+    <li><strong style="color:var(--navy)">destroy_sandbox.py --yes</strong> — tagged teardown when demo ends</li>
   </ol>
   <div class="row" style="flex:0; margin-top:24px;">
-    <div class="stat"><b>Proven once</b><span>SFN framework-e2e-v6 SUCCEEDED (Iceberg + Redshift path)</span></div>
-    <div class="stat"><b>Now proving</b><span>Same path after destroy + MCP-first redeploy</span></div>
+    <div class="stat"><b>Proven E2E</b><span>tier-b-e2e-fix-v3 + framework-e2e-v6 SUCCEEDED</span></div>
+    <div class="stat"><b>Corporate repo</b><span>Perficient-Corporate/ai-agentic-data-onboarding</span></div>
   </div>
   <p style="margin-top:20px; font-size:14px; color:#7a8494;">Open in browser · Arrow keys or Prev/Next · Print to PDF from slide 1</p>
   <div class="foot"><span>docs/presentations/adop-requirements-status.html</span><span>6 / 6</span></div>

@@ -342,11 +342,21 @@ pytest workloads/{name}/tests/ -v
 
 **Ownership:** MCP for catalog/LF/KMS/IAM verify; Terraform for Glue jobs, Lambda, SFN, SNS.
 
+**Sandbox lifecycle (main agent, user approved):**
+
+```powershell
+python tools/provision_sandbox.py --bucket adop-datalake-ACCOUNT-us-east-1
+python tools/destroy_sandbox.py --dry-run
+python tools/destroy_sandbox.py --yes
+```
+
+See `docs/SANDBOX_LIFECYCLE.md`. Gateway deploy: `tools/deploy_mcp_gateway.py`.
+
 ---
 
 ## Skill: Ontology Staging Agent — SUB-AGENT (Tier B, opt-in)
 
-**Status:** Not wired in Track A MVP. Planned for Tier B.
+**Status:** Wired — `prompts/onboarding/05-ontology-agent.md`; example `customer_orders`.
 
 **Purpose (official ADOP):** Emit `ontology.ttl`, `mappings.ttl`, `ontology_manifest.json` from
 `semantic.yaml` + Gold schema for AWS Semantic Layer.

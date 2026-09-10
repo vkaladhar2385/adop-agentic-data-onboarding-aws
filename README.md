@@ -23,7 +23,7 @@ Synthetic demo data only. Do not point at regulated production accounts without 
 | **Data plane** | Bronze → Silver → Gold on **Apache Iceberg**; mixed Glue ETL + Python Shell per `compute.yaml` |
 | **Orchestration** | Step Functions + EventBridge (default); optional MWAA |
 | **Deploy** | MCP-first catalog/KMS/IAM/LF + **Terraform** for jobs, Lambdas, SFN, SNS |
-| **Agentic (Tier B)** | 13 MCP servers; **AgentCore Gateway** + **Harness**; local / hybrid / gateway modes |
+| **Agentic (Tier B)** | 13 MCP servers (+ **`factory`** Gateway target); **AgentCore Gateway** + **Harness**; local / hybrid / gateway modes |
 | **Sandbox lifecycle** | One-command **provision** and **destroy** with shared tags (`config/sandbox_tags.yaml`) |
 
 Contract for agents: [`AGENTS.md`](AGENTS.md). Status checklist: [`docs/STATUS.md`](docs/STATUS.md).
@@ -116,7 +116,7 @@ Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · Factory provisi
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Diagrams, job inventory, IaC modules |
 | [`docs/STATUS.md`](docs/STATUS.md) | What's done vs deferred (Tier A / Tier B) |
 | [`docs/SANDBOX_LIFECYCLE.md`](docs/SANDBOX_LIFECYCLE.md) | Provision / destroy one command |
-| [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) | 13 MCP servers, Cursor `.mcp.json` |
+| [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) | 13 MCP servers + Gateway (14 targets), Cursor `.mcp.json` |
 | [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) | Client narrative |
 | [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) | Demo timing, keep vs destroy |
 | [`iac/terraform/APPLY_GUIDE.md`](iac/terraform/APPLY_GUIDE.md) | Terraform apply / verify |

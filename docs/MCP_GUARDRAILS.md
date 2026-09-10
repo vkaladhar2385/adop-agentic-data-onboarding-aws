@@ -25,6 +25,10 @@ python tools/mcp_health_check.py
 
 Present health results to the human before deploy.
 
+**Gateway mode:** after `deploy_mcp_gateway.py`, health may run against `.mcp.gateway.json`
+via `verify_gateway_mcp.py`. **Factory provision** requires human `APPROVE` in Harness before
+`factory.trigger_provision` — see `docs/FACTORY_PROVISION_DESIGN.md`.
+
 ---
 
 ## Phase 5 — Deploy (main agent only, human approved)

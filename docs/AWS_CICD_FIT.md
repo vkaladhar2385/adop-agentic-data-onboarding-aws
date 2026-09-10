@@ -1,5 +1,7 @@
 # How ADOP Fits an Existing AWS + CI/CD Estate
 
+**Repo:** [Perficient-Corporate/ai-agentic-data-onboarding](https://github.com/Perficient-Corporate/ai-agentic-data-onboarding)
+
 The whole point: **no rip-and-replace.** Agents run in Dev and emit git-committed
 artifacts. Your existing pipeline promotes them. Only native AWS services run in
 your accounts.

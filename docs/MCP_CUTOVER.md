@@ -16,6 +16,10 @@
 Config: `workloads/advisory_transactions/config/compute.yaml` → `catalog.owner: mcp`  
 Terraform: `iac/terraform/main.tf` → `catalog_owner = "mcp"`
 
+**Contrast:** `supplier_lead_times` and other factory workloads may use `catalog.owner: terraform`
+(default) — MCP still runs Phase 5 verify; Terraform creates the Glue database. See each
+workload's `config/compute.yaml`.
+
 ---
 
 ## Fresh sandbox (after terraform destroy)

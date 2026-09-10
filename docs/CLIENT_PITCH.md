@@ -29,6 +29,11 @@ Functions orchestration, IaC, and tests — in **hours**, not weeks. Agents run 
 in **Dev**; they emit version-controlled artifacts that flow through *your* CI/CD to
 QA/Staging/Prod. **Agents never touch production.**
 
+**Agentic layer (Tier B):** 13 MCP servers plus AgentCore **Gateway** and **Harness** let
+agents discover, deploy catalog/LF, and optionally trigger factory provision — with human
+`APPROVE` gates — without ad-hoc CLI scripts. Sandbox **provision** and **destroy** are
+one command from the laptop (`docs/SANDBOX_LIFECYCLE.md`).
+
 ## 3. What the client actually receives (this repo is the proof)
 
 The same pattern produced two contrasting workloads: `advisory_transactions` (SOX,

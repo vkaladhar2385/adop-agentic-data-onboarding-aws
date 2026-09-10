@@ -2,6 +2,7 @@
 
 Hourly website clickstream (JSONL, Kinesis-landing shape) vs. the daily SOX
 brokerage feed. Same ADOP pattern, different regulation and Gold shape.
+**Terraform disabled** in sandbox (`iac/terraform/main.tf`); local pytest + codegen drift still run.
 
 | | `advisory_transactions` | `web_events` |
 |---|---|---|

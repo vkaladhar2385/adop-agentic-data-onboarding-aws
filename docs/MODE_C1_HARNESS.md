@@ -54,7 +54,7 @@ Session id must be >= 33 chars (tool generates automatically).
 
 ## Known gaps (before production)
 
-1. **Option B factory provision** — Design in `docs/FACTORY_PROVISION_DESIGN.md`; SFN + CodeBuild Terraform pending Step 3.
+1. **Option B factory provision** — Step 3 done (SFN + CodeBuild module); apply via `tools/deploy_factory_provision.py`. See `docs/FACTORY_PROVISION_DESIGN.md`.
 2. **HITL in API mode** — Harness uses prompt-based `APPROVE` before `factory.trigger_provision`.
 3. **Model ID** — Use Claude for tool-use; Nova is chat-only in this account.
 

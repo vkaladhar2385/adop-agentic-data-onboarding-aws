@@ -1,15 +1,15 @@
 # Mode B — Laptop agent + AgentCore Gateway
 
-Official ADOP **Scenario 5a**: agent stays in Cursor; MCP tools for deploy-critical
-servers run on **Amazon Bedrock AgentCore Gateway**. Remaining tools stay local (hybrid)
-until Lambda targets are added.
+Official ADOP **Scenario 5a**: agent stays in Cursor; MCP tools run on **Amazon Bedrock
+AgentCore Gateway** (14 Lambda targets: 13 registry servers + `factory`). Use
+`switch_mcp_mode.py` for local-only, full gateway, or hybrid with `--local-only` overrides.
 
 ## What you get
 
 | Piece | Where |
 |-------|--------|
 | Main agent | Cursor (laptop) |
-| All 13 MCP servers (manifest) | AgentCore Gateway → Lambda (after deploy) |
+| 14 Gateway targets (13 MCP + `factory`) | AgentCore Gateway → Lambda (after deploy) |
 | Per-server override | `--local-only` keeps chosen servers on laptop stdio |
 | Pipelines | Step Functions + Terraform (unchanged) |
 
@@ -71,9 +71,10 @@ python tools/run_e2e_pipeline.py --workload customer_orders --bucket adop-datala
 
 Backup of local config: `.mcp.local.json` (created on first switch).
 
-## Gateway manifest (13/13)
+## Gateway manifest (14 targets)
 
-All registry servers are listed in `config/agentcore/gateway_targets.yaml`.
+All 13 registry servers plus the **`factory`** provision target are listed in
+`config/agentcore/gateway_targets.yaml`.
 PyPI proxies live under `mcp-servers/gateway-lambdas/`; custom servers use
 `mcp-servers/{name}-server/lambda_handler.py`.
 

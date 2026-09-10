@@ -12,16 +12,20 @@ python tools/validate_cedar_policies.py
 
 ## Step 13 — AgentCore Gateway
 
-1. Authenticate: `aws login` or refresh sandbox credentials.
-2. Follow `prompts/environment-setup/09-deploy-agentcore-gateway.md` (full commands in sibling official ADOP repo).
-3. Generate client config:
+1. Authenticate: `aws login --profile aws-agent` (or your sandbox profile).
+2. Deploy Gateway + **14 Lambda targets** (13 registry + `factory`):
 
-```bash
-python tools/generate_mcp_gateway_config.py --gateway-url https://YOUR-GATEWAY-URL --region us-east-1
-python tools/mcp_health_check.py --config .mcp.gateway.json
+```powershell
+python tools/deploy_mcp_gateway.py --profile aws-agent --region us-east-1
+python tools/switch_mcp_mode.py --mode gateway --aws-profile aws-agent
+python tools/verify_gateway_mcp.py --profile aws-agent
+# Reload Cursor → Settings → MCP → enable agentcore-gateway
+python tools/mcp_health_check.py --skip-aws
 ```
 
-4. Cut over only when all MCP servers are green: copy `.mcp.gateway.json` → `.mcp.json`.
+3. Optional factory provision module: `python tools/deploy_factory_provision.py --approve-apply`
+
+Full checklist: **`docs/MODE_B_SETUP.md`**. Prompt reference: `prompts/environment-setup/09-deploy-agentcore-gateway.md`.
 
 ## Step 14 — MWAA (**optional demo only**)
 

@@ -186,8 +186,8 @@
     <div class="stat"><b>3 · Compliance artifacts</b><span>semantic.yaml, LF-Tags, quarantine, verifier checks — easier to show auditors than reverse-engineering PySpark.</span></div>
     <div class="stat"><b>4 · Platform evolution</b><span>Change one Jinja template or Glue default → re-render all workloads; no N manual edits.</span></div>
   </div>
-  <p class="callout" style="margin-top:16px;">AgentCore / Bedrock (Tier B) hosts MCP tools in the cloud — agents call AWS through a governed Gateway, not scattered CLI scripts.</p>
-  <div class="foot"><span>Tier A complete · Tier B Gateway + Cedar + ontology on disk</span><span>7 / 9</span></div>
+  <p class="callout" style="margin-top:16px;">AgentCore Gateway (14 targets) + Harness — agents call AWS through governed MCP; optional factory provision with human APPROVE; sandbox teardown via tagged destroy.</p>
+  <div class="foot"><span>Tier A ☑ · Tier B files ☑ · provision_sandbox / destroy_sandbox</span><span>7 / 9</span></div>
 </section>
 
 <section class="slide">

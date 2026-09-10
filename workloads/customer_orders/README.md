@@ -2,7 +2,8 @@
 
 Catalog-only medallion with **MWAA orchestration** (`orchestrator: mwaa`) and **ontology staging**
 opt-in. Validates dual-orchestration codegen, Cedar sub-agent boundaries, and semantic layer
-staging without requiring live Gateway/MWAA until sandbox redeploy.
+staging. Tier B E2E on AWS used catalog-only Step Functions path (`tier-b-e2e-fix-v3` in
+`docs/STATUS.md`); live MWAA remains optional demo-only (~$350/mo).
 
 ## Orchestration
 

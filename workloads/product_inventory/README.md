@@ -1,7 +1,7 @@
 # Workload: `product_inventory`
 
-Daily SKU inventory snapshot. Factory-proofed via `/onboard-workflow` (M1):
-full medallion, **flat Iceberg** Gold, **catalog only**, no PII regulation.
+Daily SKU inventory snapshot. **Tier A factory proof #3** via `/onboard-workflow`:
+full medallion, **flat Iceberg** Gold, **catalog only**, no PII regulation. Status: `docs/STATUS.md`.
 
 ## Phase 1 decisions
 

@@ -12,7 +12,7 @@ is what changing/adding a capability actually costs," not as a spec.
 Everything in the core pilot (`advisory_transactions`, `web_events`) uses only
 S3 + Glue + Athena + Lambda + Step Functions + EventBridge + Lake Formation —
 all **serverless, no VPC, no persistent compute**. That's deliberate (cheap
-sandbox, matches the pilot plan's cost guardrail) but it hides an entire class
+sandbox, matches AGENTS.md cost guardrails) but it hides an entire class
 of AWS services: anything that isn't a managed HTTP API. Redshift, OpenSearch,
 and Redis were chosen because together they cover the three shapes you'll hit
 adding *any* new service:

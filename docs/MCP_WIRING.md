@@ -93,9 +93,11 @@ Modes (see `docs/MODE_B_SETUP.md`):
 | Mode | Behavior |
 |------|----------|
 | `local` | All 13 stdio on laptop |
-| `gateway` | Single AgentCore Gateway endpoint (all 13 after deploy) |
-| `hybrid` | Gateway for registered targets; local for the rest |
+| `gateway` | Single AgentCore Gateway endpoint (14 targets after deploy) |
+| `hybrid` | Gateway for registered targets; local stdio for the rest |
 | `hybrid --local-only iam,core` | Mix: force named servers to stay on laptop stdio |
+
+**14th target:** `factory` — no-laptop provision API (`docs/FACTORY_PROVISION_DESIGN.md`).
 
 Restart Cursor if servers do not appear after `generate_mcp_config.py`.
 

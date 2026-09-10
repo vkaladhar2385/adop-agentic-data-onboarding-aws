@@ -347,9 +347,11 @@ After deploy verification passes, offer (do not skip):
 | `docs/EXTENDING_TO_NEW_SERVICES.md` | Adding Redshift / OpenSearch / Redis / new sinks |
 | `docs/PILOT_FAILURES_AND_FIXES.md` | Known sandbox pitfalls |
 | `TOOL_ROUTING.md` | Track A tool selection (MCP-first ownership, main vs sub-agent) |
-| `docs/MCP_WIRING.md` | Generate `.mcp.json`, Phase 0 health check |
-| `docs/MCP_WIRING.md` | Generate `.mcp.json`, Phase 0 health check |
+| `docs/MCP_WIRING.md` | Generate `.mcp.json`, Phase 0 health check, Gateway modes |
 | `docs/MCP_GUARDRAILS.md` | Phase 5 MCP steps (catalog/LF/verify) |
+| `docs/SANDBOX_LIFECYCLE.md` | One-command provision / destroy (`config/sandbox_tags.yaml`) |
+| `docs/MODE_B_SETUP.md` | AgentCore Gateway (14 targets) + MCP mode switch |
+| `docs/FACTORY_PROVISION_DESIGN.md` | Option B — Harness-only factory provision |
 | `.cursor/commands/onboard-workflow.md` | Agent Factory onboarding entry point |
 | `.cursor/commands/devops-workflow.md` | DevOps / Terraform plan after onboard |
 | `.cursor/rules/adop-onboarding.mdc` | Path-scoped onboarding gate |

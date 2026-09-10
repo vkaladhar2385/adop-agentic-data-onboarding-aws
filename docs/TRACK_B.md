@@ -25,10 +25,10 @@ Do not copy the reference tree into this repo. Styled docs: [aws-samples.github.
 | **Question it answers** | "Can we deploy and prove the pattern on real AWS?" | "How does AWS's reference agent framework generate and deploy pipelines?" |
 | **How artifacts were made** | Human + Cursor guided; files hand-authored to close gaps | Claude Code agents + MCP + template codegen |
 | **Orchestration default** | Step Functions + EventBridge (cost guardrail) | **Airflow on MWAA** (DAG in `workloads/*/dags/`) |
-| **Glue runtime** | **Python Shell + pandas** (demo scale) | **PySpark + Iceberg** on Glue ETL (`glueetl`) |
+| **Glue runtime** | **Mixed** — `glueetl` + Iceberg for transforms; Python Shell for quality gates (`compute.yaml`) | **PySpark + Iceberg** on Glue ETL (`glueetl`) |
 | **Deploy path** | `terraform apply` + `tools/package_and_sync.py` | Phase 5: main agent deploys via **MCP** (Glue, LF, S3, catalog) |
 | **AWS spend** | Yes — sandbox apply/destroy | **Zero** for study; optional if you run agents live |
-| **Status** | Phases 0–5 done; Phase 6 (destroy) in progress | **This document + mastery checklist** |
+| **Status** | Tier A ☑; Tier B files ☑; sandbox lifecycle + Gateway manifest ☑; live AWS optional | **This document + mastery checklist** |
 
 Track A proved the **pattern** (medallion, gates, LF-Tags, verifier, IaC). Track B teaches the **machinery** (agents, MCP routing, codegen, human gates) that Phase 7 must generalize.
 
@@ -357,7 +357,7 @@ Track A proves the **artifacts work on AWS**. Track B proves **how agents produc
 | Enterprise adaptation (consulting SOW) | `docs/ADAPTATION_GAP.md` |
 | Extension recipe | `docs/EXTENDING_TO_NEW_SERVICES.md` |
 | Pilot phase checklist | `docs/STATUS.md` |
-| Original pilot plan | `ADOP_Pilot_Plan.md` |
+| Project status | `docs/STATUS.md` |
 
 ---
 
