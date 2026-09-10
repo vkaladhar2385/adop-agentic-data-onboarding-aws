@@ -9,9 +9,9 @@ harness:
 
   model:
     provider: bedrock
-    # Nova avoids AWS Marketplace subscription gate for sandbox demos.
-    # Switch back to us.anthropic.claude-sonnet-4-6 after Marketplace access is enabled.
-    model_id: us.amazon.nova-pro-v1:0
+    # Claude required for reliable AgentCore Gateway tool use (Nova fails ToolUse sequence).
+    # Fallback for Marketplace-blocked accounts: us.amazon.nova-pro-v1:0 (chat-only, no tools).
+    model_id: us.anthropic.claude-sonnet-4-6
     max_tokens: 8192
     temperature: 0.2
     api_format: converse_stream

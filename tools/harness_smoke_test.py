@@ -22,8 +22,9 @@ from shared.deploy.agentcore_harness import invoke_harness, load_harness_config 
 SMOKE_PROMPTS = [
     {
         "id": "discovery_glue",
-        "prompt": "List Glue databases in this account. Reply in 3 bullets max.",
-        "expect_substrings": ["database", "glue"],
+        "prompt": "Use Gateway tools to list Glue databases in this account. Reply in 3 bullets max.",
+        "expect_substrings": ["database"],
+        "requires_tools": True,
     },
     {
         "id": "deploy_assist",
@@ -32,6 +33,7 @@ SMOKE_PROMPTS = [
             "What Phase 1 discovery questions must I ask before generating specs? Bullet list only."
         ),
         "expect_substrings": ["PII", "quality", "schedule"],
+        "requires_tools": False,
     },
 ]
 
@@ -67,7 +69,13 @@ def main(argv: list[str] | None = None) -> int:
                 region=args.region,
             )
         except Exception as exc:
-            print(f"FAIL {item['id']}: {exc}", flush=True)
+            msg = str(exc)
+            print(f"FAIL {item['id']}: {msg}", flush=True)
+            if item.get("requires_tools") and "ToolUse" in msg:
+                print(
+                    "  hint: Gateway tool-use needs Claude (us.anthropic.claude-sonnet-4-6) in harness.yaml",
+                    flush=True,
+                )
             failures += 1
             continue
         print(text[:500] + ("..." if len(text) > 500 else ""), flush=True)

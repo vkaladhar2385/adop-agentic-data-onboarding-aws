@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.local/contracts/v1/factory_provision_request.schema.json",
+  "title": "FactoryProvisionRequest",
+  "description": "Input contract for Option B no-laptop provision (Harness → Gateway → SFN).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workload", "bucket", "approve"],
+  "properties": {
+    "workload": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Pre-onboarded workload name under workloads/"
+    },
+    "bucket": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+      "description": "Data lake S3 bucket (no s3:// prefix)"
+    },
+    "approve": {
+      "type": "boolean",
+      "const": true,
+      "description": "Must be true — human typed APPROVE in Harness session"
+    },
+    "run_e2e": {
+      "type": "boolean",
+      "default": true,
+      "description": "After infra apply, sync landing and run workload SFN E2E"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Harness runtime session id for audit trail"
+    },
+    "requested_by": {
+      "type": "string",
+      "description": "Optional client or operator label"
+    }
+  }
+}

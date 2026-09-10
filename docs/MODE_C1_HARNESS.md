@@ -20,7 +20,7 @@ API / CLI invoke_harness
 |---|-------------|-----------------|
 | 1 | AWS login | `aws login --profile aws-agent` |
 | 2 | Gateway deployed | `python tools/deploy_mcp_gateway.py` |
-| 3 | Bedrock model access | Enable `anthropic.claude-sonnet-4-20250514-v1:0` (or edit `config/agentcore/harness.yaml`) |
+| 3 | Bedrock model access | Enable `us.anthropic.claude-sonnet-4-6` (Gateway tool-use; Nova fails ToolUse) |
 | 4 | boto3 with Harness API | `python -c "import boto3; boto3.client('bedrock-agentcore-control')"` |
 
 ## Deploy Harness
@@ -54,10 +54,11 @@ Session id must be >= 33 chars (tool generates automatically).
 
 ## Known gaps (before production)
 
-1. **Gateway 2/13** — Harness only sees tools registered on Gateway (glue-athena, lakeformation). Expand `config/agentcore/gateway_targets.yaml` for iam, core, pii-detection.
-2. **HITL in API mode** — Harness runs autonomously per invoke; approval gates are prompt-based, not Cursor chat. Design explicit pause workflows for deploy.
-3. **Pipeline sandbox** — Destroyed; redeploy with `deploy_workload.py --auto-provision` for SFN E2E.
-4. **Model ID** — Verify in account: `aws bedrock list-foundation-models --region us-east-1`
+1. **Option B factory provision** — Design in `docs/FACTORY_PROVISION_DESIGN.md`; SFN + CodeBuild Terraform pending Step 3.
+2. **HITL in API mode** — Harness uses prompt-based `APPROVE` before `factory.trigger_provision`.
+3. **Model ID** — Use Claude for tool-use; Nova is chat-only in this account.
+
+See also: `docs/FACTORY_PROVISION_DESIGN.md` for no-laptop provision roadmap.
 
 ## Mode C2 (later)
 

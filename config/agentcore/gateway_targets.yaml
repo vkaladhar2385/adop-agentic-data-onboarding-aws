@@ -162,3 +162,15 @@ targets:
       memory: 256
     schema: config/agentcore/schemas/dynamodb-tools.json
     iam_policy: config/agentcore/iam/dynamodb-policy.json
+
+  - name: factory
+    required: true
+    description: No-laptop factory provision (Option B — trigger + status)
+    lambda:
+      source: mcp-servers/gateway-lambdas/factory/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 60
+      memory: 256
+    schema: config/agentcore/schemas/factory-tools.json
+    iam_policy: config/agentcore/iam/factory-policy.json

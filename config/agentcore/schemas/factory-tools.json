@@ -1,0 +1,50 @@
+[
+  {
+    "name": "trigger_provision",
+    "description": "Start no-laptop factory provision for a pre-onboarded workload. Requires approve=true after human typed APPROVE in chat.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "workload": {
+          "type": "string",
+          "description": "Workload name (e.g. supplier_lead_times)"
+        },
+        "bucket": {
+          "type": "string",
+          "description": "Data lake S3 bucket name without s3:// prefix"
+        },
+        "approve": {
+          "type": "boolean",
+          "description": "Must be true — human confirmed deploy in Harness session"
+        },
+        "run_e2e": {
+          "type": "boolean",
+          "description": "Run landing sync + workload Step Functions E2E after apply (default true)"
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Harness runtime session id for audit"
+        },
+        "requested_by": {
+          "type": "string",
+          "description": "Optional operator or client label"
+        }
+      },
+      "required": ["workload", "bucket", "approve"]
+    }
+  },
+  {
+    "name": "get_provision_status",
+    "description": "Poll factory provision Step Functions execution by execution ARN.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "execution_arn": {
+          "type": "string",
+          "description": "Step Functions execution ARN from trigger_provision"
+        }
+      },
+      "required": ["execution_arn"]
+    }
+  }
+]

@@ -1,0 +1,99 @@
+{
+  "Comment": "Option B factory provision — Harness APPROVE → AWS deploy (no laptop). Step 3 skeleton; CodeBuild task wired in Terraform module.",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Task",
+      "Resource": "${factory_validate_lambda_arn}",
+      "Comment": "Re-validate workload allowlist + discovery_complete",
+      "Next": "RunDeploy",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "ProvisionFailed"
+        }
+      ]
+    },
+    "RunDeploy": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::codebuild:startBuild.sync",
+      "Comment": "Runs deploy_workload equivalent from repo artifact (package_and_sync + terraform apply)",
+      "Parameters": {
+        "ProjectName": "${factory_codebuild_project}",
+        "EnvironmentVariablesOverride": [
+          {
+            "Name": "ADOP_WORKLOAD",
+            "Value.$": "$.workload",
+            "Type": "PLAINTEXT"
+          },
+          {
+            "Name": "ADOP_BUCKET",
+            "Value.$": "$.bucket",
+            "Type": "PLAINTEXT"
+          },
+          {
+            "Name": "ADOP_RUN_E2E",
+            "Value.$": "States.Format('{}', $.run_e2e)",
+            "Type": "PLAINTEXT"
+          },
+          {
+            "Name": "ADOP_PROVISION_ID",
+            "Value.$": "$.provision_id",
+            "Type": "PLAINTEXT"
+          }
+        ]
+      },
+      "ResultPath": "$.codebuild",
+      "Next": "RunE2EChoice"
+    },
+    "RunE2EChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.run_e2e",
+          "BooleanEquals": true,
+          "Next": "StartWorkloadPipeline"
+        }
+      ],
+      "Default": "ProvisionSucceeded"
+    },
+    "StartWorkloadPipeline": {
+      "Type": "Task",
+      "Resource": "${factory_e2e_lambda_arn}",
+      "Comment": "Sync landing + start workload SFN; poll until terminal",
+      "InputPath": "$",
+      "ResultPath": "$.pipeline_e2e",
+      "Next": "ProvisionSucceeded",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "ProvisionFailed"
+        }
+      ]
+    },
+    "ProvisionSucceeded": {
+      "Type": "Pass",
+      "Comment": "Write audit JSON to s3://bucket/provision-runs/{provision_id}.json (Lambda side effect in Step 4)",
+      "Result": {
+        "status": "SUCCEEDED"
+      },
+      "ResultPath": "$.result",
+      "End": true
+    },
+    "ProvisionFailed": {
+      "Type": "Fail",
+      "Error": "FactoryProvisionFailed",
+      "Cause": "See $.error or CodeBuild logs"
+    }
+  }
+}

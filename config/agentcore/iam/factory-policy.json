@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "StartFactoryProvision",
+      "Effect": "Allow",
+      "Action": [
+        "states:StartExecution",
+        "states:DescribeExecution",
+        "states:ListStateMachines"
+      ],
+      "Resource": [
+        "arn:aws:states:*:*:stateMachine:adop_factory_provision",
+        "arn:aws:states:*:*:execution:adop_factory_provision:*"
+      ]
+    },
+    {
+      "Sid": "WriteProvisionAudit",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject"],
+      "Resource": "arn:aws:s3:::*/*"
+    }
+  ]
+}
