@@ -54,6 +54,11 @@ jobs:
         run: python tools/validate_compute.py
       - name: Check codegen drift (all workloads with specs)
         run: python tools/check_codegen_drift.py
+      - name: Factory provision dry-run (M3 smoke — no AWS)
+        run: |
+          python tools/provision_client_workload.py --workload supplier_lead_times --bucket ci-dry-run-bucket --dry-run
+          python tools/provision_client_workload.py --workload product_inventory --bucket ci-dry-run-bucket --dry-run
+          python tools/harness_smoke_test.py
       - name: Validate Step Functions ASL is valid JSON
         run: |
           python - <<'PY'

@@ -160,6 +160,35 @@ Keep the S3 bucket if re-demoing; destroy OpenSearch/Redshift only for `advisory
 |---|--------|----------------|
 | **M1** (this doc) | Laptop demo + hybrid MCP + SFN E2E | Green `--auto-provision` on `supplier_lead_times` |
 | **M2** | Dual route (Gateway iam/core, `provision_client_workload.py`, Harness smoke) | Second workload + API prompt path |
-| **M3** | Production consulting (OAuth, per-client sandbox, CI smoke, C2 Runtime) | Client self-serve spec → pipeline |
+| **M3 (lean)** | Sandbox lifecycle + CI smoke + documented API path | Spin up / tear down sandbox; CI catches broken factory; OAuth/C2 deferred |
+
+### M3 lean — what you use (no extra complexity)
+
+| Piece | Command / doc | You get |
+|-------|----------------|---------|
+| **Spin up sandbox** | `python tools/provision_sandbox.py --bucket ...` | Gateway + optional Harness + pipeline in one go |
+| **Tear down** | `python tools/destroy_sandbox.py --yes` | Stop hourly spend after demo |
+| **One workload** | `python tools/provision_client_workload.py --workload ... --bucket ...` | Same as M2, client-friendly name |
+| **API path (v1)** | Harness chat → human approves → `provision_client_workload.py` | No-laptop *discovery*; deploy still one approved command |
+| **CI safety net** | GitHub `ci.yml` factory dry-run | PR fails if specs/tests/drift break before anyone touches AWS |
+
+**Deferred (optional later):** Harness OAuth/JWT, automatic spec upload from S3, C2 Runtime container.
+
+See `docs/SANDBOX_LIFECYCLE.md` and `docs/STATUS.md`.
+
+---
+
+## M3 API demo script (5 min, no OAuth)
+
+1. **Discovery (Harness):**  
+   `python tools/harness_smoke_test.py --live --profile aws-agent`  
+   Or: `python tools/invoke_agentcore_harness.py --prompt "What Phase 1 questions for a HIPAA CSV pipeline?"`
+
+2. **Build (laptop or separate session):** `/onboard-workflow` → specs + pytest (unchanged).
+
+3. **Deploy (one command, after approval):**  
+   `python tools/provision_client_workload.py --workload <name> --bucket adop-datalake-<account>-us-east-1 --aws-profile aws-agent`
+
+4. **Teardown:** `python tools/destroy_sandbox.py --yes` (or `-target` one workload in Terraform).
 
 See `docs/STATUS.md` for factory % and Tier A/B checklist.
