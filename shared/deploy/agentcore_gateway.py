@@ -64,6 +64,7 @@ def _ensure_lambda_role(iam, project: str, target_name: str, policy_doc: dict) -
             }
         ],
     }
+    created = False
     try:
         role = iam.get_role(RoleName=role_name)["Role"]
     except iam.exceptions.NoSuchEntityException:
@@ -73,15 +74,20 @@ def _ensure_lambda_role(iam, project: str, target_name: str, policy_doc: dict) -
             Description=f"MCP {target_name} Lambda execution role",
             Tags=iam_tag_list(),
         )["Role"]
+        created = True
+    iam.update_assume_role_policy(RoleName=role_name, PolicyDocument=json.dumps(trust))
+    attached = iam.list_attached_role_policies(RoleName=role_name).get("AttachedPolicies", [])
+    if not any(p.get("PolicyArn", "").endswith("AWSLambdaBasicExecutionRole") for p in attached):
         iam.attach_role_policy(
             RoleName=role_name,
             PolicyArn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
         )
-        iam.put_role_policy(
-            RoleName=role_name,
-            PolicyName=f"{target_name}-mcp",
-            PolicyDocument=json.dumps(policy_doc),
-        )
+    iam.put_role_policy(
+        RoleName=role_name,
+        PolicyName=f"{target_name}-mcp",
+        PolicyDocument=json.dumps(policy_doc),
+    )
+    if created:
         time.sleep(8)
     tag_iam_role(iam, role_name)
     return role["Arn"]

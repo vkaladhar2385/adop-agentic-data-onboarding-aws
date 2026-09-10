@@ -49,10 +49,11 @@ def tag_lambda(lam: Any, function_name: str, *, cfg: dict[str, Any] | None = Non
     if not tags:
         return
     try:
-        lam.get_function(FunctionName=function_name)
+        fn = lam.get_function(FunctionName=function_name)
     except lam.exceptions.ResourceNotFoundException:
         return
-    lam.tag_resource(Resource=function_name, Tags=tags)
+    resource_arn = fn["Configuration"]["FunctionArn"]
+    lam.tag_resource(Resource=resource_arn, Tags=tags)
 
 
 def tag_iam_role(iam: Any, role_name: str, *, cfg: dict[str, Any] | None = None) -> None:

@@ -1,4 +1,4 @@
-# Client demo runbook — 30-minute laptop factory (Milestone 1)
+# Client demo runbook — laptop + API factory (M1–M2)
 
 Use this script for a **live client demo** of the ADOP Track A agent factory: discovery →
 specs → render → deploy → E2E pipeline on AWS. Default demo workload:
@@ -40,7 +40,16 @@ python -m pytest workloads/supplier_lead_times/tests/ -v
 
 ### Act 2 — Deploy (10 min)
 
-One command (after human approval in chat):
+One command (after human approval in chat). **M2 wrapper** (same behavior, client-friendly name):
+
+```powershell
+python tools/provision_client_workload.py `
+  --workload supplier_lead_times `
+  --bucket adop-datalake-<account>-us-east-1 `
+  --aws-profile aws-agent
+```
+
+Equivalent low-level command:
 
 ```powershell
 python tools/deploy_workload.py `
@@ -76,11 +85,42 @@ Optional Athena spot-check (after catalog registration):
 SELECT COUNT(*) FROM supplier_lead_times_db.silver_supplier_lead_times;
 ```
 
-### Act 4 — Mode B / API teaser (5 min, optional)
+### Act 4 — Dual route: API / no-laptop (10 min, M2)
 
-- **Gateway:** `python tools/deploy_mcp_gateway.py --profile aws-agent` (2 targets live; 13 planned M2)
-- **Harness (API route):** `python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "List Glue databases"`
-- Show `docs/MODE_B_SETUP.md` and `docs/MODE_C1_HARNESS.md` for no-laptop path (Milestone 2)
+**Before demo:** refresh AWS login (`aws login --profile aws-agent`), deploy Gateway, hybrid MCP:
+
+```powershell
+python tools/deploy_mcp_gateway.py --profile aws-agent
+python tools/switch_mcp_mode.py --mode hybrid
+# Reload Cursor MCP
+```
+
+**Harness smoke** (config check, no AWS):
+
+```powershell
+python tools/harness_smoke_test.py
+python tools/harness_smoke_test.py --live --profile aws-agent
+```
+
+**Live API prompts** (same agent, no Cursor):
+
+```powershell
+python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "List Glue databases in this account"
+python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "What Phase 1 questions for a HIPAA weekly CSV pipeline?"
+```
+
+See `docs/MODE_B_SETUP.md` and `docs/MODE_C1_HARNESS.md`.
+
+### Act 5 — Second workload proof (5 min, M2)
+
+Show factory repeatability with **`product_inventory`** (already onboarded):
+
+```powershell
+python tools/provision_client_workload.py --workload product_inventory --bucket adop-datalake-<account>-us-east-1 --dry-run
+python tools/provision_client_workload.py --workload product_inventory --bucket adop-datalake-<account>-us-east-1 --aws-profile aws-agent
+```
+
+**Talking point:** Same factory, different domain — no hand-edited Glue scripts.
 
 ---
 
@@ -95,6 +135,8 @@ SELECT COUNT(*) FROM supplier_lead_times_db.silver_supplier_lead_times;
 | SFN fails at PostDeploymentVerify | LF grants / MCP catalog — see `docs/PILOT_FAILURES_AND_FIXES.md` |
 | Harness Marketplace / model error | Enable Anthropic in Bedrock console, or use `us.amazon.nova-pro-v1:0` in `config/agentcore/harness.yaml` |
 | Hybrid MCP not routing | Reload Cursor MCP after `switch_mcp_mode.py --mode hybrid` |
+| `ExpiredToken` on Gateway deploy | `aws login --profile aws-agent` then retry |
+| Gateway Lambda tag error | Fixed in `tag_lambda` (requires function ARN); pull latest |
 
 ---
 
