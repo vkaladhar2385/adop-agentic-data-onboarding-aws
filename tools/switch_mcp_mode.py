@@ -31,6 +31,9 @@ GATEWAY_META = REPO_ROOT / "build" / "mcp" / "gateway.json"
 
 sys.path.insert(0, str(REPO_ROOT))
 from shared.deploy.agentcore_gateway import gateway_target_names, load_gateway_manifest  # noqa: E402
+from shared.deploy.mcp_gateway_client import gateway_mcp_server_entry  # noqa: E402
+
+DEFAULT_AWS_PROFILE = "aws-agent"
 
 
 def _ensure_local_backup() -> dict:
@@ -42,25 +45,24 @@ def _ensure_local_backup() -> dict:
     return json.loads(MCP_JSON.read_text(encoding="utf-8"))
 
 
-def _gateway_entry(region: str = "us-east-1") -> dict:
-    if not GATEWAY_CONFIG.is_file():
-        raise FileNotFoundError("Missing .mcp.gateway.json — run tools/deploy_mcp_gateway.py first")
-    data = json.loads(GATEWAY_CONFIG.read_text(encoding="utf-8"))
-    servers = data.get("mcpServers") or {}
-    if "agentcore-gateway" in servers:
-        return servers["agentcore-gateway"]
+def _gateway_url(region: str = "us-east-1") -> str:
     if GATEWAY_META.is_file():
         meta = json.loads(GATEWAY_META.read_text(encoding="utf-8"))
-        return {
-            "url": meta["gatewayUrl"],
-            "transport": "sse",
-            "auth": {
-                "type": "aws-sigv4",
-                "service": "bedrock-agentcore",
-                "region": meta.get("region", region),
-            },
-        }
-    raise ValueError("No agentcore-gateway entry in .mcp.gateway.json")
+        if meta.get("gatewayUrl"):
+            return str(meta["gatewayUrl"])
+    if GATEWAY_CONFIG.is_file():
+        data = json.loads(GATEWAY_CONFIG.read_text(encoding="utf-8"))
+        entry = (data.get("mcpServers") or {}).get("agentcore-gateway") or {}
+        if entry.get("url"):
+            return str(entry["url"])
+        args = entry.get("args") or []
+        if len(args) >= 2 and str(args[0]).startswith("mcp-proxy-for-aws"):
+            return str(args[1])
+    raise FileNotFoundError("Missing gateway URL — run tools/deploy_mcp_gateway.py first")
+
+
+def _gateway_entry(region: str = "us-east-1", profile: str = DEFAULT_AWS_PROFILE) -> dict:
+    return gateway_mcp_server_entry(_gateway_url(region), region=region, profile=profile)
 
 
 def _on_gateway_names() -> set[str]:
@@ -81,6 +83,7 @@ def build_config(
     region: str = "us-east-1",
     *,
     local_only: set[str] | None = None,
+    aws_profile: str = DEFAULT_AWS_PROFILE,
 ) -> dict:
     force_local = local_only or set()
 
@@ -89,7 +92,7 @@ def build_config(
         return {"mcpServers": dict(local.get("mcpServers") or {})}
 
     if mode == "gateway":
-        merged: dict[str, dict] = {"agentcore-gateway": _gateway_entry(region)}
+        merged: dict[str, dict] = {"agentcore-gateway": _gateway_entry(region, aws_profile)}
         if force_local:
             local = _ensure_local_backup()
             for name in force_local:
@@ -101,7 +104,7 @@ def build_config(
     if mode == "hybrid":
         local = _ensure_local_backup()
         on_gateway = _on_gateway_names() - force_local
-        merged = {"agentcore-gateway": _gateway_entry(region)}
+        merged = {"agentcore-gateway": _gateway_entry(region, aws_profile)}
         for name, cfg in (local.get("mcpServers") or {}).items():
             if name not in on_gateway:
                 merged[name] = cfg
@@ -126,12 +129,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Comma-separated server names to keep on local stdio even when registered on Gateway",
     )
     ap.add_argument("--region", default="us-east-1")
+    ap.add_argument("--aws-profile", default=DEFAULT_AWS_PROFILE, help="AWS profile for Gateway SigV4 proxy")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
     local_only = _parse_local_only(args.local_only)
     try:
-        payload = build_config(args.mode, args.region, local_only=local_only)
+        payload = build_config(
+            args.mode,
+            args.region,
+            local_only=local_only,
+            aws_profile=args.aws_profile,
+        )
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

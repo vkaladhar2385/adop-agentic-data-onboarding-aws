@@ -135,7 +135,8 @@ python tools/provision_client_workload.py --workload product_inventory --bucket 
 | SFN fails at PostDeploymentVerify | LF grants / MCP catalog — see `docs/PILOT_FAILURES_AND_FIXES.md` |
 | Harness Marketplace / model error | Enable Anthropic in Bedrock console, or use `us.amazon.nova-pro-v1:0` in `config/agentcore/harness.yaml` |
 | Hybrid MCP not routing | Reload Cursor MCP after `switch_mcp_mode.py --mode hybrid` |
-| `ExpiredToken` on Gateway deploy | `aws login --profile aws-agent` then retry |
+| **`agentcore-gateway` Error in Cursor** | Use stdio proxy: `python tools/switch_mcp_mode.py --mode gateway --aws-profile aws-agent`, then **Reload Window**. Run `python tools/verify_gateway_mcp.py` |
+| `ExpiredToken` on Gateway deploy | `aws login --profile aws-agent` (AWS CLI v2) then retry |
 | Gateway Lambda tag error | Fixed in `tag_lambda` (requires function ARN); pull latest |
 
 ---

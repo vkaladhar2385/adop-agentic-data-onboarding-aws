@@ -1,12 +1,21 @@
 {
   "mcpServers": {
     "agentcore-gateway": {
-      "url": "https://adop-mcp-gateway-ztpftsljts.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp",
-      "transport": "sse",
-      "auth": {
-        "type": "aws-sigv4",
-        "service": "bedrock-agentcore",
-        "region": "us-east-1"
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws-cli@latest",
+        "https://adop-mcp-gateway-ztpftsljts.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp",
+        "--service",
+        "bedrock-agentcore",
+        "--region",
+        "us-east-1",
+        "--profile",
+        "aws-agent"
+      ],
+      "env": {
+        "AWS_PROFILE": "aws-agent",
+        "AWS_REGION": "us-east-1",
+        "AWS_SDK_LOAD_CONFIG": "1"
       }
     }
   }

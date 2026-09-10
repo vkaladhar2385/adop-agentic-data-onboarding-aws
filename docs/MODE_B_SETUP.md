@@ -38,7 +38,11 @@ python tools/switch_mcp_mode.py --mode gateway    # single Gateway endpoint (all
 python tools/switch_mcp_mode.py --mode hybrid     # Gateway + local for unregistered (legacy)
 python tools/switch_mcp_mode.py --mode hybrid --local-only iam,core  # mix: cloud + local stdio
 
-# 3. Reload Cursor → Settings → MCP
+# 3. Cursor Gateway fix (stdio SigV4 proxy — avoids native SSE auth errors)
+python tools/switch_mcp_mode.py --mode gateway --aws-profile aws-agent
+python tools/verify_gateway_mcp.py --profile aws-agent
+# Developer → Reload Window → Settings → MCP → enable agentcore-gateway
+
 python tools/mcp_health_check.py --skip-aws
 ```
 

@@ -16,6 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from shared.deploy.agentcore_gateway import deploy_gateway  # noqa: E402
+from shared.deploy.mcp_gateway_client import gateway_mcp_server_entry  # noqa: E402
 
 
 def main() -> int:
@@ -34,15 +35,11 @@ def main() -> int:
     out_path = REPO_ROOT / ".mcp.gateway.json"
     payload = {
         "mcpServers": {
-            "agentcore-gateway": {
-                "url": meta["gatewayUrl"],
-                "transport": "sse",
-                "auth": {
-                    "type": "aws-sigv4",
-                    "service": "bedrock-agentcore",
-                    "region": args.region,
-                },
-            }
+            "agentcore-gateway": gateway_mcp_server_entry(
+                meta["gatewayUrl"],
+                region=args.region,
+                profile=args.profile,
+            )
         }
     }
     out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

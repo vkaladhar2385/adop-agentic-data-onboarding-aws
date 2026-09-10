@@ -78,9 +78,14 @@ Full flags and KMS caveats: **`docs/SANDBOX_LIFECYCLE.md`**.
 
 Laptop agent + cloud MCP for deploy-critical tools. Full checklist: **`docs/MODE_B_SETUP.md`**.
 
+**Cursor fix:** Native `url` + `auth.aws-sigv4` often shows **Error** in Settings → MCP.
+We use AWS **`mcp-proxy-for-aws-cli`** as a stdio bridge (SigV4 + your `AWS_PROFILE`).
+
 ```powershell
 python tools/deploy_mcp_gateway.py --profile aws-agent
-python tools/switch_mcp_mode.py --mode hybrid
+python tools/switch_mcp_mode.py --mode gateway --aws-profile aws-agent
+python tools/verify_gateway_mcp.py --profile aws-agent
+# Developer -> Reload Window, then enable agentcore-gateway in Settings -> MCP
 ```
 
 Modes (see `docs/MODE_B_SETUP.md`):
