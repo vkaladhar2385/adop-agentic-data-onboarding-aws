@@ -58,6 +58,19 @@ Both list **13 servers** matching `tool-registry/servers.yaml`.
 2. Confirm all 13 servers show connected (slow starters: `core`, `pii-detection`, `sagemaker-catalog` may take 5–10s).
 3. Keep optional `user-aws-mcp` for docs — **Phase 5 deploy uses the official 13**, not the proxy.
 
+---
+
+## Mode B — AgentCore Gateway (hybrid)
+
+Laptop agent + cloud MCP for deploy-critical tools. Full checklist: **`docs/MODE_B_SETUP.md`**.
+
+```powershell
+python tools/deploy_mcp_gateway.py --profile aws-agent
+python tools/switch_mcp_mode.py --mode hybrid
+```
+
+Hybrid config: `agentcore-gateway` (glue-athena + lakeformation on Gateway) + local stdio for the other 11 servers.
+
 Restart Cursor if servers do not appear after `generate_mcp_config.py`.
 
 ---

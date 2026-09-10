@@ -107,8 +107,9 @@ ontology artifacts staged when user opts in; deploy uses MCP-first path on Gatew
 
 | # | Deliverable | Location / action | Done |
 |---|-------------|-------------------|------|
-| **B1** | **AgentCore Gateway** (13 MCP servers cloud-hosted) | Port runbook → `prompts/environment-setup/09-deploy-agentcore-gateway.md`; `.mcp.gateway.json` | ☑ Gateway live (glue-athena target); `tools/deploy_mcp_gateway.py` |
-| **B2** | AgentCore Runtime (production API agent) | `prompts/environment-setup/10-deploy-agentcore-runtime.md` — optional until API needed | ☑ stub doc |
+| **B1** | **AgentCore Gateway** (13 MCP servers cloud-hosted) | `docs/MODE_B_SETUP.md`; `config/agentcore/gateway_targets.yaml`; `tools/switch_mcp_mode.py` | ☑ Gateway live — **2/13 targets** (glue-athena, lakeformation); hybrid cutover pending user reload |
+| **B2** | AgentCore Harness (C1 API agent) | `docs/MODE_C1_HARNESS.md`; `tools/deploy_agentcore_harness.py` | ☑ code ready; AWS deploy pending user run |
+| **B2b** | AgentCore Runtime container (C2) | Deferred — analyze after C1 | ☐ |
 | **B3** | **Cedar / AVP** sub-agent policy enforcement | Port `shared/policies/` from official ADOP; `sub-agent-no-mcp.cedar`; pre-commit validator | ☑ policies + `tools/validate_cedar_policies.py` + `shared/utils/cedar_policy.py` |
 | **B4** | **Ontology Staging Agent** (opt-in at discovery) | `prompts/onboarding/05-ontology-agent.md`; `shared/semantic_layer/`; emit `ontology.ttl`, `mappings.ttl` | ☑ local staging |
 | **B5** | **MWAA DAG codegen** | Port `shared/templates/airflow_dag.py.j2` + `contracts/v1/dag_spec.schema.json`; `workloads/{name}/dags/` | ☑ |

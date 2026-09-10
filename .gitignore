@@ -47,6 +47,7 @@ verifier_log.txt
 
 # AgentCore Gateway — sandbox-specific URL (commit .mcp.gateway.json.example instead)
 .mcp.gateway.json
+.mcp.local.json
 
 # IDE
 .pytest_cache/

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Conventional vs Agentic Pipeline Creation — ADOP</title>
+  <style>
+    :root { --navy:#1b2a4a; --slate:#4a5568; --line:#d8dee9; --bg:#f7f6f2; --card:#fff; --teal:#0f6e6b; --ink:#1a1a1a; --green:#0d7a4a; --amber:#b45309; --gray:#6b7280; --rose:#9d174d; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family: "Segoe UI", Calibri, system-ui, sans-serif; }
+    .deck { height:100%; }
+    .slide { display:none; height:100%; padding:40px 56px; flex-direction:column; overflow:hidden; }
+    .slide.active { display:flex; }
+    h1 { font-size:34px; font-weight:650; color:var(--navy); margin:0 0 10px; letter-spacing:-0.02em; line-height:1.15; }
+    h2 { font-size:24px; font-weight:650; color:var(--navy); margin:0 0 14px; }
+    p, li { font-size:16px; line-height:1.4; color:var(--slate); }
+    .kicker { font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--teal); font-weight:600; margin-bottom:8px; }
+    .row { display:flex; gap:18px; flex:1; min-height:0; }
+    .col { flex:1; min-width:0; }
+    .stat { background:var(--card); border:1px solid var(--line); padding:16px 18px; flex:1; }
+    .stat b { display:block; font-size:22px; color:var(--navy); margin-bottom:4px; line-height:1.2; }
+    .stat span { font-size:13px; color:var(--slate); line-height:1.35; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--navy); font-weight:600; font-size:12px; }
+    .foot { margin-top:auto; padding-top:12px; font-size:11px; color:#7a8494; display:flex; justify-content:space-between; }
+    .nav { position:fixed; bottom:16px; right:20px; display:flex; gap:8px; z-index:10; }
+    .nav button { background:var(--navy); color:#fff; border:0; padding:8px 12px; cursor:pointer; font-size:13px; }
+    .callout { border-left:3px solid var(--teal); padding:8px 14px; background:#fff; font-size:15px; color:var(--slate); }
+    .callout strong { color:var(--navy); }
+    ul.tight li { margin:5px 0; font-size:15px; }
+    ol.tight li { margin:6px 0; font-size:15px; color:var(--slate); }
+    .flow { background:var(--card); border:1px solid var(--line); padding:14px 18px; font-size:14px; line-height:1.55; color:var(--navy); font-family: Consolas, "Courier New", monospace; white-space:pre-wrap; }
+    .flow em { color:var(--teal); font-style:normal; font-weight:600; }
+    .compact td:first-child { width:28%; }
+    .compact td:nth-child(2) { width:36%; }
+    .tag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; padding:2px 7px; border-radius:3px; }
+    .tag.conv { background:#f3f4f6; color:var(--gray); }
+    .tag.agent { background:#d1fae5; color:var(--green); }
+    .two-col-head { font-size:14px; font-weight:650; color:var(--navy); margin:0 0 8px; }
+    .hero-line { font-size:18px; color:var(--navy); line-height:1.45; margin-top:12px; }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide active">
+  <div class="kicker">Architecture &amp; value · September 2026</div>
+  <h1>Conventional automation vs<br>agentic pipeline creation</h1>
+  <p class="hero-line">Same AWS runtime can power both approaches.<br>
+  The difference is <strong>how you produce governed, repeatable pipelines</strong> — and who owns the rules.</p>
+  <div class="row" style="flex:0; margin-top:22px;">
+    <div class="stat"><b><span class="tag conv">Conventional</span></b><span>Engineer writes Glue, Terraform, and orchestration directly — one bespoke project per source.</span></div>
+    <div class="stat"><b><span class="tag agent">Agentic ADOP</span></b><span>Human states rules once → agents emit specs → codegen renders → CI + verifier prove deploy.</span></div>
+  </div>
+  <p class="callout" style="margin-top:20px;"><strong>One sentence:</strong> Conventional automates the pipeline; ADOP automates the <em>creation</em> of governed, repeatable pipelines.</p>
+  <div class="foot"><span>ADOP Track A · docs/presentations/</span><span>1 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Conventional path</div>
+  <h2>How most teams build E2E pipelines today</h2>
+  <div class="flow">Analyst / DE asks questions
+  → <em>Engineer writes</em> Glue or Airflow scripts
+  → <em>Engineer writes</em> Terraform / CloudFormation
+  → Manual testing in sandbox
+  → Deploy (terraform apply + ad-hoc console)
+  → Hope documentation still matches production</div>
+  <div class="row" style="flex:0; margin-top:16px;">
+    <div class="col">
+      <p class="two-col-head">What works</p>
+      <ul class="tight">
+        <li>Mature platform teams with strong templates and code review</li>
+        <li>Full control — no agent or MCP layer to learn</li>
+        <li>Proven at scale when discipline is high</li>
+      </ul>
+    </div>
+    <div class="col">
+      <p class="two-col-head">What breaks down</p>
+      <ul class="tight">
+        <li>Business rules live inside PySpark — hard to audit</li>
+        <li>Each new source ≈ copy-paste mini-project</li>
+        <li>PII, quality gates, and catalog drift across workloads</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Source of truth: Python, SQL, Terraform files</span><span>2 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Agentic ADOP path</div>
+  <h2>A governed multi-agent factory</h2>
+  <div class="flow">Human: PII, dedup, thresholds, schedule, compliance
+  → <em>Phase 1 discovery gate</em> (no codegen until answered)
+  → Dedup + profile sample data
+  → Sub-agents build <em>specs only</em> (no MCP, no deploy)
+  → <em>render_workload.py</em> → deterministic scripts + SFN/DAG
+  → pytest + schema validators + codegen drift CI
+  → Human approves deploy
+  → MCP-first catalog / LF / IAM + Terraform compute
+  → Post-deploy verifier (deploy not done until green)</div>
+  <p class="callout" style="margin-top:14px;">Agents do <strong>not</strong> freestyle production PySpark. They emit YAML specs; templates render code with <code>spec_hash</code> headers; hooks block hand-edits.</p>
+  <div class="foot"><span>AGENTS.md · SKILLS.md · /onboard-workflow</span><span>3 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Side by side</div>
+  <h2>Same medallion outcome — different factory</h2>
+  <table class="compact">
+    <tr><th>Dimension</th><th>Conventional</th><th>Agentic ADOP</th></tr>
+    <tr><td>Source of truth</td><td>Scripts &amp; Terraform in git</td><td>YAML specs + rendered artifacts</td></tr>
+    <tr><td>Who decides dedup / PII?</td><td>Engineer (often from data alone)</td><td>Human explicitly; agent profiles then asks</td></tr>
+    <tr><td>Quality gates</td><td>Custom per pipeline; sometimes skipped</td><td><code>quality_rules.yaml</code> + SFN blocks promotion</td></tr>
+    <tr><td>Glue Shell vs Spark</td><td>Engineer picks ad hoc</td><td><code>compute.yaml</code> routing; CI vs Terraform</td></tr>
+    <tr><td>New workload (#4, #5…)</td><td>Weeks of copy-paste</td><td>Same factory: specs → render → test</td></tr>
+    <tr><td>Deploy safety</td><td>Plan + review + hope</td><td>MCP guardrails + post-deploy verifier</td></tr>
+    <tr><td>Audit / compliance</td><td>Git history + tribal knowledge</td><td>Specs, LF-Tags, Cedar, trace logs</td></tr>
+  </table>
+  <div class="foot"><span>Runtime (Glue, Iceberg, Step Functions) can look identical</span><span>4 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Roles &amp; separation</div>
+  <h2>Who does what in the agentic model</h2>
+  <div class="row">
+    <div class="col">
+      <table>
+        <tr><th>Role</th><th>May</th><th>Must not</th></tr>
+        <tr><td><strong>Human</strong></td><td>Set rules, approve deploy</td><td>Let agents infer PII or dedup from names</td></tr>
+        <tr><td><strong>Sub-agents</strong></td><td>Specs, SQL, tests, AgentOutput JSON</td><td>MCP, AWS deploy, hand-write scripts</td></tr>
+        <tr><td><strong>Renderer</strong></td><td>Deterministic codegen from specs</td><td>Embed undocumented business logic</td></tr>
+        <tr><td><strong>Main agent</strong></td><td>MCP deploy after approval</td><td>Skip verifier or quality gates</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <p class="two-col-head">Guardrails (Tier A + B)</p>
+      <ul class="tight">
+        <li><strong>Write guard</strong> — blocks direct edits to generated scripts</li>
+        <li><strong>Cedar policies</strong> — sub-agents cannot call MCP</li>
+        <li><strong>AgentOutput schema</strong> — structured handoffs between stations</li>
+        <li><strong>CI drift check</strong> — spec and artifact must match</li>
+      </ul>
+      <p class="callout" style="margin-top:12px; font-size:14px;">This is the gap vs “ChatGPT pasted a Glue script.”</p>
+    </div>
+  </div>
+  <div class="foot"><span>TOOL_ROUTING.md · shared/policies/</span><span>5 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Two repos, one philosophy</div>
+  <h2>This repo vs official AWS ADOP sample</h2>
+  <div class="row">
+    <div class="col">
+      <p class="two-col-head">Official ADOP (Track B reference)</p>
+      <ul class="tight">
+        <li>AWS sample — full agent factory blueprint</li>
+        <li>Default: MWAA Airflow + PySpark Iceberg</li>
+        <li>Phase 5 deploy via MCP (Glue, LF, catalog)</li>
+        <li>AgentCore Gateway + Runtime for cloud AgentOps</li>
+        <li>Study clone: <code>../agentic-projects/ADOP</code></li>
+      </ul>
+    </div>
+    <div class="col">
+      <p class="two-col-head">This repo (Track A adaptation)</p>
+      <ul class="tight">
+        <li>Same factory shape — specs, codegen, gates</li>
+        <li>Default: Step Functions + EventBridge (cost guardrail)</li>
+        <li>MWAA opt-in via <code>schedule.yaml</code> (Tier B)</li>
+        <li>MCP-first + Terraform fallback you control</li>
+        <li>4+ proof workloads: SOX, GDPR, catalog-only, Tier B</li>
+      </ul>
+    </div>
+  </div>
+  <p class="callout" style="margin-top:14px;">Official ADOP is the <strong>blueprint</strong>. This repo is a <strong>production-minded fork</strong> — same agentic philosophy, different default plumbing.</p>
+  <div class="foot"><span>docs/TRACK_B.md</span><span>6 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Benefits</div>
+  <h2>Why invest in the agentic factory?</h2>
+  <div class="row" style="flex:0;">
+    <div class="stat"><b>1 · Governance by construction</b><span>Discovery gate blocks build until PII, thresholds, and schedule are explicit — not discovered in prod.</span></div>
+    <div class="stat"><b>2 · Repeatable SKU</b><span>Workload #4 and #5 use the same stations as #1; marginal cost per source drops.</span></div>
+  </div>
+  <div class="row" style="flex:0; margin-top:12px;">
+    <div class="stat"><b>3 · Compliance artifacts</b><span>semantic.yaml, LF-Tags, quarantine, verifier checks — easier to show auditors than reverse-engineering PySpark.</span></div>
+    <div class="stat"><b>4 · Platform evolution</b><span>Change one Jinja template or Glue default → re-render all workloads; no N manual edits.</span></div>
+  </div>
+  <p class="callout" style="margin-top:16px;">AgentCore / Bedrock (Tier B) hosts MCP tools in the cloud — agents call AWS through a governed Gateway, not scattered CLI scripts.</p>
+  <div class="foot"><span>Tier A complete · Tier B Gateway + Cedar + ontology on disk</span><span>7 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Honest trade-offs</div>
+  <h2>Agentic is not “free magic”</h2>
+  <table class="compact">
+    <tr><th>Cost</th><th>Reality</th></tr>
+    <tr><td>Upfront factory build</td><td>Specs, templates, MCP, hooks, tests — significant initial investment (Tier A + B)</td></tr>
+    <tr><td>Process rigor</td><td>Discovery questions feel slower than “just write the script”</td></tr>
+    <tr><td>More moving parts</td><td>Gateway, LF, IAM, codegen drift — vs a single Terraform module</td></tr>
+    <tr><td>Humans still required</td><td>Agents enforce that stewards were consulted; they don’t replace them</td></tr>
+    <tr><td>Same AWS bill</td><td>End state is still Glue + Iceberg + orchestrator — you industrialize <em>configuration</em></td></tr>
+  </table>
+  <p class="callout" style="margin-top:14px;">Best fit: teams onboarding <strong>many sources</strong> under <strong>SOX / GDPR / HIPAA</strong> with a need for <strong>repeatable governance</strong>, not one-off ETL scripts.</p>
+  <div class="foot"><span>Not a replacement for strong platform engineering — an accelerator on top</span><span>8 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Proof in this repo</div>
+  <h2>Conventional-looking outcome, agentic factory process</h2>
+  <div class="row" style="flex:0;">
+    <div class="stat"><b>Green E2E</b><span>Step Functions <code>tier-b-e2e-fix-v3-20260909-124345</code> — ingest → Iceberg transforms → quality gates → catalog → verifier.</span></div>
+    <div class="stat"><b>Factory proof</b><span><code>advisory_transactions</code>, <code>web_events</code>, <code>product_inventory</code>, <code>supplier_lead_times</code>, <code>customer_orders</code> — specs → render → pytest.</span></div>
+  </div>
+  <p class="hero-line" style="margin-top:20px;">A conventional team could hand-build the same Step Functions graph.<br>
+  They would struggle to onboard the <strong>fifth workload in an afternoon</strong> with the same compliance and drift guarantees.</p>
+  <p style="margin-top:18px; font-size:14px; color:#7a8494;">Open in browser · Arrow keys or Prev/Next · Print to PDF from slide 1</p>
+  <div class="foot"><span>docs/presentations/conventional-vs-agentic-adop.html</span><span>9 / 9</span></div>
+</section>
+
+</div>
+<div class="nav">
+  <button type="button" onclick="go(-1)">Prev</button>
+  <button type="button" onclick="go(1)">Next</button>
+</div>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  }
+  function go(d) { show(i + d); }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+  });
+</script>
+</body>
+</html>

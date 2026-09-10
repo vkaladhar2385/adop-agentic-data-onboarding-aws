@@ -1,18 +1,20 @@
-# Deploy AgentCore Runtime (optional — Tier B2)
+# Deploy AgentCore cloud agent (Mode C)
 
-Use when exposing a **production API agent** (chat/onboard endpoint) on Bedrock AgentCore Runtime,
-separate from the Gateway MCP path.
+Track A uses **AgentCore Harness first** (C1), not classic Bedrock Agents.
 
-## Status
+## C1 — Harness + Gateway (recommended)
 
-**Optional** for first Tier B milestone. Track A onboarding runs in Cursor with local MCP/Gateway.
+```powershell
+python tools/deploy_mcp_gateway.py --profile aws-agent
+python tools/deploy_agentcore_harness.py --profile aws-agent
+python tools/invoke_agentcore_harness.py --prompt "List Glue databases"
+```
 
-## When needed
+Full runbook: **`docs/MODE_C1_HARNESS.md`**
 
-- External users invoke onboarding via HTTPS API
-- Centralized agent session store + runtime observability required
+Official ADOP `03-deploy-agentcore-runtime.md` describes classic `bedrock-agent` APIs — **do not use for new work**. AWS recommends AgentCore Harness or AgentCore Runtime container.
 
-## Reference
+## C2 — Runtime container (later)
 
-See official ADOP `prompts/environment-setup-agent/` runtime prompts in sibling repo
-(`../agentic-projects/ADOP/`). Port when API agent is in scope.
+Custom ARM64 Docker agent with `/invocations` + `/ping`. Analyze after C1 is stable.
+See AWS: [Get started without the AgentCore CLI](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/getting-started-custom.html).

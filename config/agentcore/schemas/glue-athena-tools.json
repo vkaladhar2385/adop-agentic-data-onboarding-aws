@@ -1,0 +1,51 @@
+[
+  {
+    "name": "get_databases",
+    "description": "List all AWS Glue Data Catalog databases in the account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "get_tables",
+    "description": "List all tables in a specific Glue database.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {
+          "type": "string",
+          "description": "Glue database name"
+        }
+      },
+      "required": ["database"]
+    }
+  },
+  {
+    "name": "athena_query",
+    "description": "Execute an Athena SQL query synchronously (up to 100 rows).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "SQL query to execute"
+        },
+        "database": {
+          "type": "string",
+          "description": "Glue database context for the query"
+        },
+        "workgroup": {
+          "type": "string",
+          "description": "Athena workgroup (use primary if omitted)"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "description": "Max wait seconds for query completion"
+        }
+      },
+      "required": ["query", "database"]
+    }
+  }
+]

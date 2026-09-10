@@ -1,0 +1,36 @@
+# AgentCore Gateway targets — Mode B (laptop agent + cloud MCP tools).
+# Register with: python tools/deploy_mcp_gateway.py
+# Official ADOP eventually hosts all 13; PyPI servers stay local in hybrid mode until Lambda targets exist.
+
+gateway:
+  name_suffix: mcp-gateway
+  description: ADOP Track B MCP Gateway
+
+targets:
+  - name: glue-athena
+    required: true
+    description: Glue catalog and Athena queries
+    lambda:
+      source: mcp-servers/glue-athena-server/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 300
+      memory: 256
+    schema: config/agentcore/schemas/glue-athena-tools.json
+    iam_policy: config/agentcore/iam/glue-athena-policy.json
+
+  - name: lakeformation
+    required: true
+    description: LF-Tags, TBAC grants, column-level security
+    lambda:
+      source: mcp-servers/lakeformation-server/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 300
+      memory: 256
+    schema: config/agentcore/schemas/lakeformation-tools.json
+    iam_policy: config/agentcore/iam/lakeformation-policy.json
+
+# Servers still local in hybrid Mode B until Lambda + schema added:
+# pii-detection, sagemaker-catalog, iam, core, s3-tables, cloudtrail, redshift,
+# lambda, cloudwatch, cost-explorer, dynamodb

@@ -1,0 +1,35 @@
+# AgentCore Harness — ADOP Data Onboarding Agent (Mode C1)
+# Deploy: python tools/deploy_agentcore_harness.py --profile aws-agent
+
+harness:
+  name: adop_onboarding_agent
+  description: >-
+    Track A data onboarding factory agent. Human-in-the-loop discovery,
+    MCP-first deploy via AgentCore Gateway, Step Functions default orchestration.
+
+  model:
+    provider: bedrock
+    model_id: anthropic.claude-sonnet-4-20250514-v1:0
+    max_tokens: 8192
+    temperature: 0.2
+    api_format: converse_stream
+
+  limits:
+    max_iterations: 25
+    max_tokens: 8192
+    timeout_seconds: 900
+
+  memory:
+    mode: disabled
+
+  system_prompt_files:
+    - config/agentcore/harness_system_prompt.md
+    - docs/MCP_GUARDRAILS.md
+
+  tools:
+    - type: agentcore_gateway
+      # gateway_arn resolved from build/mcp/gateway.json at deploy time
+
+  tags:
+    project: adop
+    mode: c1-harness

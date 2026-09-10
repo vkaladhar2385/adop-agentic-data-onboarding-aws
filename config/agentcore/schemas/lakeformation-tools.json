@@ -1,0 +1,91 @@
+[
+  {
+    "name": "list_lf_tags",
+    "description": "List all Lake Formation LF-Tags in the account.",
+    "inputSchema": { "type": "object", "properties": {}, "required": [] }
+  },
+  {
+    "name": "create_lf_tag",
+    "description": "Create a Lake Formation LF-Tag with allowed values.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tag_key": { "type": "string", "description": "LF-Tag key name" },
+        "tag_values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values for the tag"
+        }
+      },
+      "required": ["tag_key", "tag_values"]
+    }
+  },
+  {
+    "name": "get_lf_tag",
+    "description": "Get details of one LF-Tag.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tag_key": { "type": "string", "description": "LF-Tag key name" }
+      },
+      "required": ["tag_key"]
+    }
+  },
+  {
+    "name": "add_lf_tags_to_resource",
+    "description": "Apply LF-Tags to a Glue table or specific columns.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": { "type": "string", "description": "Glue database name" },
+        "table": { "type": "string", "description": "Glue table name" },
+        "lf_tags": {
+          "type": "array",
+          "description": "Tags as list of {TagKey, TagValues} objects",
+          "items": { "type": "object" }
+        },
+        "column_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional column names; omit for table-level tags"
+        }
+      },
+      "required": ["database", "table", "lf_tags"]
+    }
+  },
+  {
+    "name": "grant_permissions",
+    "description": "Grant Lake Formation permissions to a principal on a resource.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "principal_arn": { "type": "string", "description": "IAM role or user ARN" },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Permissions e.g. SELECT, DESCRIBE"
+        },
+        "resource": {
+          "type": "object",
+          "description": "LF resource (Table, Database, or LFTagPolicy)"
+        }
+      },
+      "required": ["principal_arn", "permissions", "resource"]
+    }
+  },
+  {
+    "name": "batch_grant_permissions",
+    "description": "Grant permissions to multiple principals/resources in one call.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Grant entries with Id, Principal, Resource, Permissions"
+        }
+      },
+      "required": ["entries"]
+    }
+  }
+]
