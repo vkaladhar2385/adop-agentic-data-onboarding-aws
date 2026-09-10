@@ -1,0 +1,5 @@
+# Copy to backend.hcl (gitignored) and run: terraform init -backend-config=backend.hcl
+bucket  = "adop-datalake-YOUR_ACCOUNT-us-east-1"
+key     = "terraform-state/adop/root.tfstate"
+region  = "us-east-1"
+encrypt = true

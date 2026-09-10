@@ -58,3 +58,17 @@ output "opensearch_domain_endpoint" {
 output "redis_endpoint" {
   value = module.advisory_transactions_redis.redis_endpoint
 }
+
+output "factory_provision_state_machine_arn" {
+  value       = module.factory_provision.state_machine_arn
+  description = "Option B factory provision SFN (Harness trigger_provision target)."
+}
+
+output "factory_codebuild_project" {
+  value = module.factory_provision.codebuild_project_name
+}
+
+output "factory_repo_artifact_s3_uri" {
+  value       = module.factory_provision.repo_artifact_s3_uri
+  description = "Upload repo zip here before CodeBuild runs (tools/package_factory_artifact.py)."
+}

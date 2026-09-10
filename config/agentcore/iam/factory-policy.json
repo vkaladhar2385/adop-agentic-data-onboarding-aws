@@ -2,12 +2,12 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "StartFactoryProvision",
+      "Sid": "FactoryProvisionStateMachine",
       "Effect": "Allow",
       "Action": [
+        "states:DescribeStateMachine",
         "states:StartExecution",
-        "states:DescribeExecution",
-        "states:ListStateMachines"
+        "states:DescribeExecution"
       ],
       "Resource": [
         "arn:aws:states:*:*:stateMachine:adop_factory_provision",

@@ -1,130 +1,175 @@
-# ADOP Client Demo — two workloads, one pattern
+# ai-agentic-data-onboarding
 
-A **complete, runnable, self-contained** worked example of the ADOP (Agentic Data
-Onboarding Platform) pattern, built to present to clients: *"If you have Data
-Engineering work, here's how the agentic pattern benefits you, what you get, how much
-time and cost it saves, and how it drops into your existing AWS + CI/CD."*
+**Agentic Data Engineering accelerator** — spec-driven medallion pipelines on AWS (Iceberg,
+Step Functions, Terraform) with an **MCP + AgentCore** agent layer for discovery, deploy, and
+sandbox lifecycle.
 
-Everything here is synthetic. Nothing touches any real/regulated account.
+Built as a Perficient **Data Engineering** offering: show clients how agentic onboarding
+reduces time-to-lake while keeping governance, codegen drift checks, and IaC as the source of
+truth for production paths.
 
-> New to the story? Read [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) first.
-> Presenting? Open [`docs/presentations/adop-client-deck.html`](docs/presentations/adop-client-deck.html)
-> (arrow keys) or print [`docs/presentations/adop-one-pager.html`](docs/presentations/adop-one-pager.html).
-> Building on this / reviewing the design? Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-> — sequence diagram, Glue job/Lambda inventory, IaC module structure, packaging.
+> **Corporate repo:** [Perficient-Corporate/ai-agentic-data-onboarding](https://github.com/Perficient-Corporate/ai-agentic-data-onboarding)
+
+Synthetic demo data only. Do not point at regulated production accounts without adaptation.
 
 ---
 
-## TL;DR — run the demos locally
+## What you get
+
+| Layer | What it does |
+|-------|----------------|
+| **Specs** | YAML in `workloads/*/config/` — source, transforms, quality, compute, schedule |
+| **Codegen** | `tools/render_workload.py` → Glue scripts + Step Functions ASL (drift-checked in CI) |
+| **Data plane** | Bronze → Silver → Gold on **Apache Iceberg**; mixed Glue ETL + Python Shell per `compute.yaml` |
+| **Orchestration** | Step Functions + EventBridge (default); optional MWAA |
+| **Deploy** | MCP-first catalog/KMS/IAM/LF + **Terraform** for jobs, Lambdas, SFN, SNS |
+| **Agentic (Tier B)** | 13 MCP servers; **AgentCore Gateway** + **Harness**; local / hybrid / gateway modes |
+| **Sandbox lifecycle** | One-command **provision** and **destroy** with shared tags (`config/sandbox_tags.yaml`) |
+
+Contract for agents: [`AGENTS.md`](AGENTS.md). Status checklist: [`docs/STATUS.md`](docs/STATUS.md).
+
+---
+
+## Quick start
+
+### Local (no AWS)
 
 ```bash
 pip install -r requirements.txt
 python demo/data_generators/generate_advisory_transactions.py
-python workloads/advisory_transactions/scripts/run_local_pipeline.py   # SOX / wealth
-python demo/data_generators/generate_web_events.py
-python workloads/web_events/scripts/run_local_pipeline.py              # GDPR / clickstream
+python workloads/advisory_transactions/scripts/run_local_pipeline.py
 pytest workloads/ -v
 ```
 
-The pipeline prints status boxes per phase, quarantines the seeded bad rows,
-passes both SOX quality gates, and writes zone outputs to `output/`.
+### AWS sandbox (agent + cloud tools)
+
+```powershell
+aws login --profile aws-agent
+cd iac/terraform && terraform init && cd ../..
+
+python tools/provision_sandbox.py --bucket adop-datalake-YOUR_ACCOUNT-us-east-1
+python tools/switch_mcp_mode.py --mode hybrid    # or local | gateway
+python tools/mcp_health_check.py --skip-aws
+```
+
+Teardown when done:
+
+```powershell
+python tools/destroy_sandbox.py --dry-run
+python tools/destroy_sandbox.py --yes
+python tools/switch_mcp_mode.py --mode local
+```
+
+Full flags and KMS caveats: [`docs/SANDBOX_LIFECYCLE.md`](docs/SANDBOX_LIFECYCLE.md).
 
 ---
 
-## The use cases
+## Workloads
 
-| | `advisory_transactions` | `web_events` |
-|---|---|---|
-| Domain | Wealth / brokerage | Digital analytics |
-| Landing | Daily CSV | Hourly JSONL (Kinesis-shaped) |
-| Regulation | SOX | GDPR |
-| Gold | Star schema | Hourly rollup + erasure index |
-| Signature control | Quarantine broken financial math | Suppress no-consent; erase by hashed user |
+| Workload | Role | Notes |
+|----------|------|--------|
+| `advisory_transactions` | SOX pilot — star schema Gold | Extensions: Redshift, OpenSearch, Redis (optional) |
+| `supplier_lead_times` | Tier A factory proof #4 | Green E2E on AWS; Terraform module wired |
+| `product_inventory` | Tier A factory proof #3 | Catalog-only factory path |
+| `customer_orders` | Tier B demo | MWAA DAG + SFN; ontology hooks |
+| `web_events` | GDPR contrast workload | Terraform disabled in sandbox; local demo |
 
-Daily brokerage/advisory transactions for a wealth-management firm land as a CSV in
-S3. We onboard them into a governed medallion lake:
+Add a workload: [`/.cursor/commands/onboard-workflow.md`](.cursor/commands/onboard-workflow.md) →
+[`tools/deploy_workload.py`](tools/deploy_workload.py).
 
-- **Bronze** raw & immutable → **Silver** cleaned, masked, quarantined → **Gold** star schema
-- **SOX** compliance: financial-integrity checks, PII masking/suppression, 7-yr retention, audit
-- **Step Functions + EventBridge** orchestration (no always-on MWAA cost)
-- **GitHub Actions** CI/CD, **Terraform** IaC
+---
+
+## Architecture (at a glance)
 
 ```mermaid
 flowchart LR
-  A[S3 landing CSV] --> B[Bronze<br/>immutable parquet]
-  B --> C[Silver<br/>clean+mask+dedup]
-  C -->|quarantine bad rows| Q[(Quarantine<br/>human review)]
-  C --> G1{Silver gate >= 0.80<br/>+ no critical fail}
-  G1 -->|pass| D[Gold star schema<br/>fact + dims]
-  D --> G2{Gold gate >= 0.95<br/>+ no critical fail}
-  G2 -->|pass| E[Catalog + LF-Tags<br/>Athena/QuickSight]
-  G1 -->|fail| X[SNS alert / stop]
-  G2 -->|fail| X
+  subgraph laptop [Laptop / Cursor]
+    Agent[Onboarding agent]
+    MCP[MCP stdio or Gateway client]
+  end
+  subgraph aws [AWS sandbox]
+    GW[AgentCore Gateway]
+    SFN[Step Functions]
+    Glue[Glue ETL + Shell]
+    Ice[Iceberg on S3]
+    TF[Terraform]
+  end
+  Agent --> MCP
+  MCP --> GW
+  GW --> Glue
+  SFN --> Glue
+  Glue --> Ice
+  TF --> SFN
+  MCP --> TF
 ```
+
+MCP wiring: [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) · Mode B Gateway: [`docs/MODE_B_SETUP.md`](docs/MODE_B_SETUP.md) ·
+Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · Factory provision (Option B): [`docs/FACTORY_PROVISION_DESIGN.md`](docs/FACTORY_PROVISION_DESIGN.md)
 
 ---
 
-## Walkthrough — every step, so you can review
+## Key docs
 
-Each ADOP agent produces specific artifacts. Here is what was generated and where to
-look, in the order the framework runs.
+| Doc | Use when |
+|-----|----------|
+| [`AGENTS.md`](AGENTS.md) | Agent behavior, compute routing, deploy gates |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Diagrams, job inventory, IaC modules |
+| [`docs/STATUS.md`](docs/STATUS.md) | What's done vs deferred (Tier A / Tier B) |
+| [`docs/SANDBOX_LIFECYCLE.md`](docs/SANDBOX_LIFECYCLE.md) | Provision / destroy one command |
+| [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) | 13 MCP servers, Cursor `.mcp.json` |
+| [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) | Client narrative |
+| [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) | Demo timing, keep vs destroy |
+| [`iac/terraform/APPLY_GUIDE.md`](iac/terraform/APPLY_GUIDE.md) | Terraform apply / verify |
 
-### Step 0 — Cost/tooling setup (you do once)
-- `requirements.txt` — local deps. Orchestration is Step Functions (no MWAA) and IaC
-  ships a **$25 budget alert** (`iac/terraform/main.tf`).
+Presenting? [`docs/presentations/adop-client-deck.html`](docs/presentations/adop-client-deck.html) ·
+[`docs/presentations/conventional-vs-agentic-adop.html`](docs/presentations/conventional-vs-agentic-adop.html)
 
-### Step 1 — Metadata Agent → the spec (`config/`)
-The declarative "source of truth" any auditor can read:
-- `config/source.yaml` — where data lives, cadence, zones, SOX/retention.
-- `config/semantic.yaml` — column roles (identifier/dimension/measure/temporal),
-  PII flags, hierarchies, FK relationships. Feeds the Semantic Layer / SageMaker Catalog.
+---
 
-### Step 2 — Transformation Agent → ETL (`scripts/transform/`, `config/transformations.yaml`, `sql/`)
-- `config/transformations.yaml` — dedup, casts, string ops, **PII masking**,
-  **quarantine rules**, and the Gold **star schema** definition.
-- `scripts/transform/local_runner.py` — the pure-pandas transformation core (testable,
-  runs anywhere). **Prod PySpark and local mode read the same config**, so they can't drift.
-- `scripts/transform/bronze_to_silver.py` / `silver_to_gold.py` — Glue/PySpark
-  production entrypoints with a `--local` demo mode.
-- `sql/{bronze,silver,gold}/*.sql` — Athena/Iceberg DDL per zone.
+## Example walkthrough — `advisory_transactions`
 
-### Step 3 — Quality Agent → gates (`config/quality_rules.yaml`, `shared/utils/quality.py`)
-- 12 rules across 5 dimensions. **SOX financial-integrity checks are critical**:
-  `gross = qty*price` and `net = gross - commission - fees`. Any critical failure
-  blocks promotion regardless of overall score. Silver >= 0.80, Gold >= 0.95.
+Each ADOP agent produces specific artifacts. Below is the **original pilot workload** in the
+order the framework runs (still the best deep-dive for SOX + extensions).
 
-### Step 4 — Orchestration Agent → pipeline (`orchestration/`)
-- `<workload>_state_machine.json` — Step Functions ASL. For
-  `advisory_transactions` the live path is ingest → silver → silver gate →
-  gold → gold gate → register catalog → **Redshift Spectrum → OpenSearch →
-  Redis** → verify → succeed (`ResultPath: null` so Glue output does not
-  wipe the input). `web_events` still uses the shorter catalog→verify tail
-  and is Terraform-disabled in the sandbox. See `docs/ARCHITECTURE.md`.
-- `eventbridge_schedule.json` — advisory_transactions daily 07:00 UTC,
-  web_events hourly :05 (replaces Airflow/MWAA).
+### Step 0 — Cost/tooling setup (once)
+- `requirements.txt` — local deps. Step Functions (no MWAA). **$25 budget alert** in Terraform.
 
-### Step 5 — Load / Governance (`scripts/load/register_catalog.py`)
-- Registers Iceberg tables; plans **and applies** (via boto3) Lake Formation
-  **LF-Tags** on PII columns (TBAC), scoped per-workload to the columns that
-  actually exist. Gold **suppresses** the PII columns entirely (SSN/email/name
-  for advisory_transactions; email/IP for web_events). Also the Lambda
-  handler behind the `RegisterCatalog` orchestration step.
+### Step 1 — Metadata Agent → `config/`
+- `source.yaml`, `semantic.yaml` — cadence, PII, column roles.
 
-### Step 6 — DevOps Agent → IaC + CI/CD (`iac/terraform/`, `.github/workflows/`)
-- `iac/terraform/main.tf` — a reusable `workload_pipeline` module instantiated
-  once per workload: zone-scoped KMS (rotation on), Glue DB, **5 `aws_glue_job`
-  + 2 `aws_lambda_function` per workload (10 + 4 total)**, Step Functions,
-  EventBridge, SNS, least-privilege IAM, plus one shared budget alert. See
-  `APPLY_GUIDE.md` and `docs/ARCHITECTURE.md#7-infrastructure-as-code`.
-- `.github/workflows/ci.yml` — tests + config/ASL/Terraform validation on every PR.
-- `.github/workflows/deploy.yml` — OIDC (no static keys) → syncs Glue scripts +
-  builds/uploads lean Lambda zips → gated `terraform apply` → mandatory
-  post-deploy verification for both workloads.
+### Step 2 — Transformation Agent → `scripts/transform/`, `sql/`
+- `transformations.yaml` — dedup, PII masking, quarantine, star schema.
+- PySpark + Iceberg prod scripts; `local_runner.py` for offline tests.
 
-### Step 7 — Tests + Memory (`tests/`, `memory/`)
-- `tests/unit/*` + `tests/integration/*` — 28 passing tests across both
-  workloads, no AWS required.
-- `memory/MEMORY.md` — persistent learnings for faster future runs.
+### Step 3 — Quality Agent → `quality_rules.yaml`
+- Silver ≥ 0.80, Gold ≥ 0.95; SOX financial-integrity rules are **critical**.
+
+### Step 4 — Orchestration → `orchestration/*_state_machine.json`
+- Step Functions ASL + EventBridge schedule (codegen from specs where available).
+
+### Step 5 — Load / Governance → `register_catalog.py`
+- Glue catalog + Lake Formation LF-Tags; Lambda behind SFN register step.
+
+### Step 6 — DevOps → `iac/terraform/`, `.github/workflows/`
+- `workload_pipeline` module: KMS, Glue, Lambdas, SFN, SNS, IAM.
+- CI: pytest, config validation, codegen drift.
+
+### Step 7 — Tests → `workloads/*/tests/`
+- Unit + integration; no AWS required for most tests.
+
+**SOX medallion flow:**
+
+```mermaid
+flowchart LR
+  A[S3 landing CSV] --> B[Bronze Iceberg]
+  B --> C[Silver clean+mask]
+  C --> G1{Silver gate}
+  G1 --> D[Gold star schema]
+  D --> G2{Gold gate}
+  G2 --> E[Catalog + LF-Tags]
+  G1 -->|fail| X[SNS alert]
+  G2 -->|fail| X
+```
 
 ---
 
@@ -132,50 +177,38 @@ The declarative "source of truth" any auditor can read:
 
 ```
 ADOP/
-├── README.md                     <- you are here (walkthrough)
-├── ADOP_Pilot_Plan.md            <- the original pilot plan
-├── requirements.txt
-├── conftest.py
-├── demo/
-│   ├── data_generators/          <- synthetic CSV generator (with seeded bad rows)
-│   └── sample_data/              <- generated advisory_transactions.csv
-├── shared/utils/                 <- reusable engine: pii.py, quality.py, verifier
-├── workloads/advisory_transactions/
-│   ├── config/                   <- source/semantic/transformations/quality/schedule YAML
-│   ├── scripts/                  <- extract, transform (+local_runner), quality, load, driver
-│   ├── sql/                      <- Bronze/Silver/Gold DDL
-│   ├── orchestration/            <- Step Functions ASL + EventBridge schedule
-│   ├── tests/                    <- unit + integration
-│   ├── memory/                   <- persistent learnings
-│   └── README.md
-├── workloads/web_events/         <- GDPR contrast (hourly JSONL, consent, erasure)
-├── iac/terraform/                <- root + modules/workload_pipeline/ (KMS, Glue jobs, Lambdas, SFN, EventBridge, SNS, IAM, budget)
-│   └── modules/                  <- + redshift_workload/, opensearch_workload/, redis_workload/ (extension, advisory_transactions only)
-├── .github/workflows/            <- ci.yml + deploy.yml
-└── docs/
-    ├── ARCHITECTURE.md           <- build/review reference: diagrams, job inventory, IaC, packaging
-    ├── CLIENT_PITCH.md           <- the narrative to present
-    ├── BEFORE_AFTER.md           <- time & cost tables
-    ├── AWS_CICD_FIT.md           <- how it drops into their estate
-    ├── ADAPTATION_GAP.md         <- the scoped consulting backlog
-    ├── PHASE3_SANDBOX_DEPLOY.md  <- sandbox deploy notes (Phases 0–5 done; see STATUS.md)
-    ├── STATUS.md                 <- phase checklist + leftover work
-    ├── DEMO_RUNBOOK.md           <- from-scratch time, keep vs destroy for a client demo
-    ├── PILOT_FAILURES_AND_FIXES.md <- categorized AWS failures and fixes
-    ├── EXTENDING_TO_NEW_SERVICES.md <- how Redshift/OpenSearch/Redis were bolted on; the generalizable recipe
-    ├── diagrams/adop-architecture.png
-    └── presentations/            <- HTML slide deck + print one-pager
+├── README.md                       <- you are here
+├── AGENTS.md                       <- agent contract (read first for agents)
+├── config/
+│   ├── sandbox_tags.yaml           <- ManagedBy=adop-sandbox (create + destroy)
+│   └── agentcore/                  <- Gateway targets, Harness, IAM/schemas
+├── tool-registry/servers.yaml      <- 13 MCP servers
+├── mcp-servers/                    <- custom MCP + gateway-lambdas/
+├── shared/
+│   ├── deploy/                     <- gateway, harness, sandbox lifecycle, MCP IAM/KMS/LF
+│   ├── templates/                  <- Jinja codegen
+│   └── utils/                      <- quality, pii, verifier
+├── workloads/                      <- one folder per pipeline (config, scripts, tests)
+├── tools/
+│   ├── render_workload.py          <- codegen entry
+│   ├── deploy_workload.py          <- validate → sync → terraform
+│   ├── provision_sandbox.py        <- bring up Gateway + workloads
+│   ├── destroy_sandbox.py          <- tear down tagged sandbox
+│   └── switch_mcp_mode.py          <- local | hybrid | gateway
+├── iac/terraform/                  <- modules: workload_pipeline, redshift, opensearch, redis
+├── contracts/v1/                   <- JSON Schema for configs
+└── docs/                           <- STATUS, MCP_WIRING, SANDBOX_LIFECYCLE, …
 ```
 
 ---
 
-## Presenting this to a client (suggested flow)
+## Presenting to a client
 
-1. **Frame** with the [HTML deck](docs/presentations/adop-client-deck.html) or `docs/CLIENT_PITCH.md`.
-2. **Run it live** — SOX pipeline (quarantined bad math) then GDPR pipeline (no-consent suppressed).
-3. **Show the artifacts** — configs, SQL, Step Functions ASL, Terraform, GitHub Actions.
-4. **Quantify** with `docs/BEFORE_AFTER.md` (~90–95% time, ~$1–4 tokens/workload).
-5. **Fit** with `docs/AWS_CICD_FIT.md`.
-6. **Close** with `docs/ADAPTATION_GAP.md`. If someone asks “does it run on AWS?”,
-   show Step Functions execution `phase3-extensions-3` and `docs/STATUS.md`.
-   Demo timing / what to leave running overnight: `docs/DEMO_RUNBOOK.md`.
+1. **Frame** — [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) or HTML deck.
+2. **Run local** — SOX pipeline quarantine demo; optional GDPR `web_events`.
+3. **Show factory** — specs, rendered scripts, Step Functions, Terraform, MCP health.
+4. **Quantify** — [`docs/BEFORE_AFTER.md`](docs/BEFORE_AFTER.md).
+5. **Agentic angle** — Gateway + Harness smoke test or hybrid MCP in Cursor.
+6. **Close** — [`docs/ADAPTATION_GAP.md`](docs/ADAPTATION_GAP.md); live AWS status in [`docs/STATUS.md`](docs/STATUS.md).
+
+Demo timing / overnight resources: [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).

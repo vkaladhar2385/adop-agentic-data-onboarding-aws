@@ -132,85 +132,23 @@ def athena_query(query: str, database: str, workgroup: str = "primary", timeout_
 
 # --- Lambda Handler ---
 
+from shared.mcp_lambda.dispatch import run_tools  # noqa: E402
+
+_TOOL_MAP = {
+    "create_database": create_database,
+    "get_database": get_database,
+    "get_databases": get_databases,
+    "get_tables": get_tables,
+    "athena_query": athena_query,
+}
+
+
 def handler(event, context):
-    """AWS Lambda handler - HTTP request/response via Function URL."""
-    try:
-        # Parse request
-        if isinstance(event.get('body'), str):
-            body = json.loads(event['body'])
-        else:
-            body = event.get('body', {})
-
-        tool_name = body.get('tool')
-        arguments = body.get('arguments', {})
-
-        # Health check
-        if tool_name == 'health_check':
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({
-                    'status': 'healthy',
-                    'server': 'glue-athena',
-                    'function': os.getenv('AWS_LAMBDA_FUNCTION_NAME', 'unknown')
-                })
-            }
-
-        # List tools
-        if tool_name == 'list_tools':
-            tools = ['create_database', 'get_database', 'get_databases', 'get_tables', 'athena_query']
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({
-                    'status': 'success',
-                    'tools': tools,
-                    'count': len(tools)
-                })
-            }
-
-        # Map tools to functions
-        tool_map = {
-            'create_database': create_database,
-            'get_database': get_database,
-            'get_databases': get_databases,
-            'get_tables': get_tables,
-            'athena_query': athena_query
-        }
-
-        if tool_name not in tool_map:
-            return {
-                'statusCode': 404,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({
-                    'status': 'error',
-                    'error': f'Unknown tool: {tool_name}'
-                })
-            }
-
-        # Call the tool
-        result = tool_map[tool_name](**arguments)
-
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
-                'status': 'success',
-                'tool': tool_name,
-                'result': result
-            })
-        }
-
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({
-                'status': 'error',
-                'error': str(e),
-                'type': type(e).__name__
-            })
-        }
+    """AgentCore Gateway + direct-test compatible MCP handler."""
+    return run_tools(
+        event,
+        context,
+        server="glue-athena",
+        tool_names=list(_TOOL_MAP.keys()),
+        tool_map=_TOOL_MAP,
+    )

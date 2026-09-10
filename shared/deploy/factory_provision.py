@@ -12,11 +12,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import jsonschema
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REQUEST_SCHEMA = REPO_ROOT / "contracts" / "v1" / "factory_provision_request.schema.json"
 FACTORY_SFN_NAME = os.getenv("ADOP_FACTORY_SFN_NAME", "adop_factory_provision")
+_LAMBDA_RUNTIME = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 
 # v1: pre-onboarded demo workloads only (expand after API onboarding exists).
 DEFAULT_ALLOWED_WORKLOADS = frozenset(
@@ -24,8 +23,8 @@ DEFAULT_ALLOWED_WORKLOADS = frozenset(
 )
 
 
-def _load_schema() -> dict[str, Any]:
-    return json.loads(REQUEST_SCHEMA.read_text(encoding="utf-8"))
+def _on_lambda() -> bool:
+    return _LAMBDA_RUNTIME
 
 
 def allowed_workloads() -> frozenset[str]:
@@ -35,13 +34,35 @@ def allowed_workloads() -> frozenset[str]:
     return DEFAULT_ALLOWED_WORKLOADS
 
 
+def _validate_schema_fields(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for key in ("workload", "bucket", "approve"):
+        if key not in payload:
+            errors.append(f"missing required field: {key}")
+    if errors:
+        return errors
+
+    workload = payload["workload"]
+    if not isinstance(workload, str) or not re.match(r"^[a-z][a-z0-9_]*$", workload):
+        errors.append("workload must match ^[a-z][a-z0-9_]*$")
+
+    bucket = payload["bucket"]
+    if not isinstance(bucket, str) or bucket.startswith("s3://"):
+        errors.append("bucket must be a string without s3:// prefix")
+    elif not re.match(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", bucket):
+        errors.append("bucket name is not a valid S3 bucket label")
+
+    if payload.get("approve") is not True:
+        errors.append("approve must be true (human must type APPROVE in Harness)")
+
+    return errors
+
+
 def validate_request(payload: dict[str, Any]) -> list[str]:
     """Return human-readable validation errors; empty list means OK."""
-    errors: list[str] = []
-    try:
-        jsonschema.validate(instance=payload, schema=_load_schema())
-    except jsonschema.ValidationError as exc:
-        return [exc.message]
+    errors = _validate_schema_fields(payload)
+    if errors:
+        return errors
 
     workload = payload["workload"]
     if workload not in allowed_workloads():
@@ -49,18 +70,12 @@ def validate_request(payload: dict[str, Any]) -> list[str]:
             f"workload '{workload}' not in factory allowlist: {sorted(allowed_workloads())}"
         )
 
-    workload_dir = REPO_ROOT / "workloads" / workload
-    if not workload_dir.is_dir():
-        errors.append(f"workload directory missing: workloads/{workload}")
-    elif not (workload_dir / ".discovery_complete").is_file():
-        errors.append(f"workloads/{workload}/.discovery_complete missing (Phase 1 not done)")
-
-    if not payload.get("approve"):
-        errors.append("approve must be true (human must type APPROVE in Harness)")
-
-    bucket = payload["bucket"]
-    if bucket.startswith("s3://"):
-        errors.append("bucket must not include s3:// prefix")
+    if not _on_lambda():
+        workload_dir = REPO_ROOT / "workloads" / workload
+        if not workload_dir.is_dir():
+            errors.append(f"workload directory missing: workloads/{workload}")
+        elif not (workload_dir / ".discovery_complete").is_file():
+            errors.append(f"workloads/{workload}/.discovery_complete missing (Phase 1 not done)")
 
     return errors
 
@@ -94,6 +109,7 @@ def resolve_factory_state_machine_arn(
     name: str | None = None,
 ) -> str:
     import boto3
+    from botocore.exceptions import ClientError
 
     session_kwargs: dict[str, Any] = {}
     if profile:
@@ -104,16 +120,20 @@ def resolve_factory_state_machine_arn(
     account_id = session.client("sts").get_caller_identity()["Account"]
     region = region or session.region_name or "us-east-1"
     sm_name = name or FACTORY_SFN_NAME
+    arn = factory_state_machine_arn(region=region, account_id=account_id, name=sm_name)
 
     sfn = session.client("stepfunctions")
-    paginator = sfn.get_paginator("list_state_machines")
-    for page in paginator.paginate():
-        for sm in page.get("stateMachines", []):
-            if sm.get("name") == sm_name:
-                return sm["stateMachineArn"]
-
-    # Expected until Terraform module is applied (Step 3).
-    return factory_state_machine_arn(region=region, account_id=account_id, name=sm_name)
+    try:
+        sfn.describe_state_machine(stateMachineArn=arn)
+        return arn
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code", "")
+        if code in ("StateMachineDoesNotExist", "ResourceNotFound"):
+            raise LookupError(
+                f"Factory state machine not deployed: {sm_name}. "
+                "Apply iac/terraform/modules/factory_provision (Option B Step 3)."
+            ) from exc
+        raise
 
 
 def start_factory_provision(
@@ -141,17 +161,11 @@ def start_factory_provision(
     body = build_factory_input(payload)
     exec_name = re.sub(r"[^a-zA-Z0-9-_]", "-", f"{body['workload']}-{body['provision_id']}")[:80]
 
-    try:
-        resp = sfn.start_execution(
-            stateMachineArn=sm_arn,
-            name=exec_name,
-            input=json.dumps(body),
-        )
-    except sfn.exceptions.StateMachineDoesNotExist:
-        raise LookupError(
-            f"Factory state machine not deployed: {FACTORY_SFN_NAME}. "
-            "Apply iac/terraform/modules/factory_provision (Option B Step 3)."
-        ) from None
+    resp = sfn.start_execution(
+        stateMachineArn=sm_arn,
+        name=exec_name,
+        input=json.dumps(body),
+    )
 
     return {
         "status": "STARTED",

@@ -172,5 +172,8 @@ targets:
       runtime: python3.12
       timeout: 60
       memory: 256
+      bundle:
+        - shared/deploy/__init__.py
+        - shared/deploy/factory_provision.py
     schema: config/agentcore/schemas/factory-tools.json
     iam_policy: config/agentcore/iam/factory-policy.json

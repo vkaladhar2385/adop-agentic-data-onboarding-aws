@@ -3,20 +3,10 @@
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
 from typing import Any
 
-# Repo root on Lambda layer / deployment bundle (see deploy_mcp_gateway packaging).
-_REPO = Path(__file__).resolve().parents[3]
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
-
-from shared.deploy.factory_provision import (  # noqa: E402
-    describe_factory_provision,
-    start_factory_provision,
-)
-from shared.mcp_lambda.dispatch import run_tools  # noqa: E402
+from shared.deploy.factory_provision import describe_factory_provision, start_factory_provision
+from shared.mcp_lambda.dispatch import run_tools
 
 
 def trigger_provision(

@@ -161,38 +161,14 @@ TOOL_MAP: dict[str, Callable[..., dict[str, Any]]] = {
 }
 
 
+from shared.mcp_lambda.dispatch import run_tools  # noqa: E402
+
+
 def handler(event, context):
-    try:
-        body = json.loads(event["body"]) if isinstance(event.get("body"), str) else event.get("body", {})
-        tool_name = body.get("tool")
-        arguments = body.get("arguments", {})
-
-        if tool_name == "health_check":
-            return _ok({"status": "healthy", "server": "lakeformation"})
-
-        if tool_name == "list_tools":
-            return _ok({"tools": TOOLS, "count": len(TOOLS)})
-
-        fn = TOOL_MAP.get(tool_name or "")
-        if not fn:
-            return _err(404, f"Unknown tool: {tool_name}")
-
-        return _ok({"tool": tool_name, "result": fn(**arguments)})
-    except Exception as e:
-        return _err(500, str(e))
-
-
-def _ok(payload: dict) -> dict:
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"status": "success", **payload}),
-    }
-
-
-def _err(code: int, message: str) -> dict:
-    return {
-        "statusCode": code,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"status": "error", "error": message}),
-    }
+    return run_tools(
+        event,
+        context,
+        server="lakeformation",
+        tool_names=TOOLS,
+        tool_map=TOOL_MAP,
+    )

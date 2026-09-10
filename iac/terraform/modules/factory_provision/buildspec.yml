@@ -1,0 +1,38 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo "Factory provision CodeBuild — ADOP Option B"
+      - pip install --upgrade pip
+      - pip install -r requirements.txt boto3 pyyaml jsonschema jinja2
+      - curl -fsSL -o /tmp/terraform.zip https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+      - unzip -o /tmp/terraform.zip -d /usr/local/bin
+      - terraform version
+  pre_build:
+    commands:
+      - test -n "$ADOP_WORKLOAD" || (echo "ADOP_WORKLOAD required" && exit 1)
+      - test -n "$ADOP_BUCKET" || (echo "ADOP_BUCKET required" && exit 1)
+      - echo "Workload=$ADOP_WORKLOAD Bucket=$ADOP_BUCKET ProvisionId=$ADOP_PROVISION_ID"
+  build:
+    commands:
+      - cd iac/terraform
+      - |
+        terraform init -input=false \
+          -backend-config="bucket=${TF_STATE_BUCKET}" \
+          -backend-config="key=${TF_STATE_KEY}" \
+          -backend-config="region=${TF_STATE_REGION}" \
+          -backend-config="encrypt=true"
+      - cd "$CODEBUILD_SRC_DIR"
+      - |
+        python tools/deploy_workload.py \
+          --workload "$ADOP_WORKLOAD" \
+          --bucket "$ADOP_BUCKET" \
+          --approve-apply \
+          --ensure-tf-module \
+          --sync-landing
+  post_build:
+    commands:
+      - echo "Factory deploy phase complete for $ADOP_WORKLOAD"

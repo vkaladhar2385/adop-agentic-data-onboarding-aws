@@ -2,7 +2,7 @@
 
 **Goal:** Client uses **Harness only** → types **APPROVE** → AWS runs validate + deploy + optional E2E. No Cursor, no local CLI.
 
-**Status:** Step 1 (Harness tool-use + design) — SFN/Terraform module pending Step 3.
+**Status:** Step 3 done (Terraform module + CodeBuild + SFN) — apply + upload repo zip to run end-to-end.
 
 ---
 
@@ -44,11 +44,14 @@ Validation logic: `shared/deploy/factory_provision.py`
 |-------|------|------|
 | Request schema | `contracts/v1/factory_provision_request.schema.json` | 1 ✓ |
 | Core library | `shared/deploy/factory_provision.py` | 1 ✓ |
-| Gateway Lambda | `mcp-servers/gateway-lambdas/factory/` | 2 |
-| Gateway target | `config/agentcore/gateway_targets.yaml` → `factory` | 2 |
+| Gateway Lambda | `mcp-servers/gateway-lambdas/factory/` | 2 ✓ |
+| Gateway target | `config/agentcore/gateway_targets.yaml` → `factory` | 2 ✓ |
+| Gateway dispatch fix | `shared/mcp_lambda/dispatch.py` (context `___` tool names) | 2 ✓ |
 | SFN ASL (skeleton) | `orchestration/factory_provision_state_machine.json` | 1 ✓ |
-| Terraform module | `iac/terraform/modules/factory_provision/` | 3 |
-| CodeBuild project | buildspec runs `deploy_workload --auto-provision` from S3 artifact | 3 |
+| Terraform module | `iac/terraform/modules/factory_provision/` | 3 ✓ |
+| CodeBuild project | buildspec runs `deploy_workload --approve-apply` from S3 artifact | 3 ✓ |
+| Repo zip upload | `tools/package_factory_artifact.py` | 3 ✓ |
+| Terraform apply | `tools/deploy_factory_provision.py` | 3 ✓ |
 | Harness prompt | `config/agentcore/harness_system_prompt.md` | 4 |
 
 ---
@@ -114,12 +117,21 @@ Harness system prompt requires:
 
 ---
 
-## Next session (Step 2–3)
+## Step 3 — deploy sequence
 
-1. Add `factory` to Gateway — `python tools/deploy_mcp_gateway.py`
-2. Terraform module: SFN + CodeBuild + validate/e2e Lambdas
-3. Wire buildspec + S3 repo artifact
-4. Extend Harness smoke with `trigger_provision` mock (SFN not deployed → expect clear error)
+```powershell
+# 1. Remote state (one-time) — copy backend.hcl.example → backend.hcl
+# 2. Upload repo zip for CodeBuild
+python tools/package_factory_artifact.py --bucket adop-datalake-<account>-us-east-1 --profile aws-agent
+
+# 3. Apply factory module only
+python tools/deploy_factory_provision.py --profile aws-agent-terraform --init-backend
+
+# 4. Start provision (API or Harness APPROVE)
+python tools/start_provision_api.py --workload supplier_lead_times --bucket adop-datalake-<account>-us-east-1 --approve
+```
+
+**Note:** CodeBuild runs `deploy_workload` with S3 remote state. Migrate local `terraform.tfstate` to S3 before first CodeBuild run, or accept a fresh state (sandbox only).
 
 ---
 

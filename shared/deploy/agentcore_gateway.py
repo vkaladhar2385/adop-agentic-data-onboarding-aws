@@ -29,26 +29,30 @@ def gateway_target_names(manifest: dict[str, Any] | None = None) -> list[str]:
     return [t["name"] for t in m.get("targets", []) if isinstance(t, dict) and t.get("name")]
 
 
-def _zip_lambda(source: Path, out_zip: Path) -> Path:
-    """Zip handler at archive root; bundle shared/mcp_lambda for proxy handlers."""
+def _zip_lambda(source: Path, out_zip: Path, *, bundle: list[str] | None = None) -> Path:
+    """Zip handler at archive root; bundle shared/mcp_lambda and optional repo paths."""
     out_zip.parent.mkdir(parents=True, exist_ok=True)
     shared_root = REPO_ROOT / "shared"
     mcp_lambda = shared_root / "mcp_lambda"
     with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.write(source, source.name)
-        if not mcp_lambda.is_dir():
-            return out_zip
-        init_shared = shared_root / "__init__.py"
-        init_mcp = mcp_lambda / "__init__.py"
-        if init_shared.is_file():
-            zf.write(init_shared, "shared/__init__.py")
-        if init_mcp.is_file():
-            zf.write(init_mcp, "shared/mcp_lambda/__init__.py")
-        for fp in mcp_lambda.rglob("*.py"):
-            if fp == init_mcp:
-                continue
-            arc = Path("shared") / "mcp_lambda" / fp.relative_to(mcp_lambda)
-            zf.write(fp, str(arc).replace("\\", "/"))
+        if mcp_lambda.is_dir():
+            init_shared = shared_root / "__init__.py"
+            init_mcp = mcp_lambda / "__init__.py"
+            if init_shared.is_file():
+                zf.write(init_shared, "shared/__init__.py")
+            if init_mcp.is_file():
+                zf.write(init_mcp, "shared/mcp_lambda/__init__.py")
+            for fp in mcp_lambda.rglob("*.py"):
+                if fp == init_mcp:
+                    continue
+                arc = Path("shared") / "mcp_lambda" / fp.relative_to(mcp_lambda)
+                zf.write(fp, str(arc).replace("\\", "/"))
+        for rel in bundle or []:
+            fp = REPO_ROOT / rel
+            if not fp.is_file():
+                raise FileNotFoundError(f"Lambda bundle file missing: {rel}")
+            zf.write(fp, str(Path(rel)).replace("\\", "/"))
     return out_zip
 
 
@@ -220,7 +224,11 @@ def deploy_gateway(
 
         policy_doc = json.loads(policy_path.read_text(encoding="utf-8"))
         role_arn = _ensure_lambda_role(iam, project, name, policy_doc)
-        zip_path = _zip_lambda(source, BUILD_DIR / f"{name}.zip")
+        zip_path = _zip_lambda(
+            source,
+            BUILD_DIR / f"{name}.zip",
+            bundle=lambda_cfg.get("bundle"),
+        )
         fn_name = f"{project}-mcp-{name.replace('_', '-')}"
         _ensure_lambda(
             lam,
@@ -264,9 +272,13 @@ def deploy_gateway(
     gateway_url = gateway_client.get_gateway(gatewayIdentifier=gateway_id)["gatewayUrl"]
     print(f"Gateway URL: {gateway_url}")
 
-    registered = {
-        t.get("name") for t in gateway_client.list_gateway_targets(gatewayIdentifier=gateway_id).get("items", [])
-    }
+    registered: set[str] = set()
+    for page in gateway_client.get_paginator("list_gateway_targets").paginate(
+        gatewayIdentifier=gateway_id
+    ):
+        for item in page.get("items", []):
+            if item.get("name"):
+                registered.add(item["name"])
 
     for target in targets:
         name = target["name"]
@@ -301,6 +313,10 @@ def deploy_gateway(
                 break
             except Exception as exc:
                 last_err = exc
+                if "already exists" in str(exc):
+                    print(f"Target already registered: {name}")
+                    last_err = None
+                    break
                 if "lacks permission to invoke Lambda" in str(exc) and attempt < 3:
                     print(f"  IAM propagation wait (attempt {attempt + 1}/4) for {name}...")
                     iam.put_role_policy(

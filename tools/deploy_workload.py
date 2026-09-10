@@ -33,6 +33,9 @@ def _terraform_env(aws_profile: str | None) -> dict[str, str]:
     """Terraform needs credential_process profile; boto3 uses aws login profile."""
     env = os.environ.copy()
     env["AWS_SDK_LOAD_CONFIG"] = "1"
+    # CodeBuild / Lambda use the instance role — no profile override.
+    if os.getenv("CODEBUILD_BUILD_ID") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        return env
     if aws_profile == "aws-agent":
         env["AWS_PROFILE"] = "aws-agent-terraform"
     elif aws_profile:
