@@ -60,6 +60,20 @@ Both list **13 servers** matching `tool-registry/servers.yaml`.
 
 ---
 
+## Sandbox lifecycle (provision / destroy)
+
+From repo root on your laptop:
+
+```powershell
+python tools/provision_sandbox.py --bucket adop-datalake-ACCOUNT-us-east-1
+python tools/destroy_sandbox.py --dry-run
+python tools/destroy_sandbox.py --yes
+```
+
+Full flags and KMS caveats: **`docs/SANDBOX_LIFECYCLE.md`**.
+
+---
+
 ## Mode B — AgentCore Gateway (hybrid)
 
 Laptop agent + cloud MCP for deploy-critical tools. Full checklist: **`docs/MODE_B_SETUP.md`**.
@@ -69,7 +83,14 @@ python tools/deploy_mcp_gateway.py --profile aws-agent
 python tools/switch_mcp_mode.py --mode hybrid
 ```
 
-Hybrid config: `agentcore-gateway` (glue-athena + lakeformation on Gateway) + local stdio for the other 11 servers.
+Modes (see `docs/MODE_B_SETUP.md`):
+
+| Mode | Behavior |
+|------|----------|
+| `local` | All 13 stdio on laptop |
+| `gateway` | Single AgentCore Gateway endpoint (all 13 after deploy) |
+| `hybrid` | Gateway for registered targets; local for the rest |
+| `hybrid --local-only iam,core` | Mix: force named servers to stay on laptop stdio |
 
 Restart Cursor if servers do not appear after `generate_mcp_config.py`.
 

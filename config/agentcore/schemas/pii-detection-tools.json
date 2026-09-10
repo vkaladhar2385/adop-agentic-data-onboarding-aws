@@ -1,0 +1,27 @@
+[
+  {
+    "name": "detect_pii_in_table",
+    "description": "Detect PII columns in a Glue table by name patterns.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {"type": "string"},
+        "table": {"type": "string"},
+        "apply_tags": {"type": "boolean"}
+      },
+      "required": ["database", "table"]
+    }
+  },
+  {
+    "name": "scan_database_for_pii",
+    "description": "Scan tables in a Glue database for PII columns.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {"type": "string"},
+        "max_tables": {"type": "integer"}
+      },
+      "required": ["database"]
+    }
+  }
+]

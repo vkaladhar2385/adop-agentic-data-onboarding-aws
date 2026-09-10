@@ -1,0 +1,27 @@
+[
+  {
+    "name": "put_custom_metadata",
+    "description": "Store custom business metadata on a Glue table.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {"type": "string"},
+        "table": {"type": "string"},
+        "custom_metadata": {"type": "object"}
+      },
+      "required": ["database", "table", "custom_metadata"]
+    }
+  },
+  {
+    "name": "get_custom_metadata",
+    "description": "Read custom business metadata from a Glue table.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {"type": "string"},
+        "table": {"type": "string"}
+      },
+      "required": ["database", "table"]
+    }
+  }
+]

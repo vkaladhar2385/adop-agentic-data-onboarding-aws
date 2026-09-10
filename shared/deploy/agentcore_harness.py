@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from shared.deploy.sandbox_tags import iam_tag_list, tag_iam_role, tag_map
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HARNESS_YAML = REPO_ROOT / "config" / "agentcore" / "harness.yaml"
 GATEWAY_META = REPO_ROOT / "build" / "mcp" / "gateway.json"
@@ -88,7 +90,7 @@ def build_create_harness_request(
         "maxIterations": int(limits.get("max_iterations", 25)),
         "maxTokens": int(limits.get("max_tokens", 8192)),
         "timeoutSeconds": int(limits.get("timeout_seconds", 900)),
-        "tags": harness_cfg.get("tags") or {},
+        "tags": {**tag_map(), **(harness_cfg.get("tags") or {})},
     }
 
     memory = harness_cfg.get("memory") or {}
@@ -133,11 +135,26 @@ def _ensure_execution_role(
             {
                 "Sid": "BedrockInvoke",
                 "Effect": "Allow",
-                "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
-                "Resource": [
-                    f"arn:aws:bedrock:{region}::foundation-model/*",
-                    f"arn:aws:bedrock:{region}:{account_id}:*",
+                "Action": [
+                    "bedrock:InvokeModel",
+                    "bedrock:InvokeModelWithResponseStream",
+                    "bedrock:Converse",
+                    "bedrock:ConverseStream",
                 ],
+                "Resource": [
+                    "arn:aws:bedrock:*::foundation-model/*",
+                    f"arn:aws:bedrock:*:{account_id}:inference-profile/*",
+                    f"arn:aws:bedrock:*:{account_id}:*",
+                ],
+            },
+            {
+                "Sid": "BedrockMarketplace",
+                "Effect": "Allow",
+                "Action": [
+                    "aws-marketplace:ViewSubscriptions",
+                    "aws-marketplace:Subscribe",
+                ],
+                "Resource": "*",
             },
             {
                 "Sid": "AgentCoreGateway",
@@ -193,8 +210,10 @@ def _ensure_execution_role(
             RoleName=role_name,
             AssumeRolePolicyDocument=json.dumps(trust),
             Description="AgentCore Harness execution role for ADOP onboarding agent",
+            Tags=iam_tag_list(),
         )["Role"]
         time.sleep(8)
+    tag_iam_role(iam, role_name)
     iam.put_role_policy(
         RoleName=role_name,
         PolicyName="adop-harness-execution",
@@ -284,7 +303,8 @@ def deploy_harness(
     if existing:
         harness_id = existing["harnessId"]
         print(f"Updating harness {cfg['name']} ({harness_id})")
-        update_req = {k: v for k, v in req.items() if k != "harnessName"}
+        skip = {"harnessName", "tags", "memory"}
+        update_req = {k: v for k, v in req.items() if k not in skip}
         control.update_harness(harnessId=harness_id, **update_req)
         harness = _wait_harness_ready(control, harness_id)
     else:

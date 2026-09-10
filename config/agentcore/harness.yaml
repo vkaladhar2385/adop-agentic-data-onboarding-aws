@@ -9,7 +9,9 @@ harness:
 
   model:
     provider: bedrock
-    model_id: anthropic.claude-sonnet-4-20250514-v1:0
+    # Nova avoids AWS Marketplace subscription gate for sandbox demos.
+    # Switch back to us.anthropic.claude-sonnet-4-6 after Marketplace access is enabled.
+    model_id: us.amazon.nova-pro-v1:0
     max_tokens: 8192
     temperature: 0.2
     api_format: converse_stream

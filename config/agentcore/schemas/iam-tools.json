@@ -1,0 +1,33 @@
+[
+  {
+    "name": "get_role",
+    "description": "Get IAM role details by name.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"role_name": {"type": "string"}},
+      "required": ["role_name"]
+    }
+  },
+  {
+    "name": "simulate_principal_policy",
+    "description": "Simulate whether a principal is allowed actions on resources.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "policy_source_arn": {"type": "string"},
+        "action_names": {"type": "array", "items": {"type": "string"}},
+        "resource_arns": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["policy_source_arn", "action_names"]
+    }
+  },
+  {
+    "name": "list_roles",
+    "description": "List IAM roles in the account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_items": {"type": "integer"}},
+      "required": []
+    }
+  }
+]

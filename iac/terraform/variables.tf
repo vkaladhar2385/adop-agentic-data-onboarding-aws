@@ -37,6 +37,8 @@ variable "sandbox_vpc_id" {
 variable "tags" {
   type = map(string)
   default = {
-    Project = "ADOP-Pilot"
+    Project     = "adop"
+    ManagedBy   = "adop-sandbox"
+    Environment = "sandbox"
   }
 }

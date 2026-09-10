@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3TablesRead",
+      "Effect": "Allow",
+      "Action": [
+        "s3tables:ListTableBuckets",
+        "s3tables:ListTables",
+        "s3tables:GetTable"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

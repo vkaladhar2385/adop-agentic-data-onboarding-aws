@@ -154,3 +154,58 @@ def ensure_lf_grants(
         )
     )
     return results
+
+
+def _revoke(
+    lf: Any,
+    *,
+    principal: str,
+    resource: dict,
+    permissions: list[str],
+    dry_run: bool,
+    label: str,
+) -> dict[str, str]:
+    if dry_run:
+        print(f"[dry-run] lakeformation revoke {label} principal={principal} perms={permissions}")
+        return {"label": label, "status": "planned-revoke"}
+
+    try:
+        lf.revoke_permissions(
+            Principal={"DataLakePrincipalIdentifier": principal},
+            Resource=resource,
+            Permissions=permissions,
+        )
+        print(f"LF revoke OK: {label}")
+        return {"label": label, "status": "revoked"}
+    except Exception as exc:  # noqa: BLE001 — grant may not exist
+        print(f"LF revoke note ({label}): {exc}")
+        return {"label": label, "status": "skipped", "reason": str(exc)}
+
+
+def revoke_lf_grants(
+    *,
+    database: str,
+    bucket: str,
+    glue_role_arn: str,
+    lambda_role_arn: str,
+    dry_run: bool,
+) -> list[dict[str, str]]:
+    """Revoke grants created by ensure_lf_grants (mirror permissions)."""
+    results: list[dict[str, str]] = []
+    lf = None if dry_run else __import__("boto3").client("lakeformation")
+
+    grant_specs = [
+        ("glue_database", glue_role_arn, {"Database": {"Name": database}}, ["CREATE_TABLE", "ALTER", "DROP", "DESCRIBE"]),
+        ("glue_tables", glue_role_arn, {"Table": {"DatabaseName": database, "TableWildcard": {}}}, ["ALL"]),
+        ("glue_data_location", glue_role_arn, {"DataLocation": {"ResourceArn": f"arn:aws:s3:::{bucket}"}}, ["DATA_LOCATION_ACCESS"]),
+        ("lambda_catalog", lambda_role_arn, {"Catalog": {}}, ["CREATE_LF_TAG", "ALTER", "DROP"]),
+        ("lambda_database", lambda_role_arn, {"Database": {"Name": database}}, ["DESCRIBE", "CREATE_TABLE", "ALTER"]),
+        ("lambda_tables", lambda_role_arn, {"Table": {"DatabaseName": database, "TableWildcard": {}}}, ["ALL"]),
+        ("lambda_lf_tag_pii_type", lambda_role_arn, {"LFTag": {"TagKey": "PII_Type", "TagValues": ["SSN", "EMAIL", "NAME"]}}, ["ASSOCIATE", "DESCRIBE"]),
+        ("lambda_lf_tag_data_sensitivity", lambda_role_arn, {"LFTag": {"TagKey": "Data_Sensitivity", "TagValues": ["CRITICAL", "HIGH"]}}, ["ASSOCIATE", "DESCRIBE"]),
+    ]
+    for label, principal, resource, perms in grant_specs:
+        results.append(
+            _revoke(lf, principal=principal, resource=resource, permissions=perms, dry_run=dry_run, label=label)
+        )
+    return results

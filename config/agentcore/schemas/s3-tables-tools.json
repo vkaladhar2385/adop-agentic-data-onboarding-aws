@@ -1,0 +1,24 @@
+[
+  {
+    "name": "list_table_buckets",
+    "description": "List S3 Tables table buckets.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_results": {"type": "integer"}},
+      "required": []
+    }
+  },
+  {
+    "name": "list_tables",
+    "description": "List tables in an S3 Tables namespace.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "table_bucket_arn": {"type": "string"},
+        "namespace": {"type": "string"},
+        "max_results": {"type": "integer"}
+      },
+      "required": ["table_bucket_arn", "namespace"]
+    }
+  }
+]

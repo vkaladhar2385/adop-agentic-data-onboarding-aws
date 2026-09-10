@@ -1,0 +1,26 @@
+[
+  {
+    "name": "list_workgroups",
+    "description": "List Redshift Serverless workgroups.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_results": {"type": "integer"}},
+      "required": []
+    }
+  },
+  {
+    "name": "execute_statement",
+    "description": "Run SQL via Redshift Data API.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sql": {"type": "string"},
+        "database": {"type": "string"},
+        "workgroup_name": {"type": "string"},
+        "cluster_identifier": {"type": "string"},
+        "wait_seconds": {"type": "integer"}
+      },
+      "required": ["sql", "database"]
+    }
+  }
+]

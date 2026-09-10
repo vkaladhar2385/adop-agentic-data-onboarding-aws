@@ -1,0 +1,25 @@
+[
+  {
+    "name": "lookup_events",
+    "description": "Look up CloudTrail management events.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "lookup_attributes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "AttributeKey": {"type": "string"},
+              "AttributeValue": {"type": "string"}
+            }
+          }
+        },
+        "start_time": {"type": "string"},
+        "end_time": {"type": "string"},
+        "max_results": {"type": "integer"}
+      },
+      "required": []
+    }
+  }
+]

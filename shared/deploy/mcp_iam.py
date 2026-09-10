@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from shared.deploy.sandbox_tags import iam_tag_list, tag_iam_role
+
 
 def _ensure_role(iam: Any, name: str, assume_policy: dict, *, dry_run: bool, tags: list[dict] | None = None) -> str:
     if dry_run:
@@ -13,6 +15,8 @@ def _ensure_role(iam: Any, name: str, assume_policy: dict, *, dry_run: bool, tag
 
     try:
         resp = iam.get_role(RoleName=name)
+        if not dry_run:
+            tag_iam_role(iam, name)
         return resp["Role"]["Arn"]
     except iam.exceptions.NoSuchEntityException:
         pass
@@ -26,6 +30,7 @@ def _ensure_role(iam: Any, name: str, assume_policy: dict, *, dry_run: bool, tag
         kwargs["Tags"] = tags
     resp = iam.create_role(**kwargs)
     print(f"Created IAM role: {name}")
+    tag_iam_role(iam, name, cfg=None)
     return resp["Role"]["Arn"]
 
 
@@ -354,7 +359,8 @@ def ensure_pipeline_roles(
     import boto3
 
     iam = boto3.client("iam")
-    glue_arn = _ensure_role(iam, glue_role, glue_assume_policy(), dry_run=False)
+    role_tags = iam_tag_list()
+    glue_arn = _ensure_role(iam, glue_role, glue_assume_policy(), dry_run=False, tags=role_tags)
     _attach_managed(iam, glue_role, "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole", dry_run=False)
     _put_inline_policy(
         iam,
@@ -364,7 +370,7 @@ def ensure_pipeline_roles(
         dry_run=False,
     )
 
-    lambda_arn = _ensure_role(iam, lambda_role, lambda_assume_policy(), dry_run=False)
+    lambda_arn = _ensure_role(iam, lambda_role, lambda_assume_policy(), dry_run=False, tags=role_tags)
     _attach_managed(iam, lambda_role, "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole", dry_run=False)
     _put_inline_policy(
         iam,
@@ -376,7 +382,7 @@ def ensure_pipeline_roles(
         dry_run=False,
     )
 
-    sfn_arn = _ensure_role(iam, sfn_role, sfn_assume_policy(), dry_run=False)
+    sfn_arn = _ensure_role(iam, sfn_role, sfn_assume_policy(), dry_run=False, tags=role_tags)
     _put_inline_policy(
         iam,
         sfn_role,
@@ -385,7 +391,9 @@ def ensure_pipeline_roles(
         dry_run=False,
     )
 
-    scheduler_arn = _ensure_role(iam, scheduler_role, scheduler_assume_policy(), dry_run=False)
+    scheduler_arn = _ensure_role(
+        iam, scheduler_role, scheduler_assume_policy(), dry_run=False, tags=role_tags
+    )
     _put_inline_policy(
         iam,
         scheduler_role,

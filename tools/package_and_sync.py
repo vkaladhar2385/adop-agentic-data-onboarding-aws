@@ -49,6 +49,19 @@ def _touch_packages(build: Path, workload: str) -> None:
         (d / "__init__.py").touch()
 
 
+def lambdas_for_workload(workload: str) -> dict[str, dict]:
+    """Build only Lambda zips whose workload scripts exist (catalog-only vs extensions)."""
+    selected: dict[str, dict] = {}
+    for name, spec in LAMBDAS.items():
+        scripts = spec.get("scripts") or []
+        if not scripts:
+            selected[name] = spec
+            continue
+        if all((REPO_ROOT / "workloads" / workload / rel).is_file() for rel in scripts):
+            selected[name] = spec
+    return selected
+
+
 def build_zip(name: str, spec: dict, workload: str) -> Path:
     build = BUILD_ROOT / workload / name
     if build.exists():
@@ -131,7 +144,8 @@ def main() -> int:
     ap.add_argument("--skip-upload", action="store_true", help="Build zips only; don't touch AWS.")
     args = ap.parse_args()
 
-    archives = {name: build_zip(name, spec, args.workload) for name, spec in LAMBDAS.items()}
+    lambda_specs = lambdas_for_workload(args.workload)
+    archives = {name: build_zip(name, spec, args.workload) for name, spec in lambda_specs.items()}
     for name, archive in archives.items():
         print(f"[package] {name}: {archive.stat().st_size / 1024:.1f} KB")
 

@@ -68,26 +68,17 @@ def _silver_table(workload: str, source: dict[str, Any]) -> str:
     return str(table or f"silver_{workload}")
 
 
-def _mcp_owners(compute: dict[str, Any]) -> dict[str, str]:
-    infra = compute.get("infrastructure") or {}
-    catalog = infra.get("catalog") or compute.get("catalog") or {}
-    defaults = {
-        "catalog_owner": "mcp",
-        "kms_owner": "mcp",
-        "iam_owner": "mcp",
-        "lakeformation_owner": "mcp",
+def _mcp_owners(workload: str, repo_root: Path | None = None) -> dict[str, str]:
+    """Align with infrastructure_config: default terraform unless compute.yaml opts into MCP."""
+    from shared.deploy.infrastructure_config import load_infrastructure_owners
+
+    owners = load_infrastructure_owners(workload, repo_root)
+    return {
+        "catalog_owner": owners["catalog_owner"],
+        "kms_owner": owners["kms_owner"],
+        "iam_owner": owners["iam_owner"],
+        "lakeformation_owner": owners["lakeformation_owner"],
     }
-    for key, section_key in (
-        ("catalog_owner", "catalog"),
-        ("kms_owner", "kms"),
-        ("iam_owner", "iam"),
-        ("lakeformation_owner", "lakeformation"),
-    ):
-        section = infra.get(section_key) or {}
-        owner = section.get("owner") or (catalog.get("owner") if section_key == "catalog" else None)
-        if owner in ("mcp", "terraform"):
-            defaults[key] = owner
-    return defaults
 
 
 def _glue_job_hcl(step: str, spec: dict[str, Any], *, database: str, silver_table: str) -> str:
@@ -133,7 +124,8 @@ def render_module_hcl(workload: str, repo_root: Path | None = None) -> str:
     if not compute.get("pipeline_steps"):
         raise ValueError(f"{workload}: missing pipeline_steps in compute.yaml")
 
-    owners = _mcp_owners(compute)
+    root = repo_root or REPO_ROOT
+    owners = _mcp_owners(workload, root)
     database = _database_name(workload, source)
     silver_table = _silver_table(workload, source)
     compliance = _compliance_tag(source, compute)

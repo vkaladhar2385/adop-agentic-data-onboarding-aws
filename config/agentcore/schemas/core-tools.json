@@ -1,0 +1,29 @@
+[
+  {
+    "name": "list_s3_buckets",
+    "description": "List S3 buckets in the account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_buckets": {"type": "integer"}},
+      "required": []
+    }
+  },
+  {
+    "name": "list_kms_keys",
+    "description": "List KMS keys in the account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_keys": {"type": "integer"}},
+      "required": []
+    }
+  },
+  {
+    "name": "describe_secret",
+    "description": "Describe a Secrets Manager secret (metadata only).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"secret_id": {"type": "string"}},
+      "required": ["secret_id"]
+    }
+  }
+]

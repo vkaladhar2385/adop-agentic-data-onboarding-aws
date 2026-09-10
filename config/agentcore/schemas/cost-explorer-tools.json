@@ -1,0 +1,14 @@
+[
+  {
+    "name": "get_cost_and_usage",
+    "description": "Get AWS cost and usage grouped by service.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days_back": {"type": "integer"},
+        "granularity": {"type": "string"}
+      },
+      "required": []
+    }
+  }
+]

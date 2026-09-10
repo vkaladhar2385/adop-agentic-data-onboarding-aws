@@ -3,3 +3,11 @@
 {"timestamp": "2026-09-09T05:35:00Z", "phase": "metadata", "status": "ok", "workload": "supplier_lead_times", "agent": "metadata", "run_id": "tier-a-w4"}
 {"timestamp": "2026-09-09T05:40:00Z", "phase": "transformation", "status": "ok", "workload": "supplier_lead_times", "agent": "transformation", "run_id": "tier-a-w4"}
 {"timestamp": "2026-09-09T05:45:00Z", "phase": "validate", "status": "ok", "workload": "supplier_lead_times", "agent": "main", "note": "Tier A workload #4 acceptance"}
+{"timestamp": "2026-09-10T04:35:14Z", "phase": "deploy", "status": "failed", "workload": "supplier_lead_times", "agent": "deploy", "returncode": 1}
+{"timestamp": "2026-09-10T04:36:34Z", "phase": "deploy", "status": "failed", "workload": "supplier_lead_times", "agent": "deploy", "returncode": 1}
+{"timestamp": "2026-09-10T04:39:08Z", "phase": "deploy", "status": "failed", "workload": "supplier_lead_times", "agent": "deploy", "returncode": 1}
+{"timestamp": "2026-09-10T04:44:33Z", "phase": "deploy", "status": "failed", "workload": "supplier_lead_times", "agent": "deploy", "returncode": 1}
+{"timestamp": "2026-09-10T04:48:16Z", "phase": "deploy", "status": "failed", "workload": "supplier_lead_times", "agent": "deploy", "returncode": 1}
+{"timestamp": "2026-09-10T04:54:03Z", "phase": "deploy", "status": "ok", "workload": "supplier_lead_times", "agent": "deploy", "mode": "apply"}
+{"timestamp": "2026-09-10T04:54:04Z", "phase": "deploy", "status": "failed", "workload": "supplier_lead_times", "agent": "deploy", "returncode": 2}
+{"timestamp": "2026-09-10T05:19:53Z", "phase": "e2e", "status": "ok", "workload": "supplier_lead_times", "agent": "deploy", "execution_arn": "arn:aws:states:us-east-1:199064440913:execution:supplier_lead_times_pipeline:supplier_lead_times-e2e-a8b6f45b05ab", "execution_status": "SUCCEEDED"}

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "list_tables",
+    "description": "List DynamoDB tables in the account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_items": {"type": "integer"}},
+      "required": []
+    }
+  },
+  {
+    "name": "describe_table",
+    "description": "Describe a DynamoDB table.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"table_name": {"type": "string"}},
+      "required": ["table_name"]
+    }
+  }
+]

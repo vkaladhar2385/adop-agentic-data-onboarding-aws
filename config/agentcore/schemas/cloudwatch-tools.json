@@ -1,0 +1,16 @@
+[
+  {
+    "name": "filter_log_events",
+    "description": "Filter CloudWatch Logs events in a log group.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group_name": {"type": "string"},
+        "filter_pattern": {"type": "string"},
+        "hours_back": {"type": "integer"},
+        "limit": {"type": "integer"}
+      },
+      "required": ["log_group_name"]
+    }
+  }
+]

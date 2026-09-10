@@ -9,8 +9,8 @@ until Lambda targets are added.
 | Piece | Where |
 |-------|--------|
 | Main agent | Cursor (laptop) |
-| glue-athena, lakeformation | AgentCore Gateway → Lambda |
-| iam, core, pii-detection, … | Local stdio (hybrid) |
+| All 13 MCP servers (manifest) | AgentCore Gateway → Lambda (after deploy) |
+| Per-server override | `--local-only` keeps chosen servers on laptop stdio |
 | Pipelines | Step Functions + Terraform (unchanged) |
 
 ## Prerequisites
@@ -29,11 +29,14 @@ aws sts get-caller-identity --profile aws-agent
 From repo root:
 
 ```powershell
-# 1. Deploy Gateway + Lambda targets (glue-athena, lakeformation)
+# 1. Deploy Gateway + all 13 Lambda targets
 python tools/deploy_mcp_gateway.py --profile aws-agent --region us-east-1
 
-# 2. Switch Cursor to hybrid Mode B
-python tools/switch_mcp_mode.py --mode hybrid
+# 2. Switch Cursor — pick one:
+python tools/switch_mcp_mode.py --mode local      # all 13 stdio on laptop
+python tools/switch_mcp_mode.py --mode gateway    # single Gateway endpoint (all cloud)
+python tools/switch_mcp_mode.py --mode hybrid     # Gateway + local for unregistered (legacy)
+python tools/switch_mcp_mode.py --mode hybrid --local-only iam,core  # mix: cloud + local stdio
 
 # 3. Reload Cursor → Settings → MCP
 python tools/mcp_health_check.py --skip-aws
@@ -57,19 +60,23 @@ python tools/run_e2e_pipeline.py --workload customer_orders --bucket adop-datala
 
 | Mode | Command | Use when |
 |------|---------|----------|
-| **local** | `python tools/switch_mcp_mode.py --mode local` | Offline dev, no AWS |
-| **hybrid** | `--mode hybrid` | **Default Mode B** — Gateway + local |
-| **gateway** | `--mode gateway` | Gateway-only (only registered tools work) |
+| **local** | `--mode local` | All 13 stdio on laptop; no Gateway |
+| **gateway** | `--mode gateway` | Single Gateway endpoint; all registered tools in AWS |
+| **hybrid** | `--mode hybrid` | Gateway for registered targets; local stdio for the rest |
+| **hybrid + local-only** | `--mode hybrid --local-only iam,core` | Force named servers to stay local even when on Gateway |
 
 Backup of local config: `.mcp.local.json` (created on first switch).
 
-## Add more Gateway targets
+## Gateway manifest (13/13)
 
-1. Add Lambda handler under `mcp-servers/{name}/lambda_handler.py`
-2. Add schema + IAM policy under `config/agentcore/`
-3. Append entry to `config/agentcore/gateway_targets.yaml`
-4. Re-run `python tools/deploy_mcp_gateway.py`
-5. Re-run `python tools/switch_mcp_mode.py --mode hybrid`
+All registry servers are listed in `config/agentcore/gateway_targets.yaml`.
+PyPI proxies live under `mcp-servers/gateway-lambdas/`; custom servers use
+`mcp-servers/{name}-server/lambda_handler.py`.
+
+After changing the manifest:
+
+1. `python tools/deploy_mcp_gateway.py --profile aws-agent`
+2. `python tools/switch_mcp_mode.py --mode gateway` (or hybrid with `--local-only`)
 
 ## Rollback to local-only
 
@@ -77,7 +84,41 @@ Backup of local config: `.mcp.local.json` (created on first switch).
 python tools/switch_mcp_mode.py --mode local
 ```
 
-Gateway resources remain in AWS until manually deleted.
+Gateway resources remain in AWS until you run destroy (below).
+
+## Full sandbox lifecycle (one command from laptop)
+
+**Provision** (Gateway + Harness + workloads):
+
+```powershell
+aws login --profile aws-agent
+cd iac/terraform; terraform init; cd ../..
+python tools/provision_sandbox.py --bucket adop-datalake-199064440913-us-east-1
+```
+
+**Destroy** (preview, then confirm):
+
+```powershell
+python tools/destroy_sandbox.py --dry-run
+python tools/destroy_sandbox.py --yes
+python tools/destroy_sandbox.py --yes --include-data   # also empty + delete S3 datalake bucket
+python tools/switch_mcp_mode.py --mode local
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--dry-run` | List what would be deleted |
+| `--yes` | Required for real destroy |
+| `--include-data` | Delete S3 datalake bucket contents |
+| `--skip-agentcore` | Terraform + MCP only |
+| `--skip-terraform` | AgentCore + MCP Lambdas only |
+| `--no-extensions` | Skip Redshift/OpenSearch/Redis on terraform retry |
+
+**KMS caveat:** MCP-owned keys use AWS's mandatory **7-day** pending deletion window — they are scheduled, not gone instantly.
+
+Tags: `config/sandbox_tags.yaml` (`ManagedBy=adop-sandbox`). Destroy scans by tag + name prefix.
+
+See also `docs/SANDBOX_LIFECYCLE.md`.
 
 ## Files
 

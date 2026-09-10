@@ -1,0 +1,23 @@
+[
+  {
+    "name": "list_functions",
+    "description": "List Lambda functions in the account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"max_items": {"type": "integer"}},
+      "required": []
+    }
+  },
+  {
+    "name": "invoke_function",
+    "description": "Synchronously invoke a Lambda function.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "function_name": {"type": "string"},
+        "payload": {"type": "object"}
+      },
+      "required": ["function_name"]
+    }
+  }
+]

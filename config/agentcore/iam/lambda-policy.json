@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LambdaListInvoke",
+      "Effect": "Allow",
+      "Action": ["lambda:ListFunctions", "lambda:InvokeFunction", "lambda:GetFunction"],
+      "Resource": "*"
+    }
+  ]
+}

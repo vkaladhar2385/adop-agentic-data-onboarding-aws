@@ -5,9 +5,13 @@
   gateway — AgentCore Gateway only (cloud tools via semantic routing)
   hybrid  — Gateway for registered targets + local stdio for the rest (recommended Mode B)
 
+Per-server override (when a target is registered on Gateway but you want stdio locally):
+  python tools/switch_mcp_mode.py --mode hybrid --local-only iam,core
+
 Usage:
   python tools/switch_mcp_mode.py --mode hybrid
   python tools/switch_mcp_mode.py --mode local
+  python tools/switch_mcp_mode.py --mode gateway
 """
 from __future__ import annotations
 
@@ -66,17 +70,37 @@ def _on_gateway_names() -> set[str]:
     return set(gateway_target_names(load_gateway_manifest()))
 
 
-def build_config(mode: str, region: str = "us-east-1") -> dict:
+def _parse_local_only(raw: str | None) -> set[str]:
+    if not raw:
+        return set()
+    return {part.strip() for part in raw.split(",") if part.strip()}
+
+
+def build_config(
+    mode: str,
+    region: str = "us-east-1",
+    *,
+    local_only: set[str] | None = None,
+) -> dict:
+    force_local = local_only or set()
+
     if mode == "local":
         local = _ensure_local_backup()
         return {"mcpServers": dict(local.get("mcpServers") or {})}
 
     if mode == "gateway":
-        return {"mcpServers": {"agentcore-gateway": _gateway_entry(region)}}
+        merged: dict[str, dict] = {"agentcore-gateway": _gateway_entry(region)}
+        if force_local:
+            local = _ensure_local_backup()
+            for name in force_local:
+                cfg = (local.get("mcpServers") or {}).get(name)
+                if cfg:
+                    merged[name] = cfg
+        return {"mcpServers": merged}
 
     if mode == "hybrid":
         local = _ensure_local_backup()
-        on_gateway = _on_gateway_names()
+        on_gateway = _on_gateway_names() - force_local
         merged = {"agentcore-gateway": _gateway_entry(region)}
         for name, cfg in (local.get("mcpServers") or {}).items():
             if name not in on_gateway:
@@ -96,12 +120,18 @@ def write_configs(payload: dict) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Switch MCP mode for Cursor / Claude")
     ap.add_argument("--mode", choices=("local", "gateway", "hybrid"), required=True)
+    ap.add_argument(
+        "--local-only",
+        default="",
+        help="Comma-separated server names to keep on local stdio even when registered on Gateway",
+    )
     ap.add_argument("--region", default="us-east-1")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
+    local_only = _parse_local_only(args.local_only)
     try:
-        payload = build_config(args.mode, args.region)
+        payload = build_config(args.mode, args.region, local_only=local_only)
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -114,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
 
     write_configs(payload)
     print(f"Updated {MCP_JSON} and {CURSOR_MCP}")
-    print("Reload Cursor MCP (Settings → MCP) or restart Cursor.")
+    print("Reload Cursor MCP (Settings -> MCP) or restart Cursor.")
     return 0
 
 

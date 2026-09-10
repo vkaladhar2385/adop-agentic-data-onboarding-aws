@@ -1,10 +1,10 @@
 # AgentCore Gateway targets — Mode B (laptop agent + cloud MCP tools).
 # Register with: python tools/deploy_mcp_gateway.py
-# Official ADOP eventually hosts all 13; PyPI servers stay local in hybrid mode until Lambda targets exist.
+# All 13 registry servers have Lambda targets; use switch_mcp_mode for local vs Gateway.
 
 gateway:
   name_suffix: mcp-gateway
-  description: ADOP Track B MCP Gateway
+  description: ADOP Track B MCP Gateway (13 targets)
 
 targets:
   - name: glue-athena
@@ -31,6 +31,134 @@ targets:
     schema: config/agentcore/schemas/lakeformation-tools.json
     iam_policy: config/agentcore/iam/lakeformation-policy.json
 
-# Servers still local in hybrid Mode B until Lambda + schema added:
-# pii-detection, sagemaker-catalog, iam, core, s3-tables, cloudtrail, redshift,
-# lambda, cloudwatch, cost-explorer, dynamodb
+  - name: iam
+    required: true
+    description: IAM role lookup and policy simulation
+    lambda:
+      source: mcp-servers/gateway-lambdas/iam/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/iam-tools.json
+    iam_policy: config/agentcore/iam/iam-policy.json
+
+  - name: cloudtrail
+    required: false
+    description: CloudTrail event lookup
+    lambda:
+      source: mcp-servers/gateway-lambdas/cloudtrail/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/cloudtrail-tools.json
+    iam_policy: config/agentcore/iam/cloudtrail-policy.json
+
+  - name: redshift
+    required: false
+    description: Redshift Data API queries
+    lambda:
+      source: mcp-servers/gateway-lambdas/redshift/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 300
+      memory: 256
+    schema: config/agentcore/schemas/redshift-tools.json
+    iam_policy: config/agentcore/iam/redshift-policy.json
+
+  - name: core
+    required: false
+    description: S3, KMS, Secrets Manager basics
+    lambda:
+      source: mcp-servers/gateway-lambdas/core/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/core-tools.json
+    iam_policy: config/agentcore/iam/core-policy.json
+
+  - name: s3-tables
+    required: false
+    description: S3 Tables bucket operations
+    lambda:
+      source: mcp-servers/gateway-lambdas/s3-tables/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/s3-tables-tools.json
+    iam_policy: config/agentcore/iam/s3-tables-policy.json
+
+  - name: pii-detection
+    required: false
+    description: PII scan and LF tag hints
+    lambda:
+      source: mcp-servers/pii-detection-server/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 300
+      memory: 256
+    schema: config/agentcore/schemas/pii-detection-tools.json
+    iam_policy: config/agentcore/iam/pii-detection-policy.json
+
+  - name: sagemaker-catalog
+    required: false
+    description: Business metadata on Glue tables
+    lambda:
+      source: mcp-servers/sagemaker-catalog-server/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/sagemaker-catalog-tools.json
+    iam_policy: config/agentcore/iam/sagemaker-catalog-policy.json
+
+  - name: lambda
+    required: false
+    description: Lambda list and invoke helpers
+    lambda:
+      source: mcp-servers/gateway-lambdas/lambda-aws/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 300
+      memory: 256
+    schema: config/agentcore/schemas/lambda-tools.json
+    iam_policy: config/agentcore/iam/lambda-policy.json
+
+  - name: cloudwatch
+    required: false
+    description: CloudWatch Logs filter
+    lambda:
+      source: mcp-servers/gateway-lambdas/cloudwatch/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/cloudwatch-tools.json
+    iam_policy: config/agentcore/iam/cloudwatch-policy.json
+
+  - name: cost-explorer
+    required: false
+    description: Cost and usage reports
+    lambda:
+      source: mcp-servers/gateway-lambdas/cost-explorer/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/cost-explorer-tools.json
+    iam_policy: config/agentcore/iam/cost-explorer-policy.json
+
+  - name: dynamodb
+    required: false
+    description: DynamoDB table describe and list
+    lambda:
+      source: mcp-servers/gateway-lambdas/dynamodb/lambda_handler.py
+      handler: lambda_handler.handler
+      runtime: python3.12
+      timeout: 120
+      memory: 256
+    schema: config/agentcore/schemas/dynamodb-tools.json
+    iam_policy: config/agentcore/iam/dynamodb-policy.json

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from shared.deploy.sandbox_tags import tag_kms_key
+
 
 def ensure_zone_keys(
     workload: str,
@@ -38,6 +40,7 @@ def ensure_zone_keys(
         key_id = key["KeyMetadata"]["KeyId"]
         kms.create_alias(AliasName=alias, TargetKeyId=key_id)
         kms.enable_key_rotation(KeyId=key_id)
+        tag_kms_key(kms, key_id)
         print(f"Created KMS key + alias: {alias}")
         results.append({"zone": zone, "alias": alias, "key_id": key_id, "status": "created"})
 

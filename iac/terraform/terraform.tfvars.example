@@ -5,3 +5,10 @@ aws_region       = "us-east-1"
 data_lake_bucket = "data-lake-111122223333-us-east-1"
 alert_email      = "you@example.com"
 environment      = "dev"
+
+# Optional — defaults match config/sandbox_tags.yaml
+# tags = {
+#   Project     = "adop"
+#   ManagedBy   = "adop-sandbox"
+#   Environment = "sandbox"
+# }

@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GlueRead",
+      "Effect": "Allow",
+      "Action": ["glue:GetTable", "glue:GetTables"],
+      "Resource": [
+        "arn:aws:glue:*:*:catalog",
+        "arn:aws:glue:*:*:database/*",
+        "arn:aws:glue:*:*:table/*/*"
+      ]
+    },
+    {
+      "Sid": "LakeFormationTag",
+      "Effect": "Allow",
+      "Action": [
+        "lakeformation:AddLFTagsToResource",
+        "lakeformation:GetResourceLFTags",
+        "lakeformation:ListLFTags"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

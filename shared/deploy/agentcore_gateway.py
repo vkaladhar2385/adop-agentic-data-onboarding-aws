@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from shared.deploy.sandbox_tags import iam_tag_list, tag_iam_role, tag_lambda, tag_map
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TARGETS_YAML = REPO_ROOT / "config" / "agentcore" / "gateway_targets.yaml"
 BUILD_DIR = REPO_ROOT / "build" / "mcp"
@@ -28,9 +30,25 @@ def gateway_target_names(manifest: dict[str, Any] | None = None) -> list[str]:
 
 
 def _zip_lambda(source: Path, out_zip: Path) -> Path:
+    """Zip handler at archive root; bundle shared/mcp_lambda for proxy handlers."""
     out_zip.parent.mkdir(parents=True, exist_ok=True)
+    shared_root = REPO_ROOT / "shared"
+    mcp_lambda = shared_root / "mcp_lambda"
     with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.write(source, source.name)
+        if not mcp_lambda.is_dir():
+            return out_zip
+        init_shared = shared_root / "__init__.py"
+        init_mcp = mcp_lambda / "__init__.py"
+        if init_shared.is_file():
+            zf.write(init_shared, "shared/__init__.py")
+        if init_mcp.is_file():
+            zf.write(init_mcp, "shared/mcp_lambda/__init__.py")
+        for fp in mcp_lambda.rglob("*.py"):
+            if fp == init_mcp:
+                continue
+            arc = Path("shared") / "mcp_lambda" / fp.relative_to(mcp_lambda)
+            zf.write(fp, str(arc).replace("\\", "/"))
     return out_zip
 
 
@@ -53,6 +71,7 @@ def _ensure_lambda_role(iam, project: str, target_name: str, policy_doc: dict) -
             RoleName=role_name,
             AssumeRolePolicyDocument=json.dumps(trust),
             Description=f"MCP {target_name} Lambda execution role",
+            Tags=iam_tag_list(),
         )["Role"]
         iam.attach_role_policy(
             RoleName=role_name,
@@ -64,6 +83,7 @@ def _ensure_lambda_role(iam, project: str, target_name: str, policy_doc: dict) -
             PolicyDocument=json.dumps(policy_doc),
         )
         time.sleep(8)
+    tag_iam_role(iam, role_name)
     return role["Arn"]
 
 
@@ -91,7 +111,9 @@ def _ensure_lambda(
             Code={"ZipFile": zip_bytes},
             Timeout=timeout,
             MemorySize=memory,
+            Tags=tag_map(),
         )
+    tag_lambda(lam, fn_name)
     return fn_name
 
 
@@ -129,6 +151,7 @@ def _ensure_gateway_role(iam, project: str, lambda_arns: list[str]) -> str:
             RoleName=role_name,
             AssumeRolePolicyDocument=json.dumps(trust),
             Description="AgentCore Gateway MCP invoke role",
+            Tags=iam_tag_list(),
         )["Role"]
         iam.put_role_policy(
             RoleName=role_name,
@@ -136,6 +159,7 @@ def _ensure_gateway_role(iam, project: str, lambda_arns: list[str]) -> str:
             PolicyDocument=json.dumps(policy),
         )
         time.sleep(8)
+    tag_iam_role(iam, role_name)
     return role["Arn"]
 
 

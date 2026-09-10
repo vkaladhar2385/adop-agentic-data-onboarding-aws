@@ -45,7 +45,7 @@ pipeline_steps:
     script: scripts/quality/run_quality_checks.py
 
 terraform_sync:
-  status: pending
+  status: enforced
   note: Tier B MWAA proof — DAG codegen + pytest; MWAA sync when sandbox redeployed.
 
 routing:

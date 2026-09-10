@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
         "ok" if status == "SUCCEEDED" else "failed",
         agent="deploy",
         execution_arn=result["execution_arn"],
-        status=status,
+        execution_status=status,
     )
     print(f"E2E {status}: {result['execution_arn']}")
     return 0 if status == "SUCCEEDED" else 1

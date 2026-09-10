@@ -11,6 +11,7 @@ Apply only with --approve-apply after the user approves in chat.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -28,9 +29,20 @@ from shared.utils.agent_trace import append_trace  # noqa: E402
 from shared.utils.orchestrator import resolve_orchestration_artifacts, resolve_orchestrator  # noqa: E402
 
 
-def _run(cmd: list[str], *, cwd: Path | None = None) -> None:
+def _terraform_env(aws_profile: str | None) -> dict[str, str]:
+    """Terraform needs credential_process profile; boto3 uses aws login profile."""
+    env = os.environ.copy()
+    env["AWS_SDK_LOAD_CONFIG"] = "1"
+    if aws_profile == "aws-agent":
+        env["AWS_PROFILE"] = "aws-agent-terraform"
+    elif aws_profile:
+        env["AWS_PROFILE"] = aws_profile
+    return env
+
+
+def _run(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
     print("+", " ".join(cmd), flush=True)
-    subprocess.run(cmd, cwd=cwd or REPO_ROOT, check=True)
+    subprocess.run(cmd, cwd=cwd or REPO_ROOT, check=True, env=env or os.environ)
 
 
 def load_compute(workload_dir: Path) -> dict:
@@ -294,16 +306,17 @@ def main(argv: list[str] | None = None) -> int:
                 ]
             )
 
-        _run(
-            [
-                sys.executable,
-                "tools/package_and_sync.py",
-                "--bucket",
-                args.bucket,
-                "--workload",
-                args.workload,
-            ]
-        )
+        sync_cmd = [
+            sys.executable,
+            "tools/package_and_sync.py",
+            "--bucket",
+            args.bucket,
+            "--workload",
+            args.workload,
+        ]
+        if args.aws_profile:
+            sync_cmd.extend(["--profile", args.aws_profile])
+        _run(sync_cmd)
 
         orch_artifacts = orchestration_artifacts(workload_dir)
         if "dag" in orch_artifacts:
@@ -328,8 +341,13 @@ def main(argv: list[str] | None = None) -> int:
                     flush=True,
                 )
 
+        tf_target = f"module.{args.workload}"
         if "state_machine" in orch_artifacts and terraform_module_declared(args.workload):
-            _run(["terraform", "plan"], cwd=TERRAFORM_DIR)
+            _run(
+                ["terraform", "plan", f"-target={tf_target}"],
+                cwd=TERRAFORM_DIR,
+                env=_terraform_env(args.aws_profile),
+            )
         elif "state_machine" in orch_artifacts:
             print(
                 f'\n>>> SFN orchestrator but no module "{args.workload}" in main.tf — terraform plan skipped\n',
@@ -342,7 +360,11 @@ def main(argv: list[str] | None = None) -> int:
             args.workload
         ):
             print("\n>>> Running terraform apply (--approve-apply set)\n", flush=True)
-            _run(["terraform", "apply", "-auto-approve"], cwd=TERRAFORM_DIR)
+            _run(
+                ["terraform", "apply", "-auto-approve", f"-target={tf_target}"],
+                cwd=TERRAFORM_DIR,
+                env=_terraform_env(args.aws_profile),
+            )
             append_trace(args.workload, "deploy", "ok", agent="deploy", mode="apply")
 
             if args.sync_landing and not args.run_e2e:
@@ -371,7 +393,7 @@ def main(argv: list[str] | None = None) -> int:
                     "ok" if status == "SUCCEEDED" else "failed",
                     agent="deploy",
                     execution_arn=result["execution_arn"],
-                    status=status,
+                    execution_status=status,
                 )
                 print(f"\nE2E {status}: {result['execution_arn']}\n", flush=True)
                 if status != "SUCCEEDED":

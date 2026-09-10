@@ -45,7 +45,7 @@ pipeline_steps:
     script: scripts/quality/run_quality_checks.py
 
 terraform_sync:
-  status: pending
+  status: enforced
   note: Factory proof — artifacts + pytest only until DevOps wires main.tf.
 
 routing:

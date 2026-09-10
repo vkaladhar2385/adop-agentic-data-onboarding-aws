@@ -1,0 +1,21 @@
+# Canonical tags for ADOP sandbox resources (create + destroy).
+# Used by: deploy_mcp_gateway, mcp_deploy_infrastructure, terraform var.tags, destroy_sandbox.
+
+project: adop
+resource_prefix: adop
+
+tags:
+  Project: adop
+  ManagedBy: adop-sandbox
+  Environment: sandbox
+
+# Destroy scans resources with this key/value (Resource Groups Tagging API).
+tag_filter:
+  key: ManagedBy
+  values:
+    - adop-sandbox
+
+# Glue databases have no native tags — stored in Database Parameters.
+glue_parameters:
+  adop:managed: "true"
+  adop:project: adop
