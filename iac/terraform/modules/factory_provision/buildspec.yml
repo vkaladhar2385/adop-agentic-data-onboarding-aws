@@ -18,6 +18,7 @@ phases:
       - echo "Workload=$ADOP_WORKLOAD Bucket=$ADOP_BUCKET ProvisionId=$ADOP_PROVISION_ID"
   build:
     commands:
+      - cp iac/terraform/backend.tf.example iac/terraform/backend.tf
       - cd iac/terraform
       - |
         terraform init -input=false \

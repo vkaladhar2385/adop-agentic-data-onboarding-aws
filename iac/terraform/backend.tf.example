@@ -1,0 +1,4 @@
+# CodeBuild copies this to backend.tf before terraform init (see factory_provision buildspec).
+terraform {
+  backend "s3" {}
+}

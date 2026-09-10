@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     env["AWS_SDK_LOAD_CONFIG"] = "1"
     env["AWS_PROFILE"] = args.profile
 
-    init_cmd = ["terraform", "-chdir=iac/terraform", "init", "-input=false"]
+    init_cmd = ["terraform", "-chdir=iac/terraform", "init", "-input=false", "-reconfigure"]
     if args.init_backend:
         backend_hcl = TF_DIR / "backend.hcl"
         if not backend_hcl.is_file():
