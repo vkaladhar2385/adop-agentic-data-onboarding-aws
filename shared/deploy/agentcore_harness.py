@@ -18,6 +18,21 @@ GATEWAY_META = REPO_ROOT / "build" / "mcp" / "gateway.json"
 HARNESS_META = REPO_ROOT / "build" / "agentcore" / "harness.json"
 
 
+def _merge_tags(*maps: dict[str, str]) -> dict[str, str]:
+    """Merge tag dicts; later values win; keys deduped case-insensitively."""
+    merged: dict[str, str] = {}
+    lower_to_key: dict[str, str] = {}
+    for m in maps:
+        for k, v in (m or {}).items():
+            lk = str(k).lower()
+            if lk in lower_to_key:
+                merged[lower_to_key[lk]] = str(v)
+            else:
+                lower_to_key[lk] = str(k)
+                merged[str(k)] = str(v)
+    return merged
+
+
 def load_harness_config(path: Path | None = None) -> dict[str, Any]:
     cfg_path = path or HARNESS_YAML
     with cfg_path.open(encoding="utf-8") as fh:
@@ -90,7 +105,7 @@ def build_create_harness_request(
         "maxIterations": int(limits.get("max_iterations", 25)),
         "maxTokens": int(limits.get("max_tokens", 8192)),
         "timeoutSeconds": int(limits.get("timeout_seconds", 900)),
-        "tags": {**tag_map(), **(harness_cfg.get("tags") or {})},
+        "tags": _merge_tags(tag_map(), harness_cfg.get("tags") or {}),
     }
 
     memory = harness_cfg.get("memory") or {}

@@ -1,12 +1,16 @@
 # ai-agentic-data-onboarding
 
-**Agentic Data Engineering accelerator** — spec-driven medallion pipelines on AWS (Iceberg,
-Step Functions, Terraform) with an **MCP + AgentCore** agent layer for discovery, deploy, and
-sandbox lifecycle.
+**Agentic Data Engineering platform (in progress)** — today, a **spec-driven medallion
+lakehouse factory** on AWS; evolving toward a **general serverless DE platform** with
+human-in-the-loop deploy. Iceberg, Glue, Step Functions, Terraform, plus **MCP + AgentCore**
+for discovery, provision, and sandbox lifecycle.
 
-Built as a Perficient **Data Engineering** offering: show clients how agentic onboarding
-reduces time-to-lake while keeping governance, codegen drift checks, and IaC as the source of
-truth for production paths.
+**North star:** Spec-driven pipelines on AWS — agents assist; **APPROVE** before deploy; IaC and
+codegen remain production truth. **Scope:** managed/serverless (Glue, Lambda, SFN, S3) — **not
+EMR** or always-on cluster platforms. Full vision → [`docs/PLATFORM_VISION.md`](docs/PLATFORM_VISION.md).
+
+Built as a Perficient **Data Engineering** offering: reduce time-to-lake with governance,
+codegen drift checks, and repeatable deploy (laptop, Harness, or factory SFN).
 
 > **Corporate repo:** [Perficient-Corporate/ai-agentic-data-onboarding](https://github.com/Perficient-Corporate/ai-agentic-data-onboarding)
 
@@ -27,6 +31,16 @@ Synthetic demo data only. Do not point at regulated production accounts without 
 | **Sandbox lifecycle** | One-command **provision** and **destroy** with shared tags (`config/sandbox_tags.yaml`) |
 
 Contract for agents: [`AGENTS.md`](AGENTS.md). Status checklist: [`docs/STATUS.md`](docs/STATUS.md).
+
+### Vision (today → target)
+
+| | |
+|---|---|
+| **Today** | Agentic factory for **governed medallion** pipelines (Bronze/Silver/Gold, Iceberg, quality gates). Harness **APPROVE → provision** in AWS ([`docs/API_ONLY_FACTORY.md`](docs/API_ONLY_FACTORY.md)). |
+| **Target** | Same platform shell, **multiple DE profiles** (ingest-only, batch SQL, …) — still spec-driven, serverless, HITL. |
+| **Out of scope** | EMR, always-on MWAA/OpenSearch/Redshift for default demos. |
+
+Client pitch lines, AWS service map, and roadmap phases: [`docs/PLATFORM_VISION.md`](docs/PLATFORM_VISION.md).
 
 ---
 
@@ -117,6 +131,7 @@ Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · No-laptop provi
 | [`docs/STATUS.md`](docs/STATUS.md) | What's done vs deferred (Tier A / Tier B) |
 | [`docs/SANDBOX_LIFECYCLE.md`](docs/SANDBOX_LIFECYCLE.md) | Provision / destroy one command |
 | [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) | 13 MCP servers + Gateway (14 targets), Cursor `.mcp.json` |
+| [`docs/PLATFORM_VISION.md`](docs/PLATFORM_VISION.md) | North star, AWS scope (no EMR), roadmap, pitch language |
 | [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) | Client narrative |
 | [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) | Demo timing, keep vs destroy |
 | [`docs/API_ONLY_FACTORY.md`](docs/API_ONLY_FACTORY.md) | Harness-only provision demo (Option B) |

@@ -74,9 +74,9 @@ python tools/harness_smoke_test.py --live --profile aws-agent
 aws stepfunctions describe-state-machine --name adop_factory_provision --profile aws-agent --region us-east-1
 ```
 
-### Step A2 — Optional: laptop onboarding demo (Acts 1–2)
+### Step A1b — Deploy workload pipeline (required for E2E)
 
-Only if you want to show `/onboard-workflow` in Cursor **before** the no-laptop act:
+After a full destroy, CodeBuild runs in **resync** mode (scripts + landing sync only — **no** Terraform). Harness E2E needs `supplier_lead_times_pipeline` to already exist:
 
 ```powershell
 python tools/provision_client_workload.py `
@@ -85,7 +85,11 @@ python tools/provision_client_workload.py `
   --aws-profile aws-agent
 ```
 
-**Skip A2** if the demo is **Harness-only (Act 6)** — the factory path deploys via CodeBuild on APPROVE.
+**One-time per rebuild** (~10 min). Skip only if you set CodeBuild `ADOP_FACTORY_MODE=full` (needs LF grants on CodeBuild role).
+
+### Step A2 — Optional: laptop onboarding demo (Acts 1–2)
+
+Only if you want to show `/onboard-workflow` in Cursor **before** the no-laptop act (specs + pytest in Cursor, then use A1b for deploy).
 
 ### Step A3 — Cursor MCP (for discovery / hybrid tools in room)
 
@@ -216,7 +220,10 @@ Check console manually if unsure:
 
 | Problem | Fix |
 |---------|-----|
-| `ExpiredToken` | `aws login --profile aws-agent` |
+| `ExpiredToken` during long destroy | Use **AWS CLI v2** for login (v1 does not support `aws login`): `& "$env:LOCALAPPDATA\Programs\Amazon\AWSCLIV2\aws.exe" login --profile aws-agent` |
+| Destroy stopped mid-run | Re-login, then `python tools/destroy_sandbox.py --yes --profile aws-agent` (or `--skip-terraform` for MCP/LF stragglers only) |
+| Stale `build/agentcore/harness.json` after manual delete | Safe to delete; redeploy recreates via `deploy_agentcore_harness.py` |
+| Gateway delete "has targets associated" | Re-run destroy (targets are deleted first; latest script waits for target removal) |
 | Harness tool-use fails | Claude Sonnet 4.6 enabled; redeploy harness |
 | Destroy warnings / stragglers | Re-run `destroy_sandbox.py --yes`; check console for `adop-*` |
 | Factory not destroyed | Pull latest repo (factory in terraform targets); `terraform destroy -target=module.factory_provision` |

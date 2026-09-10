@@ -38,6 +38,9 @@ Run once per sandbox account (or after factory module changes).
 | 4 | Repo zip for CodeBuild | `python tools/package_factory_artifact.py --bucket adop-datalake-<account>-us-east-1 --profile aws-agent` |
 | 5 | Factory module (SFN, CodeBuild, Lambdas + audit) | `python tools/deploy_factory_provision.py --profile aws-agent-terraform` |
 | 6 | Smoke test | `python tools/harness_smoke_test.py --live --profile aws-agent` → **2/2 PASS** |
+| 7 | **Workload pipeline** (after full destroy) | `python tools/provision_client_workload.py --workload supplier_lead_times --bucket adop-datalake-<account>-us-east-1 --aws-profile aws-agent` |
+
+CodeBuild **resync** mode does not run Terraform — E2E needs `supplier_lead_times_pipeline` to exist (step 7). See [`PERSONAL_SANDBOX_RUNBOOK.md`](PERSONAL_SANDBOX_RUNBOOK.md) Step A1b.
 
 After pulling audit-trail changes, re-run step 5 so the SFN gains `WriteProvisionAudit` and the audit Lambda is deployed.
 

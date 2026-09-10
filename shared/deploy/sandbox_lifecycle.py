@@ -147,6 +147,16 @@ def destroy_harness(
 
     if not harness_id:
         report.skipped.append(f"harness:{harness_name}")
+        if HARNESS_META.is_file() and not dry_run:
+            HARNESS_META.unlink()
+        return
+
+    try:
+        control.get_harness(harnessId=harness_id)
+    except Exception:
+        report.skipped.append(f"harness:{harness_name}")
+        if HARNESS_META.is_file() and not dry_run:
+            HARNESS_META.unlink()
         return
 
     _log(f"delete harness {harness_name} ({harness_id})", dry_run=dry_run)
@@ -203,9 +213,20 @@ def destroy_gateway(
             control.delete_gateway_target(gatewayIdentifier=gateway_id, targetId=target_id)
         report.deleted.append(f"gateway-target:{name}")
 
+    if not dry_run:
+        for _ in range(36):
+            remaining = control.list_gateway_targets(gatewayIdentifier=gateway_id).get("items", [])
+            if not remaining:
+                break
+            time.sleep(5)
+
     _log(f"delete gateway {gateway_name} ({gateway_id})", dry_run=dry_run)
     if not dry_run:
-        control.delete_gateway(gatewayIdentifier=gateway_id)
+        try:
+            control.delete_gateway(gatewayIdentifier=gateway_id)
+        except Exception as exc:
+            report.warnings.append(f"gateway delete: {gateway_id} ({exc})")
+            return
     report.deleted.append(f"gateway:{gateway_id}")
 
 
