@@ -27,13 +27,8 @@ phases:
           -backend-config="region=${TF_STATE_REGION}" \
           -backend-config="encrypt=true"
       - cd "$CODEBUILD_SRC_DIR"
-      - |
-        python tools/deploy_workload.py \
-          --workload "$ADOP_WORKLOAD" \
-          --bucket "$ADOP_BUCKET" \
-          --approve-apply \
-          --ensure-tf-module \
-          --sync-landing
+      - export ADOP_FACTORY_MODE="${ADOP_FACTORY_MODE:-resync}"
+      - python tools/factory_codebuild_deploy.py
   post_build:
     commands:
       - echo "Factory deploy phase complete for $ADOP_WORKLOAD"

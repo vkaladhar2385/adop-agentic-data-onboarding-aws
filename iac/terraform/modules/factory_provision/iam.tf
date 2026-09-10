@@ -18,7 +18,11 @@ data "aws_iam_policy_document" "sfn_permissions" {
   statement {
     sid       = "InvokeValidateAndE2E"
     actions   = ["lambda:InvokeFunction"]
-    resources = [aws_lambda_function.validate.arn, aws_lambda_function.e2e.arn]
+    resources = [
+      aws_lambda_function.validate.arn,
+      aws_lambda_function.e2e.arn,
+      aws_lambda_function.audit.arn,
+    ]
   }
 
   statement {
@@ -241,6 +245,17 @@ data "aws_iam_policy_document" "codebuild_permissions" {
       "cloudwatch:*",
       "lakeformation:*",
       "athena:*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "GlueSyncArtifacts"
+    actions = [
+      "glue:GetJob",
+      "glue:UpdateJob",
+      "glue:CreateJob",
+      "glue:StartJobRun",
     ]
     resources = ["*"]
   }

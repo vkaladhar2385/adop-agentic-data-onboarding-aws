@@ -104,7 +104,7 @@ flowchart LR
 ```
 
 MCP wiring: [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) · Mode B Gateway: [`docs/MODE_B_SETUP.md`](docs/MODE_B_SETUP.md) ·
-Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · Factory provision (Option B): [`docs/FACTORY_PROVISION_DESIGN.md`](docs/FACTORY_PROVISION_DESIGN.md)
+Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · No-laptop provision: [`docs/API_ONLY_FACTORY.md`](docs/API_ONLY_FACTORY.md) · Design: [`docs/FACTORY_PROVISION_DESIGN.md`](docs/FACTORY_PROVISION_DESIGN.md)
 
 ---
 
@@ -119,6 +119,10 @@ Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · Factory provisi
 | [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) | 13 MCP servers + Gateway (14 targets), Cursor `.mcp.json` |
 | [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) | Client narrative |
 | [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) | Demo timing, keep vs destroy |
+| [`docs/API_ONLY_FACTORY.md`](docs/API_ONLY_FACTORY.md) | Harness-only provision demo (Option B) |
+| [`docs/CLIENT_DEMO_RUNBOOK.md`](docs/CLIENT_DEMO_RUNBOOK.md) | Live client script (Acts 1–6) |
+| [`docs/PERSONAL_SANDBOX_RUNBOOK.md`](docs/PERSONAL_SANDBOX_RUNBOOK.md) | Personal account: rebuild → demo → destroy ($0 idle) |
+| [`docs/GIT_REMOTES.md`](docs/GIT_REMOTES.md) | Push to personal + corporate remotes |
 | [`iac/terraform/APPLY_GUIDE.md`](iac/terraform/APPLY_GUIDE.md) | Terraform apply / verify |
 
 Presenting? [`docs/presentations/adop-client-deck.html`](docs/presentations/adop-client-deck.html) ·

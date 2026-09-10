@@ -15,6 +15,7 @@ venv/
 iac/terraform/.terraform/
 iac/terraform/*.tfstate*
 iac/terraform/terraform.tfvars
+iac/terraform/backend.hcl
 iac/terraform/tfplan
 iac/terraform/*.tfplan
 iac/terraform/tfplan_*

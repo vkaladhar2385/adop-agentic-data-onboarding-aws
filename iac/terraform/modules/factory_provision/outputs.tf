@@ -19,6 +19,10 @@ output "e2e_lambda_arn" {
   value = aws_lambda_function.e2e.arn
 }
 
+output "audit_lambda_arn" {
+  value = aws_lambda_function.audit.arn
+}
+
 output "repo_artifact_s3_uri" {
   value = "s3://${var.data_lake_bucket}/${var.repo_artifact_key}"
 }

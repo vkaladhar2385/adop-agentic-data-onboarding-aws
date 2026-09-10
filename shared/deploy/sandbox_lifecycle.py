@@ -238,6 +238,9 @@ def destroy_mcp_lambdas(
     for page in lam.get_paginator("list_functions").paginate():
         for fn in page.get("Functions", []):
             fn_name = fn["FunctionName"]
+            # Factory Lambdas are removed by Terraform (module.factory_provision).
+            if fn_name.startswith(f"{prefix}-factory-"):
+                continue
             if fn_name.startswith(f"{prefix}-mcp-") or fn_name.startswith(f"{prefix}-"):
                 names.add(fn_name)
 
@@ -359,6 +362,7 @@ def destroy_mcp_infrastructure(
 
 def _terraform_targets(include_extensions: bool) -> list[str]:
     targets = [
+        "module.factory_provision",
         "module.advisory_transactions",
         "module.supplier_lead_times",
         "aws_budgets_budget.pilot",
@@ -457,6 +461,7 @@ def destroy_log_groups(session: Any, *, project: str, dry_run: bool, report: Lif
     prefixes = (
         "/aws/bedrock/",
         "/aws/bedrock-agentcore/",
+        "/aws/codebuild/adop-factory",
         "/aws/lambda/adop-",
         f"/aws/lambda/{project}-",
     )

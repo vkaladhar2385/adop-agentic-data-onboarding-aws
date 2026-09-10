@@ -9,7 +9,7 @@ loaded, ~$2–5 sandbox spend for one deploy + one pipeline run.
 
 **Related:** timing/cost/keep-vs-destroy → `docs/DEMO_RUNBOOK.md` · full sandbox up/down →
 `docs/SANDBOX_LIFECYCLE.md` · Gateway hybrid → `docs/MODE_B_SETUP.md` · Harness API →
-`docs/MODE_C1_HARNESS.md`.
+`docs/MODE_C1_HARNESS.md` · **no-laptop provision** → `docs/API_ONLY_FACTORY.md`.
 
 ---
 
@@ -126,6 +126,39 @@ python tools/provision_client_workload.py --workload product_inventory --bucket 
 
 **Talking point:** Same factory, different domain — no hand-edited Glue scripts.
 
+### Act 6 — No-laptop provision (15 min, Option B)
+
+**Prerequisite:** Factory module applied once (`tools/deploy_factory_provision.py`) and Harness smoke **2/2 PASS**. Full script → [`docs/API_ONLY_FACTORY.md`](API_ONLY_FACTORY.md).
+
+**Narrative:** Client approves in Harness chat; **AWS** runs validate → CodeBuild sync → workload Step Functions E2E. No `provision_client_workload.py` on the demo path.
+
+1. **Confirm factory is up (operator, 1 min):**
+
+```powershell
+python tools/harness_smoke_test.py --live --profile aws-agent
+aws stepfunctions describe-state-machine --name adop_factory_provision --profile aws-agent --region us-east-1
+```
+
+2. **Client confirms** workload `supplier_lead_times`, bucket `adop-datalake-<account>-us-east-1`, E2E yes — then says **APPROVE**.
+
+3. **Trigger provision (Harness):**
+
+```powershell
+python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "Provision supplier_lead_times to bucket adop-datalake-<account>-us-east-1 with E2E. I APPROVE. Call trigger_provision with approve true."
+```
+
+4. **Poll (~12–15 min)** — save `execution_arn` from the response:
+
+```powershell
+python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "Check provision status for execution arn:<paste-arn>. Call get_provision_status."
+```
+
+5. **Done when** all three stages show **SUCCEEDED**: factory SFN, CodeBuild `adop-factory-dev`, workload SFN `supplier_lead_times_pipeline`.
+
+**Talking point:** Same approval gate as laptop deploy, but the **runner lives in AWS** (Step Functions + CodeBuild), not on the presenter's machine.
+
+**Operator fallback (not shown to client):** `python tools/start_provision_api.py --workload supplier_lead_times --bucket adop-datalake-<account>-us-east-1 --approve`
+
 ---
 
 ## Troubleshooting (quick)
@@ -137,7 +170,9 @@ python tools/provision_client_workload.py --workload product_inventory --bucket 
 | `Module not installed` | `cd iac/terraform && terraform init` |
 | `FileNotFoundError` in `package_and_sync` | Extension Lambdas skipped automatically; ensure `register_catalog.py` exists |
 | SFN fails at PostDeploymentVerify | LF grants / MCP catalog — see `docs/PILOT_FAILURES_AND_FIXES.md` |
-| Harness Marketplace / model error | Enable Anthropic in Bedrock console, or use `us.amazon.nova-pro-v1:0` in `config/agentcore/harness.yaml` |
+| Harness tool-use / model error | Enable **Anthropic** in Bedrock; use `us.anthropic.claude-sonnet-4-6` in `config/agentcore/harness.yaml` (Nova fails Gateway ToolUse) |
+| Harness provision stuck RUNNING | Poll with `get_provision_status` or `aws stepfunctions describe-execution`; E2E can take ~15 min |
+| Factory CodeBuild DOWNLOAD_SOURCE fail | Re-run `python tools/package_factory_artifact.py --bucket adop-datalake-<account>-us-east-1` |
 | Hybrid MCP not routing | Reload Cursor MCP after `switch_mcp_mode.py --mode hybrid` |
 | **`agentcore-gateway` Error in Cursor** | Use stdio proxy: `python tools/switch_mcp_mode.py --mode gateway --aws-profile aws-agent`, then **Reload Window**. Run `python tools/verify_gateway_mcp.py` |
 | `ExpiredToken` on Gateway deploy | `aws login --profile aws-agent` (AWS CLI v2) then retry |
@@ -174,7 +209,7 @@ Keep the S3 bucket if re-demoing; destroy OpenSearch/Redshift only for `advisory
 | **Spin up sandbox** | `python tools/provision_sandbox.py --bucket ...` | Gateway + optional Harness + pipeline in one go |
 | **Tear down** | `python tools/destroy_sandbox.py --yes` | Stop hourly spend after demo |
 | **One workload** | `python tools/provision_client_workload.py --workload ... --bucket ...` | Same as M2, client-friendly name |
-| **API path (v1)** | Harness chat → human approves → `provision_client_workload.py` | No-laptop *discovery*; deploy still one approved command |
+| **API path (v1)** | Harness chat → **APPROVE** → `trigger_provision` in AWS | No-laptop **deploy + E2E** — see Act 6 / `docs/API_ONLY_FACTORY.md` |
 | **CI safety net** | GitHub `ci.yml` factory dry-run | PR fails if specs/tests/drift break before anyone touches AWS |
 
 **Deferred (optional later):** Harness OAuth/JWT, automatic spec upload from S3, C2 Runtime container.
@@ -185,15 +220,15 @@ See `docs/SANDBOX_LIFECYCLE.md` and `docs/STATUS.md`.
 
 ## M3 API demo script (5 min, no OAuth)
 
-1. **Discovery (Harness):**  
-   `python tools/harness_smoke_test.py --live --profile aws-agent`  
-   Or: `python tools/invoke_agentcore_harness.py --prompt "What Phase 1 questions for a HIPAA CSV pipeline?"`
+**Discovery-only (5 min):**
 
-2. **Build (laptop or separate session):** `/onboard-workflow` → specs + pytest (unchanged).
+1. `python tools/harness_smoke_test.py --live --profile aws-agent`
+2. `python tools/invoke_agentcore_harness.py --prompt "What Phase 1 questions for a HIPAA CSV pipeline?"`
 
-3. **Deploy (one command, after approval):**  
-   `python tools/provision_client_workload.py --workload <name> --bucket adop-datalake-<account>-us-east-1 --aws-profile aws-agent`
+**Full no-laptop provision (15 min):** Act 6 or [`docs/API_ONLY_FACTORY.md`](API_ONLY_FACTORY.md).
 
-4. **Teardown:** `python tools/destroy_sandbox.py --yes` (or `-target` one workload in Terraform).
+**Laptop path (Acts 1–2):** `/onboard-workflow` → specs + `provision_client_workload.py`.
+
+**Teardown:** `python tools/destroy_sandbox.py --yes`
 
 See `docs/STATUS.md` for factory % and Tier A/B checklist.

@@ -64,7 +64,7 @@
           "Next": "StartWorkloadPipeline"
         }
       ],
-      "Default": "ProvisionSucceeded"
+      "Default": "WriteProvisionAudit"
     },
     "StartWorkloadPipeline": {
       "Type": "Task",
@@ -72,7 +72,7 @@
       "Comment": "Sync landing + start workload SFN; poll until terminal",
       "InputPath": "$",
       "ResultPath": "$.pipeline_e2e",
-      "Next": "ProvisionSucceeded",
+      "Next": "WriteProvisionAudit",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -81,9 +81,38 @@
         }
       ]
     },
+    "WriteProvisionAudit": {
+      "Type": "Task",
+      "Resource": "${factory_audit_lambda_arn}",
+      "Comment": "Persist audit JSON to s3://bucket/provision-runs/{provision_id}.json",
+      "Parameters": {
+        "status": "SUCCEEDED",
+        "state.$": "$",
+        "execution_name.$": "$$.Execution.Id",
+        "state_machine_arn.$": "$$.StateMachine.Id",
+        "started_at.$": "$$.Execution.StartTime"
+      },
+      "ResultPath": "$.audit",
+      "Next": "ProvisionSucceeded",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.audit_error",
+          "Next": "ProvisionSucceeded"
+        }
+      ]
+    },
     "ProvisionSucceeded": {
       "Type": "Pass",
-      "Comment": "Write audit JSON to s3://bucket/provision-runs/{provision_id}.json (Lambda side effect in Step 4)",
+      "Comment": "Terminal success; audit URI at $.audit.audit_s3_uri when WriteProvisionAudit succeeded",
       "Result": {
         "status": "SUCCEEDED"
       },

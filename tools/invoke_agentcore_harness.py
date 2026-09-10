@@ -31,7 +31,12 @@ def main() -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    print(text)
+    # Windows consoles may not support emoji/Unicode from model output.
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        sys.stdout.buffer.write(text.encode("utf-8", errors="replace"))
+        sys.stdout.buffer.write(b"\n")
     return 0
 
 

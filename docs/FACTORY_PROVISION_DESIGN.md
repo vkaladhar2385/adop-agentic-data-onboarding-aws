@@ -2,7 +2,7 @@
 
 **Goal:** Client uses **Harness only** → types **APPROVE** → AWS runs validate + deploy + optional E2E. No Cursor, no local CLI.
 
-**Status:** Step 3 done (Terraform module + CodeBuild + SFN) — apply + upload repo zip to run end-to-end.
+**Status:** Steps 1–5 + audit trail (code) done. Apply factory module to deploy audit Lambda + SFN update. Demo → [`API_ONLY_FACTORY.md`](API_ONLY_FACTORY.md).
 
 ---
 
@@ -18,6 +18,7 @@ Client / API
                   → RunDeploy (CodeBuild sync — deploy_workload equivalent)
                   → StartWorkloadPipeline (Lambda — optional E2E)
               → get_provision_status(execution_arn)
+              → WriteProvisionAudit → s3://bucket/provision-runs/{provision_id}.json
 ```
 
 ---
@@ -53,6 +54,7 @@ Validation logic: `shared/deploy/factory_provision.py`
 | Repo zip upload | `tools/package_factory_artifact.py` | 3 ✓ |
 | Terraform apply | `tools/deploy_factory_provision.py` | 3 ✓ |
 | Harness prompt | `config/agentcore/harness_system_prompt.md` | 4 |
+| Audit Lambda + S3 JSON | `WriteProvisionAudit` SFN step → `provision-runs/{id}.json` | 9 ✓ |
 
 ---
 
@@ -137,4 +139,4 @@ python tools/start_provision_api.py --workload supplier_lead_times --bucket adop
 
 ## Teardown
 
-Factory SFN and CodeBuild are tagged `adop-sandbox`; include in `destroy_sandbox.py` when module lands.
+`python tools/destroy_sandbox.py --yes` destroys `module.factory_provision` (SFN, CodeBuild, Lambdas). See [`PERSONAL_SANDBOX_RUNBOOK.md`](PERSONAL_SANDBOX_RUNBOOK.md).

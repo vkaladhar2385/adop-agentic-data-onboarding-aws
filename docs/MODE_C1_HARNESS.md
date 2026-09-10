@@ -54,11 +54,12 @@ Session id must be >= 33 chars (tool generates automatically).
 
 ## Known gaps (before production)
 
-1. **Option B factory provision** — Step 3 done (SFN + CodeBuild module); apply via `tools/deploy_factory_provision.py`. See `docs/FACTORY_PROVISION_DESIGN.md`.
+1. **Option B factory provision** — **Done** (Harness → `trigger_provision` → SFN → CodeBuild → E2E). Demo script: [`docs/API_ONLY_FACTORY.md`](API_ONLY_FACTORY.md).
 2. **HITL in API mode** — Harness uses prompt-based `APPROVE` before `factory.trigger_provision`.
 3. **Model ID** — Use Claude for tool-use; Nova is chat-only in this account.
+4. **Audit trail** — S3 `provision-runs/{id}.json` written on factory SFN success (after Terraform apply of audit Lambda).
 
-See also: `docs/FACTORY_PROVISION_DESIGN.md` for no-laptop provision roadmap.
+See also: `docs/FACTORY_PROVISION_DESIGN.md` for architecture and components.
 
 ## Mode C2 (later)
 

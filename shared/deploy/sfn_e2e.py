@@ -8,8 +8,6 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 TERMINAL = frozenset({"SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"})
@@ -18,6 +16,12 @@ TERMINAL = frozenset({"SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"})
 def _load_schedule(workload: str, repo_root: Path | None = None) -> dict[str, Any]:
     root = repo_root or REPO_ROOT
     path = root / "workloads" / workload / "config" / "schedule.yaml"
+    if not path.is_file():
+        return {}
+    try:
+        import yaml
+    except ImportError:
+        return {}
     with path.open(encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}
     return data if isinstance(data, dict) else {}
