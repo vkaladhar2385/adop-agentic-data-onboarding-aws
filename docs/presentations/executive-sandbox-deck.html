@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADOP — Executive Sandbox Summary</title>
+  <style>
+    :root {
+      --navy:#1b2a4a; --slate:#4a5568; --line:#d8dee9; --bg:#f7f6f2;
+      --card:#fff; --teal:#0f6e6b; --ink:#1a1a1a; --green:#1a7f4c;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin:0; height:100%; background:#111; color:var(--ink);
+      font-family:"Segoe UI", Calibri, system-ui, sans-serif;
+    }
+    .deck {
+      height:100%; display:flex; align-items:center; justify-content:center;
+      padding:24px 24px 64px;
+    }
+    .slide {
+      display:none; width:min(1120px, 96vw); aspect-ratio:16/9;
+      background:var(--bg); padding:40px 52px 32px;
+      flex-direction:column; overflow:hidden;
+      box-shadow:0 8px 32px rgba(0,0,0,.35);
+    }
+    .slide.active { display:flex; }
+    .slide-main { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:4px; }
+    h1 {
+      font-size:clamp(26px, 3.2vw, 34px); font-weight:650; color:var(--navy);
+      margin:0 0 10px; letter-spacing:-0.02em; line-height:1.15;
+    }
+    h2 {
+      font-size:clamp(22px, 2.4vw, 26px); font-weight:650; color:var(--navy);
+      margin:0 0 14px;
+    }
+    h3 { font-size:15px; font-weight:650; color:var(--navy); margin:0 0 8px; }
+    p, li { font-size:16px; line-height:1.45; color:var(--slate); margin:0 0 10px; }
+    .kicker {
+      font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--teal); font-weight:600; margin-bottom:8px;
+    }
+    .stats-row {
+      display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
+      margin-top:24px;
+    }
+    .stat {
+      background:var(--card); border:1px solid var(--line);
+      padding:16px 18px; min-height:88px;
+    }
+    .stat b {
+      display:block; font-size:clamp(20px, 2.2vw, 26px);
+      color:var(--navy); margin-bottom:6px; line-height:1.2;
+    }
+    .stat span { font-size:13px; color:var(--slate); line-height:1.35; display:block; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td {
+      text-align:left; padding:7px 10px; border-bottom:1px solid var(--line);
+      vertical-align:top;
+    }
+    th { color:var(--navy); font-weight:600; }
+    .foot {
+      flex:0 0 auto; margin-top:12px; padding-top:10px;
+      border-top:1px solid var(--line); font-size:11px; color:#7a8494;
+      display:flex; justify-content:space-between; gap:16px;
+    }
+    .nav {
+      position:fixed; bottom:16px; right:20px; display:flex; gap:8px; z-index:10;
+    }
+    .nav button {
+      background:var(--navy); color:#fff; border:0;
+      padding:8px 14px; cursor:pointer; font-size:13px; border-radius:2px;
+    }
+    .hint {
+      position:fixed; bottom:20px; left:20px; font-size:11px; color:#aaa; z-index:10;
+    }
+    .callout {
+      border-left:3px solid var(--teal); padding:10px 14px;
+      background:#fff; margin:10px 0 0;
+    }
+    ul.tight { margin:0; padding-left:20px; }
+    ul.tight li { margin:5px 0; font-size:15px; }
+    .path {
+      background:var(--card); border:1px solid var(--line);
+      padding:12px 14px; margin-bottom:10px;
+    }
+    .path .tag {
+      display:block; font-size:10px; font-weight:600; letter-spacing:0.06em;
+      text-transform:uppercase; color:var(--teal); margin-bottom:5px;
+    }
+    .path p { margin:0; font-size:14px; line-height:1.4; }
+    .path .best { font-size:12px; color:#6b7280; margin-top:5px; margin-bottom:0; }
+    .ok { color:var(--green); font-weight:600; }
+    .steps { display:grid; grid-template-columns:1fr auto 1fr auto 1fr auto 1fr auto 1fr; gap:6px; align-items:center; margin-top:10px; }
+    .step {
+      background:var(--card); border:1px solid var(--line);
+      padding:10px 8px; text-align:center; min-height:72px;
+      display:flex; flex-direction:column; justify-content:center;
+    }
+    .step b { display:block; font-size:12px; color:var(--navy); margin-bottom:4px; }
+    .step span { font-size:11px; color:var(--slate); line-height:1.3; }
+    .arrow { color:#9aa3b2; font-size:16px; text-align:center; }
+    .compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .compare .box { background:var(--card); border:1px solid var(--line); padding:14px 16px; }
+    .compare .box h3 { margin-bottom:8px; }
+    .compare ul { margin:0; padding-left:18px; }
+    .compare li { font-size:14px; }
+    .note {
+      display:none; font-size:12px; color:#6b7280; font-style:italic;
+      margin-top:12px; padding:10px 12px; background:#eef2f0;
+      border-left:3px solid #b8c4bc; line-height:1.4;
+    }
+    body.show-notes .note { display:block; }
+    .dense p, .dense li { font-size:14px; }
+    .dense .path p { font-size:13px; }
+    @media (max-width:900px) {
+      .stats-row { grid-template-columns:1fr; }
+      .compare { grid-template-columns:1fr; }
+      .steps { grid-template-columns:1fr; }
+      .arrow { display:none; }
+    }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide active">
+  <div class="slide-main">
+    <div class="kicker">Executive summary · personal AWS sandbox</div>
+    <h1>Agentic data onboarding on AWS</h1>
+    <p>Faster, governed data pipelines — with human approval at every step.</p>
+    <div class="stats-row">
+      <div class="stat"><b>Weeks → hours</b><span>per new data source (with review)</span></div>
+      <div class="stat"><b>Proven live</b><span>full pipeline + approve-and-go path</span></div>
+      <div class="stat"><b>Cost-safe</b><span>demo up, demo down — no idle spend</span></div>
+    </div>
+    <p class="note">Presenter: “This is our agentic data onboarding work on AWS — faster pipelines with human control.”</p>
+  </div>
+  <div class="foot"><span>ADOP · ai-agentic-data-onboarding</span><span>1 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main">
+    <div class="kicker">Why we started</div>
+    <h2>The problem &amp; the goal</h2>
+    <div class="compare">
+      <div class="box">
+        <h3>The problem</h3>
+        <ul class="tight">
+          <li>Onboarding a new data source takes <strong>weeks</strong></li>
+          <li>Engineers repeat the same work every time</li>
+          <li>Quality, privacy, and security vary by team</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Our goal</h3>
+        <ul class="tight">
+          <li>Make onboarding <strong>faster and repeatable</strong></li>
+          <li>Apply the <strong>same rules</strong> every time</li>
+          <li>Keep <strong>humans in control</strong> — nothing runs without approval</li>
+        </ul>
+      </div>
+    </div>
+    <p class="callout">We are not replacing engineers. We remove repetitive build work so they focus on review and business rules.</p>
+    <p class="note">Presenter: “Every new data source today takes weeks. We want hours, with the same governance every time.”</p>
+  </div>
+  <div class="foot"><span>Executive sandbox deck</span><span>2 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main">
+    <div class="kicker">What we built</div>
+    <h2>A factory, not a one-off project</h2>
+    <table>
+      <tr><th>Today (manual)</th><th>With ADOP</th></tr>
+      <tr><td>Custom code for each source</td><td>Generated from specs</td></tr>
+      <tr><td>Rules vary by team</td><td>Same governance every time</td></tr>
+      <tr><td>Deploy by hand</td><td>Controlled, approved deploy</td></tr>
+      <tr><td>Issues found late</td><td>Quality checks before data is promoted</td></tr>
+    </table>
+    <p class="callout"><strong>One sentence:</strong> AI agents <em>generate</em> the pipeline; people <em>review and approve</em> before anything runs in AWS.</p>
+    <p class="note">Presenter: “Think assembly line — same steps, same checks, every new data source.”</p>
+  </div>
+  <div class="foot"><span>Executive sandbox deck</span><span>3 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Deployment</div>
+    <h2>How workloads reach AWS</h2>
+    <div class="path">
+      <span class="tag">Path 1 — Engineer-led</span>
+      <p>Describe source → agents create specs &amp; pipeline → engineer reviews → approved deploy → AWS runs pipeline.</p>
+      <p class="best">Best for: new workloads, first-time onboarding</p>
+    </div>
+    <div class="path">
+      <span class="tag">Path 2 — Client “Approve &amp; Go”</span>
+      <p>Workload already defined → client confirms in chat → types <strong>APPROVE</strong> → AWS deploys and runs end-to-end.</p>
+      <p class="best">Best for: demos, pre-built workloads, client-facing story</p>
+    </div>
+    <div class="path">
+      <span class="tag">Path 3 — Demo environment</span>
+      <p>One command stands up the demo stack; one command tears it down — no overnight spend.</p>
+      <p class="best">Best for: sales demos, proof runs, sandbox testing</p>
+    </div>
+    <p style="font-size:13px; margin:0;">Every path: human approval · same quality rules · full run + verification · audit trail</p>
+    <p class="note">Presenter: “Path 1 onboard something new. Path 2 is the client story — they approve, AWS does the rest. Path 3 is demo without leaving the meter running.”</p>
+  </div>
+  <div class="foot"><span>docs/API_ONLY_FACTORY.md · docs/SANDBOX_LIFECYCLE.md</span><span>4 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Proof</div>
+    <h2>What we proved on a personal AWS account</h2>
+    <table>
+      <tr><th>What we tested</th><th>Result</th></tr>
+      <tr><td>Full pipeline: raw → clean → analytics-ready</td><td class="ok">Worked</td></tr>
+      <tr><td>Quality checks before promotion</td><td class="ok">Worked</td></tr>
+      <tr><td>Security tagging &amp; access controls</td><td class="ok">Worked</td></tr>
+      <tr><td>Post-deploy verification</td><td class="ok">Worked</td></tr>
+      <tr><td>Approve in chat → AWS deploys &amp; runs</td><td class="ok">Worked</td></tr>
+      <tr><td>Demo up → demo down (same day)</td><td class="ok">Worked</td></tr>
+    </table>
+    <p style="font-size:14px; margin-top:10px;"><strong>Not in this proof:</strong> Airflow/MWAA, advanced hosted agent runtime.</p>
+    <p class="callout" style="font-size:14px; margin-bottom:0;"><strong>Current state:</strong> Sandbox shut off after success (Sep 2026). Redeploy only for demos.</p>
+    <p class="note">Presenter: “We ran this on real AWS. The approve-and-go path succeeded. We tore it down the same day.”</p>
+  </div>
+  <div class="foot"><span>Green runs: framework-e2e-v6 · tier-b-e2e-fix-v3 · supplier_lead_times factory path</span><span>5 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main">
+    <div class="kicker">Impact &amp; ask</div>
+    <h2>Business impact and what we need</h2>
+    <div class="stats-row" style="margin-top:8px; margin-bottom:14px;">
+      <div class="stat"><b>~14 days → ~0.5 day</b><span>engineer time per source (illustrative)</span></div>
+      <div class="stat"><b>~90–95%</b><span>time saved on build work</span></div>
+      <div class="stat"><b>Same rules</b><span>governance every time, not per engineer</span></div>
+    </div>
+    <h3>Ask from leadership</h3>
+    <ul class="tight">
+      <li><strong>Recognize</strong> the core pattern is proven on AWS</li>
+      <li><strong>Support</strong> 1–2 client demos using Path 2 (Approve &amp; Go)</li>
+      <li><strong>Align</strong> on target client environment (their AWS, their compliance)</li>
+    </ul>
+    <p class="callout"><strong>Close:</strong> Agents generate. Humans approve. AWS runs.</p>
+    <p class="note">Presenter: “We’re asking for recognition that it works, support for demos, and clarity on the client’s AWS environment.”</p>
+  </div>
+  <div class="foot"><span>Illustrative figures — adjust to your org · docs/BEFORE_AFTER.md</span><span>6 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main">
+    <div class="kicker">Appendix · deploy flow</div>
+    <h2>Five steps every deployment follows</h2>
+    <div class="steps">
+      <div class="step"><b>1. Define</b><span>Source, rules, schedule</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>2. Generate</b><span>Pipeline, tests, infra plan</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>3. Review</b><span>Confirm APPROVE</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>4. Deploy</b><span>AWS provisions jobs</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>5. Verify</b><span>Checks confirm success</span></div>
+    </div>
+    <div class="compare" style="margin-top:18px;">
+      <div class="box">
+        <h3>Engineer path</h3>
+        <p style="margin:0; font-size:14px;">Steps 1–5 from laptop.<br>New workloads.</p>
+      </div>
+      <div class="box">
+        <h3>Client path</h3>
+        <p style="margin:0; font-size:14px;">Steps 3–5 from chat APPROVE.<br>Pre-built workloads.</p>
+      </div>
+    </div>
+    <p class="note">Use this slide if someone asks “walk me through deploy” — keep it high level.</p>
+  </div>
+  <div class="foot"><span>Appendix · optional backup</span><span>7 / 7</span></div>
+</section>
+
+</div>
+<div class="hint">← → or Space to navigate · N to toggle presenter notes</div>
+<div class="nav">
+  <button type="button" onclick="go(-1)">Prev</button>
+  <button type="button" onclick="go(1)">Next</button>
+</div>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  }
+  function go(d) { show(i + d); }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+    if (e.key === "n" || e.key === "N") { document.body.classList.toggle("show-notes"); }
+  });
+</script>
+</body>
+</html>
