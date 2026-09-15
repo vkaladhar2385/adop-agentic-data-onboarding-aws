@@ -1,8 +1,8 @@
-# spec_hash: f59794db7f79b9b4915ccbab83edcc21a10cf3d206f3d5a2cfbec1900fa2ffc1
+# spec_hash: 5eefcc8ee7b43c6f5c8ceeac32e0d1cb4184f2c07139009a5333f89b529a1323
 # template_id: silver_to_gold
 # template_hash: 1816c5c2bef086b27a16dcbca0996633fecdc9e3d2adc150bc895adb6421a748
 # schema_version: v1
-# rendered_at: 2026-09-09T05:13:34Z
+# rendered_at: 2026-09-15T05:10:40Z
 # stack: pyspark-iceberg
 """Silver -> Gold transform for `web_events`."""
 from __future__ import annotations
@@ -58,7 +58,7 @@ def run_glue_spark():  # pragma: no cover
     spark_transforms.configure_iceberg_catalog(spark, warehouse)
     silver_root = args["silver_path"].rstrip("/")
     silver_df = spark.read.parquet(silver_root)
-    gold_tables = spark_transforms.silver_to_gold_tables(silver_df)
+    gold_tables = spark_transforms.silver_to_gold_dfs(silver_df)
     for name, gdf in gold_tables.items():
         spark_transforms.write_iceberg_table(gdf, args["database"], name, warehouse=warehouse)
         gdf.write.mode("overwrite").parquet(args["gold_path"].rstrip("/") + f"/{name}")

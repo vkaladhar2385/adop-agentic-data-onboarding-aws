@@ -25,11 +25,22 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BUILD_ROOT = REPO_ROOT / "build"
 
 # Files every Lambda zip needs, relative to the repo root.
-_SHARED = ["shared/utils/pii.py", "shared/utils/post_deployment_verifier.py"]
+_SHARED = [
+    "shared/utils/pii.py",
+    "shared/utils/post_deployment_verifier.py",
+    "shared/catalog/__init__.py",
+    "shared/catalog/register.py",
+]
+
+_CATALOG_CONFIGS = [
+    "config/source.yaml",
+    "config/semantic.yaml",
+    "config/transformations.yaml",
+]
 
 # short name -> {extra files to include, pip packages to vendor}
 LAMBDAS: dict[str, dict] = {
-    "register_catalog": {"scripts": ["scripts/load/register_catalog.py"], "pip": []},
+    "register_catalog": {"scripts": ["scripts/load/register_catalog.py"], "pip": ["pyyaml"], "configs": True},
     "post_deploy_verifier": {"scripts": [], "pip": []},
     "register_redshift_spectrum": {"scripts": ["scripts/load/register_redshift_spectrum.py"], "pip": []},
     "index_gold_to_opensearch": {"scripts": ["scripts/load/index_gold_to_opensearch.py"], "pip": []},
@@ -40,7 +51,7 @@ LAMBDAS: dict[str, dict] = {
 def _touch_packages(build: Path, workload: str) -> None:
     """Create the __init__.py chain so dotted handler paths resolve."""
     for pkg in (
-        "shared", "shared/utils", "workloads",
+        "shared", "shared/utils", "shared/catalog", "workloads",
         f"workloads/{workload}", f"workloads/{workload}/scripts",
         f"workloads/{workload}/scripts/load",
     ):
@@ -69,9 +80,25 @@ def build_zip(name: str, spec: dict, workload: str) -> Path:
     _touch_packages(build, workload)
 
     for rel in _SHARED:
-        shutil.copy2(REPO_ROOT / rel, build / rel)
+        src = REPO_ROOT / rel
+        if src.is_file():
+            dest = build / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
     for rel in spec["scripts"]:
-        shutil.copy2(REPO_ROOT / "workloads" / workload / rel, build / "workloads" / workload / rel)
+        src = REPO_ROOT / "workloads" / workload / rel
+        if src.is_file():
+            dest = build / "workloads" / workload / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+    if spec.get("configs"):
+        cfg_dest = build / "workloads" / workload / "config"
+        cfg_dest.mkdir(parents=True, exist_ok=True)
+        (cfg_dest / "__init__.py").touch()
+        for rel in _CATALOG_CONFIGS:
+            src = REPO_ROOT / "workloads" / workload / rel
+            if src.is_file():
+                shutil.copy2(src, cfg_dest / Path(rel).name)
 
     for package in spec["pip"]:
         subprocess.run(
@@ -97,13 +124,24 @@ _GLUE_FLAT_PY = {
     "pii.py": "shared/utils/pii.py",
     "quality.py": "shared/utils/quality.py",
     "s3_io.py": "shared/utils/s3_io.py",
+    "pandas_engine.py": "shared/transforms/pandas_engine.py",
+    "spark_transforms.py": "shared/spark/transforms.py",
     "local_runner.py": "workloads/{workload}/scripts/transform/local_runner.py",
-    "spark_transforms.py": "workloads/{workload}/scripts/transform/spark_transforms.py",
 }
 _GLUE_FLAT_CONFIG = {
     "transformations.yaml": "workloads/{workload}/config/transformations.yaml",
     "quality_rules.yaml": "workloads/{workload}/config/quality_rules.yaml",
 }
+
+
+def glue_optional_py_files(workload: str) -> list[str]:
+    """Basenames to attach as --extra-py-files (skip helpers that are not on disk)."""
+    names = []
+    for flat_name, rel_tmpl in _GLUE_FLAT_PY.items():
+        src = REPO_ROOT / rel_tmpl.format(workload=workload)
+        if src.is_file():
+            names.append(flat_name)
+    return names
 
 
 def sync_glue_deps_flat(s3, bucket: str, workload: str) -> tuple[list[str], list[str]]:
@@ -112,11 +150,17 @@ def sync_glue_deps_flat(s3, bucket: str, workload: str) -> tuple[list[str], list
     py_uris, cfg_uris = [], []
     for flat_name, rel_tmpl in _GLUE_FLAT_PY.items():
         src = REPO_ROOT / rel_tmpl.format(workload=workload)
+        if not src.is_file():
+            print(f"[sync] skip missing glue helper {src}")
+            continue
         key = f"glue-deps/{workload}/{flat_name}"
         s3.upload_file(str(src), bucket, key)
         py_uris.append(f"s3://{bucket}/{key}")
     for flat_name, rel_tmpl in _GLUE_FLAT_CONFIG.items():
         src = REPO_ROOT / rel_tmpl.format(workload=workload)
+        if not src.is_file():
+            print(f"[sync] skip missing glue config {src}")
+            continue
         key = f"glue-deps/{workload}/{flat_name}"
         s3.upload_file(str(src), bucket, key)
         cfg_uris.append(f"s3://{bucket}/{key}")

@@ -23,6 +23,7 @@ VALID_AGENT_TYPES = {
     "dag",
     "analysis",
     "devops",
+    "ontology_staging",
 }
 VALID_STATUSES = {"success", "failed", "partial"}
 

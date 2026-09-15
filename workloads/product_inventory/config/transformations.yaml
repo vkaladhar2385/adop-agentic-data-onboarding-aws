@@ -6,6 +6,7 @@ bronze_to_silver:
     keys: [sku]
     keep: latest_by
     order_by: updated_at
+    retain_blank_keys: true
   casts:
     on_hand_qty: integer
     reserved_qty: integer
@@ -19,6 +20,14 @@ bronze_to_silver:
   quarantine_when:
     - missing_sku
     - negative_on_hand
+  quarantine_rules:
+    - id: missing_sku
+      type: blank
+      column: sku
+    - id: negative_on_hand
+      type: lt
+      column: on_hand_qty
+      value: 0
   derived:
     available_qty: "on_hand_qty - reserved_qty"
     inventory_value: "on_hand_qty * unit_cost"

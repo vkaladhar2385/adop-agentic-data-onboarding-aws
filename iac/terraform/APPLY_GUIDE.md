@@ -21,10 +21,8 @@ iac/terraform/
 ├── modules/factory_provision/       # Option B — CodeBuild + SFN for Harness-only deploy
 └── backend.tf.example               # Optional S3 remote state (copy for local; CodeBuild uses in CI)
 ```
-One `module` block per workload keeps the two pipelines' resources fully
-independent (separate KMS keys, IAM roles, SNS topics, schedules) while
-sharing one codebase for the underlying resources — add a third workload by
-adding a third `module` block in root `main.tf`.
+One `module` block per workload keeps pipelines independent. Factory SKUs live in
+generated `workloads_{name}.tf` — do not add a third module by editing root `main.tf`.
 
 ## Prerequisites
 - Terraform >= 1.5

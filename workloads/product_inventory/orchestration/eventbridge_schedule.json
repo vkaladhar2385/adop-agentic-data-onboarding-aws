@@ -1,5 +1,5 @@
 {
-  "Comment": "EventBridge Scheduler for product_inventory daily at 08:00 UTC.",
+  "Comment": "EventBridge Scheduler for product_inventory (daily).",
   "Name": "product-inventory-daily",
   "ScheduleExpression": "cron(0 8 * * ? *)",
   "ScheduleExpressionTimezone": "UTC",
@@ -13,6 +13,9 @@
       "silver_path": "s3://data-lake-<account>-us-east-1/silver/product_inventory/",
       "gold_path": "s3://data-lake-<account>-us-east-1/gold/product_inventory/"
     },
-    "RetryPolicy": { "MaximumRetryAttempts": 2, "MaximumEventAgeInSeconds": 3600 }
+    "RetryPolicy": {
+      "MaximumRetryAttempts": 2,
+      "MaximumEventAgeInSeconds": 3600
+    }
   }
 }

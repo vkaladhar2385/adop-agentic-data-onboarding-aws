@@ -46,7 +46,7 @@ pipeline_steps:
 
 terraform_sync:
   status: enforced
-  note: Factory proof — artifacts + pytest only until DevOps wires main.tf.
+  note: Factory SKU — generated iac/terraform/workloads_supplier_lead_times.tf (do not patch main.tf).
 
 routing:
   rules:

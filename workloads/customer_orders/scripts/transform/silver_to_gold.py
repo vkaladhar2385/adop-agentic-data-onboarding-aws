@@ -2,7 +2,7 @@
 # template_id: silver_to_gold
 # template_hash: 1816c5c2bef086b27a16dcbca0996633fecdc9e3d2adc150bc895adb6421a748
 # schema_version: v1
-# rendered_at: 2026-09-09T05:21:47Z
+# rendered_at: 2026-09-15T05:10:41Z
 # stack: pyspark-iceberg
 """Silver -> Gold transform for `customer_orders`."""
 from __future__ import annotations

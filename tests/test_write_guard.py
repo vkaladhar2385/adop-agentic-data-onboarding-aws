@@ -30,6 +30,7 @@ from shared.codegen.write_guard import (
             "workloads/foo/orchestration/foo_state_machine.json",
             True,
         ),
+        ("workloads/foo/orchestration/eventbridge_schedule.json", True),
         ("workloads/foo/dags/foo_pipeline.py", True),
         ("workloads/foo/config/codegen/ingest_to_bronze.spec.yaml", False),
         ("workloads/foo/sql/silver/create.sql", False),

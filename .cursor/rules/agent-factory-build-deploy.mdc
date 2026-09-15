@@ -24,7 +24,7 @@ alwaysApply: false
 - Preflight: `python tools/deploy_workload.py --workload {name} --dry-run`
 - Live plan: `python tools/deploy_workload.py --workload {name} --bucket {bucket}`
 - `terraform apply` requires `--approve-apply` **and** user confirmation in chat.
-- Wrapper refuses apply if `terraform_sync.status=pending` or no `module "{name}"` in `main.tf`.
+- Wrapper refuses apply if `terraform_sync.status=pending` or no `module "{name}"` in `iac/terraform/*.tf` (`main.tf` or `workloads_{name}.tf`).
 - Record successful SFN execution in `docs/STATUS.md`.
 - Append phases to `workloads/{name}/logs/trace_events.jsonl` via `shared.utils.agent_trace`.
 

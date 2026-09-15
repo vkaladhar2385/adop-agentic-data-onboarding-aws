@@ -8,6 +8,8 @@ bronze_to_silver:
   consent_filter:
     column: consent_analytics
     require: true                 # GDPR: no consent => do not process
+  casts:
+    event_ts: timestamp
   pii_masking:
     - column: user_id
       strategy: hash_token
@@ -19,6 +21,17 @@ bronze_to_silver:
     - missing_event_id
     - invalid_event_type
     - invalid_ip
+  quarantine_rules:
+    - id: missing_event_id
+      type: blank
+      column: event_id
+    - id: invalid_event_type
+      type: not_in
+      column: event_type
+      values: [page_view, click, session_start, session_end]
+    - id: invalid_ip
+      type: invalid_ip
+      column: ip_address
   derived:
     event_hour: "date_trunc hour event_ts"
 
@@ -33,3 +46,8 @@ silver_to_gold:
       page_views: "count where event_type=page_view"
       unique_users: "nunique user_id"
       event_count: count(event_id)
+  erasure_index:
+    table: gold_erasure_index
+    key: user_id
+    count_column: event_id
+    hook_table: silver_web_events

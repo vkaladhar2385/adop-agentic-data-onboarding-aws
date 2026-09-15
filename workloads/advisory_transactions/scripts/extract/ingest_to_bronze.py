@@ -2,7 +2,7 @@
 # template_id: ingest_to_bronze
 # template_hash: cbf6bbb214796aedb3203a59c1cf5b1fb28daf2898565513dbe9033abe18916f
 # schema_version: v1
-# rendered_at: 2026-09-09T05:13:33Z
+# rendered_at: 2026-09-15T05:10:40Z
 """Bronze ingestion for `advisory_transactions`. Bronze is never transformed."""
 from __future__ import annotations
 

@@ -17,12 +17,12 @@ columns:
   unit_cost:      { role: measure,    type: decimal, pii: false }
   list_price:     { role: measure,    type: decimal, pii: false }
   supplier_id:    { role: dimension,  type: string,  pii: false }
-  supplier_name:  { role: attribute,  type: string,  pii: false, note: business name, not PII }
+  supplier_name:  { role: attribute,  type: string,  pii: false, note: "business name, not PII" }
   status:         { role: dimension,  type: string,  pii: false }
   updated_at:     { role: temporal,   type: timestamp, pii: false }
   ingestion_date: { role: temporal,   type: date,    pii: false }
   available_qty:  { role: measure,    type: integer, pii: false, derived: true }
-  inventory_value:{ role: measure,    type: decimal, pii: false, derived: true }
+  inventory_value: { role: measure,    type: decimal, pii: false, derived: true }
   margin_pct:     { role: measure,    type: decimal, pii: false, derived: true }
 
 lf_tags: []   # no PII columns — register_catalog applies no column tags

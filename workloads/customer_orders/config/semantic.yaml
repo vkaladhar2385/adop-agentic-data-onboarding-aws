@@ -8,7 +8,7 @@ entities:
 
 columns:
   order_id:       { role: identifier, type: string, pii: false }
-  customer_id:    { role: identifier, type: string, pii: true }
+  customer_id:    { role: identifier, type: string, pii: true, pii_type: USER_ID, sensitivity: HIGH }
   product_sku:    { role: dimension,  type: string, pii: false }
   quantity:       { role: measure,    type: integer, pii: false }
   order_date:     { role: temporal,   type: date,    pii: false }

@@ -79,13 +79,14 @@ resource "aws_iam_role_policy" "glue" {
 }
 
 locals {
-  glue_deps_py_files = [
-    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/pii.py",
-    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality.py",
-    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/s3_io.py",
-    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/local_runner.py",
-    "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/spark_transforms.py",
-  ]
+  glue_deps_py_files = concat(
+    [
+      "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/pii.py",
+      "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality.py",
+      "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/s3_io.py",
+    ],
+    [for f in var.glue_optional_py_files : "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/${f}"]
+  )
   glue_deps_config_files = [
     "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/transformations.yaml",
     "s3://${var.data_lake_bucket}/glue-deps/${var.workload}/quality_rules.yaml",
@@ -133,7 +134,7 @@ resource "aws_glue_job" "job" {
       "--datalake-formats"    = "iceberg"
       "--enable-data-lineage" = "true"
       "--conf"                = "${local.glue_iceberg_conf_prefix} --conf spark.sql.catalog.glue_catalog.glue.id=${var.account_id} --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.data_lake_bucket}/${lookup(local.glue_job_warehouse_zone, each.key, "silver")}/${var.workload}/"
-    } : {
+      } : {
       # Python Shell: pyarrow for pandas parquet I/O at demo scale.
       "--additional-python-modules" = "pyarrow==15.0.2"
     },

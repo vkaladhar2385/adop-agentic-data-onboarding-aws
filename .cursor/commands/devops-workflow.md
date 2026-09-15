@@ -47,9 +47,12 @@ If dry-run fails: stop and fix artifacts. Do not touch AWS.
 
 ### Group 1 — Terraform wiring
 
-- Is there already `module "{name}"` in `iac/terraform/main.tf`?
-  - **Yes** (`advisory_transactions`) → plan only unless user wants glue_jobs drift fixed.
-  - **No** (`product_inventory`) → generate a module block from `compute.yaml` (see `prompts/devops/01-iac-agent.md`). Leave `terraform_sync.status=pending` until the block is added and the user reviews it.
+### Group 1 — Terraform wiring
+
+- Is there already `module "{name}"` in `iac/terraform/workloads_{name}.tf` or (legacy) `main.tf`?
+  - **Yes** (`advisory_transactions`, `supplier_lead_times`) → plan only unless user wants glue_jobs drift fixed.
+  - **No** (`product_inventory`) → run `python tools/ensure_terraform_module.py --workload {name}` (see `prompts/devops/01-iac-agent.md`). Leave `terraform_sync.status=pending` until the human reviews the generated file.
+- Extension modules: Redshift / OpenSearch / Redis — **only** if Phase 1 sinks said so. OpenSearch+Redis are hourly-risk; default off.
 - Extension modules: Redshift / OpenSearch / Redis — **only** if Phase 1 sinks said so. OpenSearch+Redis are hourly-risk; default off.
 
 ### Group 2 — Monitoring
@@ -67,7 +70,7 @@ If dry-run fails: stop and fix artifacts. Do not touch AWS.
 
 ## Step 4 — IaC (files only)
 
-Spawn or follow `prompts/devops/01-iac-agent.md`. Output: HCL snippet or `main.tf` edit for `glue_jobs` matching `pipeline_steps`.
+Spawn or follow `prompts/devops/01-iac-agent.md`. Output: generated `iac/terraform/workloads_{name}.tf` — never a `main.tf` edit.
 
 Then:
 
@@ -89,7 +92,7 @@ python tools/deploy_workload.py --workload {name} --bucket <lake-bucket>
 
 `--approve-apply` is forbidden unless the user explicitly approved apply in chat.
 
-The wrapper **refuses apply** when `terraform_sync.status=pending` or there is no `module "{name}"` in `main.tf`.
+The wrapper **refuses apply** when `terraform_sync.status=pending` or there is no `module "{name}"` in `iac/terraform/*.tf`.
 
 ---
 
@@ -108,10 +111,10 @@ Record `{phase, status, agent}` on `workloads/{name}/logs/trace_events.jsonl`.
 
 - `terraform apply` / `--approve-apply` without typed user approval
 - Enable OpenSearch or Redis modules “for completeness”
-- Deploy `product_inventory` before a reviewed `main.tf` module
+- Deploy `product_inventory` before a reviewed `workloads_product_inventory.tf` module
 - Call AWS from a build sub-agent
 
 ## Reference
 
-Existing module: `module "advisory_transactions"` in `iac/terraform/main.tf`.
+Existing modules: `module "advisory_transactions"` in `iac/terraform/main.tf` (legacy extensions) and generated `iac/terraform/workloads_{name}.tf` for factory SKUs.
 Extensions recipe: `docs/EXTENDING_TO_NEW_SERVICES.md`.

@@ -94,7 +94,7 @@ workloads (some steps Shell, some ETL) are normal and expected.
 1. **Iceberg transform ⇒ glueetl.** Any step that **writes** Silver or Gold Iceberg MUST be `glueetl` with `--datalake-formats=iceberg`.
 2. **Lineage on every glueetl job.** `--enable-data-lineage=true` is non-negotiable for Spark jobs.
 3. **One script, one job type.** Do not share a single script between Shell and ETL paths — fork entrypoints or use separate templates in codegen.
-4. **Terraform follows compute.yaml.** `iac/terraform/main.tf` `glue_jobs` map MUST match `pipeline_steps.*.job_type` (codegen or agent validates before apply).
+4. **Terraform follows compute.yaml.** `glue_jobs` in `iac/terraform/workloads_{name}.tf` (generated) or the legacy `main.tf` module **MUST** match `pipeline_steps.*.job_type`. `tools/validate_compute.py` scans **all** `iac/terraform/*.tf`. Do not patch `main.tf` for a new SKU — run `tools/ensure_terraform_module.py`.
 5. **Human confirms mixed compute.** If any step is `pythonshell` while others are `glueetl`, state the mix in the Phase 4 plan and get approval.
 
 ### Agent algorithm (Phase 4 build)

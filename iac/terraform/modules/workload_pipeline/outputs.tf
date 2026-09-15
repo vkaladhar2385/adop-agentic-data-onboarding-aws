@@ -4,13 +4,13 @@ output "sfn_role_name" {
 }
 
 output "state_machine_arn" {
-  value       = aws_sfn_state_machine.pipeline.arn
-  description = "Step Functions pipeline ARN."
+  value       = try(aws_sfn_state_machine.pipeline[0].arn, null)
+  description = "Step Functions pipeline ARN (null when orchestrator=mwaa)."
 }
 
 output "schedule_name" {
-  value       = aws_scheduler_schedule.trigger.name
-  description = "EventBridge schedule name."
+  value       = try(aws_scheduler_schedule.trigger[0].name, null)
+  description = "EventBridge schedule name (null when orchestrator=mwaa)."
 }
 
 output "glue_database" {

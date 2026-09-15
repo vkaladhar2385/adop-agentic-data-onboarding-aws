@@ -55,6 +55,58 @@ def test_parse_terraform_glue_jobs():
         path.unlink(missing_ok=True)
 
 
+def test_parse_all_terraform_glue_jobs_merges_generated_modules(tmp_path: Path):
+    (tmp_path / "main.tf").write_text(
+        '# module "web_events" {\n'
+        '#   glue_jobs = {\n'
+        '#     ingest_to_bronze = { script_path = "scripts/extract/ingest.py", job_type = "glueetl" }\n'
+        "#   }\n"
+        "# }\n"
+        'module "advisory_transactions" {\n'
+        '  glue_jobs = {\n'
+        '    ingest_to_bronze = { script_path = "scripts/extract/ingest.py", job_type = "pythonshell" }\n'
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "workloads_supplier_lead_times.tf").write_text(
+        'module "supplier_lead_times" {\n'
+        '  glue_jobs = {\n'
+        '    bronze_to_silver = { script_path = "scripts/transform/b2s.py", job_type = "glueetl" }\n'
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    parsed = vc.parse_all_terraform_glue_jobs(tmp_path)
+    names = vc.parse_terraform_module_names(tmp_path)
+    assert set(parsed) == {"advisory_transactions", "supplier_lead_times"}
+    assert names == {"advisory_transactions", "supplier_lead_times"}
+    assert "web_events" not in names
+    assert parsed["supplier_lead_times"]["bronze_to_silver"]["job_type"] == "glueetl"
+
+
+def test_enforced_sync_fails_without_module(tmp_path: Path):
+    wl = tmp_path / "customer_orders"
+    (wl / "scripts" / "extract").mkdir(parents=True)
+    (wl / "scripts" / "extract" / "ingest.py").write_text("# stub")
+    data = {
+        "workload": "customer_orders",
+        "terraform_sync": {"status": "enforced"},
+        "profile": {"silver_format": "iceberg", "gold_format": "iceberg"},
+        "pipeline_steps": {
+            "ingest_to_bronze": {
+                "job_type": "pythonshell",
+                "script": "scripts/extract/ingest.py",
+            }
+        },
+    }
+    (wl / "config").mkdir()
+    (wl / "config" / "compute.yaml").write_text(yaml.dump(data))
+    report = vc.validate_workload(wl, {}, False, tf_module_names=set())
+    assert not report.ok
+    assert any('no module "customer_orders"' in i.message for i in report.issues)
+
+
 def test_drift_detected_between_yaml_and_tf(tmp_path: Path):
     wl = tmp_path / "advisory_transactions"
     for rel in (

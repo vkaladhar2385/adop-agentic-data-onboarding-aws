@@ -39,9 +39,9 @@ hierarchies:
     levels: [branch_code, advisor_id, account_id]
 
 relationships:
-  - from: Transaction.account_id  -> Account.account_id     # many-to-one
-  - from: Transaction.advisor_id  -> Advisor.advisor_id     # many-to-one
-  - from: Transaction.security_id -> Security.security_id   # many-to-one
+  - from: "Transaction.account_id -> Account.account_id"     # many-to-one
+  - from: "Transaction.advisor_id -> Advisor.advisor_id"     # many-to-one
+  - from: "Transaction.security_id -> Security.security_id"  # many-to-one
 
 business_terms:
   net_amount: "Cash impact of the transaction after commission and fees."

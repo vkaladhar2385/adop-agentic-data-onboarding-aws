@@ -23,7 +23,9 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TERRAFORM_MAIN = REPO_ROOT / "iac" / "terraform" / "main.tf"
+TERRAFORM_DIR = REPO_ROOT / "iac" / "terraform"
+TERRAFORM_MAIN = TERRAFORM_DIR / "main.tf"
+MODULE_NAME_RE = re.compile(r'module\s+"([^"]+)"\s*\{')
 
 VALID_JOB_TYPES = frozenset({"glueetl", "pythonshell"})
 ICEBERG_TRANSFORM_STEPS = frozenset({"bronze_to_silver", "silver_to_gold"})
@@ -180,12 +182,17 @@ def _extract_balanced_block(text: str, start: int) -> tuple[str, int] | None:
     return None
 
 
-def parse_terraform_glue_jobs(main_tf: Path) -> dict[str, dict[str, dict[str, str]]]:
+def _strip_hcl_line_comments(text: str) -> str:
+    """Drop full-line `#` comments so commented-out modules are not parsed."""
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+
+
+def parse_terraform_glue_jobs(tf_path: Path) -> dict[str, dict[str, dict[str, str]]]:
     """
-    Parse module glue_jobs from main.tf without an HCL library.
+    Parse module glue_jobs from a Terraform file without an HCL library.
     Returns {module_name: {job_key: {script_path, job_type}}}.
     """
-    text = main_tf.read_text(encoding="utf-8")
+    text = _strip_hcl_line_comments(tf_path.read_text(encoding="utf-8"))
     result: dict[str, dict[str, dict[str, str]]] = {}
 
     for mod_match in re.finditer(r'module\s+"([^"]+)"\s*\{', text):
@@ -213,6 +220,27 @@ def parse_terraform_glue_jobs(main_tf: Path) -> dict[str, dict[str, dict[str, st
             result[module_name] = jobs
 
     return result
+
+
+def parse_all_terraform_glue_jobs(tf_dir: Path) -> dict[str, dict[str, dict[str, str]]]:
+    """Merge glue_jobs from every root *.tf file (main.tf and workloads_{name}.tf)."""
+    merged: dict[str, dict[str, dict[str, str]]] = {}
+    if not tf_dir.is_dir():
+        return merged
+    for path in sorted(tf_dir.glob("*.tf")):
+        merged.update(parse_terraform_glue_jobs(path))
+    return merged
+
+
+def parse_terraform_module_names(tf_dir: Path) -> set[str]:
+    """Return every `module "name"` declared in root *.tf files."""
+    names: set[str] = set()
+    if not tf_dir.is_dir():
+        return names
+    for path in sorted(tf_dir.glob("*.tf")):
+        text = _strip_hcl_line_comments(path.read_text(encoding="utf-8"))
+        names.update(MODULE_NAME_RE.findall(text))
+    return names
 
 
 def compare_terraform(
@@ -283,6 +311,7 @@ def validate_workload(
     workload_dir: Path,
     tf_modules: dict[str, dict[str, dict[str, str]]],
     strict_terraform: bool,
+    tf_module_names: set[str] | None = None,
 ) -> WorkloadReport:
     compute_path = workload_dir / "config" / "compute.yaml"
     data = load_compute_yaml(compute_path)
@@ -293,6 +322,26 @@ def validate_workload(
 
     sync_cfg = data.get("terraform_sync") or {}
     sync_status = sync_cfg.get("status", "enforced")
+    declared = workload in (tf_module_names or set(tf_modules))
+
+    if (strict_terraform or sync_status == "enforced") and not declared:
+        report.issues.append(
+            Issue(
+                "error",
+                f'terraform_sync.status={sync_status} but no module "{workload}" in '
+                f"iac/terraform/*.tf (run tools/ensure_terraform_module.py --workload {workload})",
+            )
+        )
+        return report
+    if not declared:
+        report.issues.append(
+            Issue(
+                "warning",
+                f'no Terraform module "{workload}" in iac/terraform/*.tf '
+                f"(terraform_sync.status={sync_status})",
+            )
+        )
+        return report
 
     tf_issues = compare_terraform(
         workload,
@@ -344,11 +393,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if not TERRAFORM_MAIN.is_file():
-        print(f"ERROR: Terraform main not found: {TERRAFORM_MAIN}", file=sys.stderr)
+    if not TERRAFORM_DIR.is_dir():
+        print(f"ERROR: Terraform directory not found: {TERRAFORM_DIR}", file=sys.stderr)
         return 2
 
-    tf_modules = parse_terraform_glue_jobs(TERRAFORM_MAIN)
+    tf_modules = parse_all_terraform_glue_jobs(TERRAFORM_DIR)
+    tf_module_names = parse_terraform_module_names(TERRAFORM_DIR)
     workloads = discover_workloads(args.workload)
 
     if not workloads:
@@ -357,7 +407,9 @@ def main(argv: list[str] | None = None) -> int:
 
     exit_code = 0
     for wl_dir in workloads:
-        report = validate_workload(wl_dir, tf_modules, args.strict_terraform)
+        report = validate_workload(
+            wl_dir, tf_modules, args.strict_terraform, tf_module_names
+        )
         print(f"\n=== {report.workload} ===")
         if not report.issues:
             print("OK — no issues")

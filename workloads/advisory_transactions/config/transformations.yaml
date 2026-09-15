@@ -33,6 +33,27 @@ bronze_to_silver:
     - broken_gross_formula
     - broken_net_formula
     - missing_net_amount
+  quarantine_rules:
+    - id: invalid_trade_date
+      type: date_parse
+      column: trade_date
+    - id: negative_quantity
+      type: lt
+      column: quantity
+      value: 0
+    - id: missing_net_amount
+      type: blank
+      column: net_amount
+    - id: broken_gross_formula
+      type: formula_delta
+      left: gross_amount
+      right: "quantity * unit_price"
+      max_abs_delta: 0.01
+    - id: broken_net_formula
+      type: formula_delta
+      left: net_amount
+      right: "gross_amount - commission - fees"
+      max_abs_delta: 0.01
   derived:
     trade_year: "year(trade_date)"
     trade_month: "month(trade_date)"

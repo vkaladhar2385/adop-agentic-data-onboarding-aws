@@ -5,18 +5,30 @@ bronze_to_silver:
     keys: [order_id]
     keep: latest_by
     order_by: updated_at
+    retain_blank_keys: true
   casts:
     quantity: integer
     order_total: decimal
+    order_date: date
+    updated_at: timestamp
   string_ops:
     trim: all
     uppercase: [order_status]
   pii_masking:
     - column: customer_id
-      method: hash
+      strategy: hash_token
   quarantine_when:
     - missing_order_id
     - invalid_quantity
+  quarantine_rules:
+    - id: missing_order_id
+      type: blank
+      column: order_id
+    - id: invalid_quantity
+      type: range
+      column: quantity
+      min: 1
+      null_is_invalid: true
   derived:
     line_value: "order_total"
 

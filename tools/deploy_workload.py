@@ -353,7 +353,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif "state_machine" in orch_artifacts:
             print(
-                f'\n>>> SFN orchestrator but no module "{args.workload}" in main.tf — terraform plan skipped\n',
+                f'\n>>> SFN orchestrator but no module "{args.workload}" in iac/terraform/*.tf — terraform plan skipped\n',
                 flush=True,
             )
         else:

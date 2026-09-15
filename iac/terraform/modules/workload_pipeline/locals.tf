@@ -21,8 +21,8 @@ locals {
   lambda_role_arn  = var.iam_owner == "terraform" ? aws_iam_role.lambda[0].arn : data.aws_iam_role.lambda[0].arn
   lambda_role_name = var.iam_owner == "terraform" ? aws_iam_role.lambda[0].name : data.aws_iam_role.lambda[0].name
 
-  sfn_role_arn  = var.iam_owner == "terraform" ? aws_iam_role.sfn[0].arn : data.aws_iam_role.sfn[0].arn
-  sfn_role_name = var.iam_owner == "terraform" ? aws_iam_role.sfn[0].name : data.aws_iam_role.sfn[0].name
+  sfn_role_arn  = try(aws_iam_role.sfn[0].arn, try(data.aws_iam_role.sfn[0].arn, null))
+  sfn_role_name = try(aws_iam_role.sfn[0].name, try(data.aws_iam_role.sfn[0].name, null))
 
-  scheduler_role_arn = var.iam_owner == "terraform" ? aws_iam_role.scheduler[0].arn : data.aws_iam_role.scheduler[0].arn
+  scheduler_role_arn = try(aws_iam_role.scheduler[0].arn, try(data.aws_iam_role.scheduler[0].arn, null))
 }

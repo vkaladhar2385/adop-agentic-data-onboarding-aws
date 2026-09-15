@@ -13,6 +13,8 @@ def test_render_product_inventory_module_contains_glue_jobs():
     assert "ingest_to_bronze" in hcl
     assert "bronze_to_silver" in hcl
     assert "product_inventory_db" in hcl
+    assert "orchestrator" in hcl
+    assert "glue_optional_py_files" in hcl
     assert "silver_product_inventory" in hcl
     assert "catalog_owner" in hcl
 

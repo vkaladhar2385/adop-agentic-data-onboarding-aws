@@ -1,3 +1,6 @@
 schema_version: v1
-template_id: web_events_bronze_to_silver
 workload: web_events
+template_id: bronze_to_silver
+source_format: jsonl
+database: web_events_db
+silver_table: silver_web_events

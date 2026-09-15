@@ -2,7 +2,7 @@
 # template_id: ingest_to_bronze
 # template_hash: cbf6bbb214796aedb3203a59c1cf5b1fb28daf2898565513dbe9033abe18916f
 # schema_version: v1
-# rendered_at: 2026-09-09T05:17:05Z
+# rendered_at: 2026-09-15T05:10:41Z
 """Bronze ingestion for `supplier_lead_times`. Bronze is never transformed."""
 from __future__ import annotations
 

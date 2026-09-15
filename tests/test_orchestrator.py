@@ -14,6 +14,14 @@ def test_mwaa_emits_dag_only():
     assert resolve_orchestration_artifacts(schedule) == frozenset({"dag"})
 
 
+def test_step_functions_emits_sfn_and_eventbridge():
+    assert resolve_orchestration_artifacts({"orchestrator": "step_functions"}) == frozenset(
+        {"state_machine", "eventbridge_schedule"}
+    )
+
+
 def test_both_emits_dag_and_sfn():
     schedule = {"orchestrator": "both"}
-    assert resolve_orchestration_artifacts(schedule) == frozenset({"state_machine", "dag"})
+    assert resolve_orchestration_artifacts(schedule) == frozenset(
+        {"state_machine", "dag", "eventbridge_schedule"}
+    )

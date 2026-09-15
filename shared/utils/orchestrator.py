@@ -6,7 +6,7 @@ from typing import Any
 
 DEFAULT_ORCHESTRATOR = "step_functions"
 VALID_ORCHESTRATORS = frozenset({"step_functions", "mwaa", "both"})
-ORCHESTRATION_ARTIFACTS = frozenset({"state_machine", "dag"})
+ORCHESTRATION_ARTIFACTS = frozenset({"state_machine", "dag", "eventbridge_schedule"})
 
 
 def resolve_orchestrator(schedule_config: dict[str, Any] | None) -> str:
@@ -27,12 +27,12 @@ def resolve_orchestrator(schedule_config: dict[str, Any] | None) -> str:
 def resolve_orchestration_artifacts(schedule_config: dict[str, Any] | None) -> frozenset[str]:
     """Return which orchestration artifacts codegen should emit for a workload."""
     if not schedule_config:
-        return frozenset({"state_machine"})
+        return frozenset({"state_machine", "eventbridge_schedule"})
     if schedule_config.get("emit_both_orchestrators"):
-        return frozenset({"state_machine", "dag"})
+        return frozenset({"state_machine", "dag", "eventbridge_schedule"})
     orch = resolve_orchestrator(schedule_config)
     if orch == "both":
-        return frozenset({"state_machine", "dag"})
+        return frozenset({"state_machine", "dag", "eventbridge_schedule"})
     if orch == "mwaa":
         return frozenset({"dag"})
-    return frozenset({"state_machine"})
+    return frozenset({"state_machine", "eventbridge_schedule"})

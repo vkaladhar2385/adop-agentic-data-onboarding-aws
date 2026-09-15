@@ -235,49 +235,30 @@ declarative rules from `config/quality_rules.yaml`:
 
 ```
 iac/terraform/
-├── main.tf                     # root: 2x module instantiation + shared $25/mo budget
-├── variables.tf / outputs.tf   # account_id, region, data_lake_bucket, alert_email, environment
+├── main.tf                     # root: legacy advisory module + shared budget + extensions
+├── workloads_{name}.tf         # GENERATED factory SKU — one file per workload (do not hand-edit)
+├── variables.tf / outputs.tf
 ├── terraform.tfvars.example
-├── APPLY_GUIDE.md              # step-by-step apply/verify/destroy checklist
+├── APPLY_GUIDE.md
 └── modules/workload_pipeline/  # reusable — one instantiation per workload
-    ├── variables.tf            # workload, glue_jobs map, lambda_functions map, schedule, compliance_tag
-    ├── main.tf                 # KMS x3, Glue DB, SNS+sub, SFN role+state machine, Scheduler role+schedule
-    ├── glue.tf                 # Glue IAM role + 5x aws_glue_job
-    ├── lambda.tf                # Lambda IAM role + 2x aws_lambda_function
+    ├── variables.tf            # workload, glue_jobs, orchestrator, glue_optional_py_files
+    ├── main.tf                 # KMS, Glue DB, SNS; SFN+Scheduler skipped when orchestrator=mwaa
+    ├── glue.tf                 # Glue IAM + aws_glue_job (optional extra-py-files)
+    ├── lambda.tf
     └── outputs.tf
 ```
 
-**Why a module instead of copy-pasted `.tf` files per workload:** adding a
-third workload means one new `module "..." { source = "./modules/workload_pipeline" ... }`
-block in root `main.tf` with that workload's job/lambda maps and schedule —
-no new HCL resource types to write. This is exactly the kind of reuse the
-Terraform-module gap in `ADAPTATION_GAP.md` #1 asks you to go further with
-(swap this module's *internals* for the client's own `module "kms"` etc.
-without touching root `main.tf` at all).
+**Why generated `workloads_{name}.tf` instead of editing `main.tf`:** adding workload N is `python tools/ensure_terraform_module.py --workload {name}`. Agents must not patch `main.tf` for a new SKU. `tools/validate_compute.py` parses **all** `iac/terraform/*.tf`. `terraform_sync.status=enforced` fails CI if the module file is missing. `main.tf` remains the home of the advisory demo plus optional Redshift/OpenSearch/Redis extensions.
 
-Both `terraform validate` and `terraform fmt -check` pass against this module
-structure (verified locally with Terraform 1.9; CI's `terraform` job in
-`.github/workflows/ci.yml` runs the same checks on every PR).
+`terraform validate` and `terraform fmt -check` still apply (CI `terraform` job).
 
 ### Packaging {#packaging}
 
 Two very different artifact types flow into AWS, both staged by
 `.github/workflows/deploy.yml` before `terraform apply` runs:
 
-1. **Glue job scripts** — `aws s3 sync workloads/<workload>/ s3://<bucket>/workloads/<workload>/`
-   for both workloads. `aws_glue_job.command.script_location` points directly
-   at the synced `.py` file; no build step needed (Glue reads the script from
-   S3 at job-start time).
-2. **Lambda deployment packages** — built as **lean, dependency-free zips**:
-   for `register_catalog`, just `shared/utils/pii.py` + that workload's
-   `register_catalog.py` (both refactored to avoid importing the pandas-based
-   `local_runner` module on the Lambda code path — see
-   `plan_lf_tags(database=...)`); for `post_deploy_verifier`, just
-   `shared/utils/post_deployment_verifier.py`. Both need only the Python
-   stdlib + `boto3`, which every Lambda Python runtime ships pre-installed —
-   **no `pip install`, no layer, no pandas/pyarrow in the Lambda path at all.**
-   Zips are uploaded to `s3://<bucket>/lambda-artifacts/<workload>/<fn>.zip`
-   and referenced by `aws_lambda_function.s3_bucket` / `s3_key`.
+1. **Glue job scripts** — `python tools/package_and_sync.py --workload <name>` (CI: `.github/workflows/deploy.yml` discovers every `module "…"` whose `workloads/<name>/` exists). `aws_glue_job.command.script_location` points at the synced `.py` file.
+2. **Lambda deployment packages** — built by the same tool: `register_catalog` ships `shared/catalog/register.py` + workload YAML + PyYAML; `post_deploy_verifier` stays lean. Extension Lambdas (Redshift/OpenSearch/Redis) are included only when those scripts exist on the workload.
 
 This lean-package design is why the Lambda handlers are written the way they
 are: `register_catalog.plan_lf_tags()` accepts an optional `database` override
@@ -291,7 +272,7 @@ therefore skip importing pandas) entirely.
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `.github/workflows/ci.yml` | every PR / push to `main` | `pytest workloads/` (28 tests, both workloads); validates every `config/*.yaml` parses; validates every `*_state_machine.json` is valid ASL-shaped JSON; `terraform fmt -check` + `terraform validate` (no backend, no AWS creds needed) |
-| `.github/workflows/deploy.yml` | manual `workflow_dispatch` (qa/staging/prod) | OIDC auth → sync scripts + build/upload Lambda zips → `terraform apply` (GitHub Environment = human approval gate) → live post-deploy verifier for both workloads |
+| `.github/workflows/deploy.yml` | manual `workflow_dispatch` (qa/staging/prod) | Discovers TF modules → `package_and_sync.py` per workload → `terraform apply` (GitHub Environment = human approval) → post-deploy verifier for SFN workloads |
 
 Nothing deploys on merge. `deploy.yml` requires an explicit human trigger and
 a GitHub Environment approval, matching the AGENTS.md "agents generate,
@@ -330,8 +311,11 @@ ADOP/
 ├── demo/data_generators/           # synthetic CSV/JSONL generators (seeded bad rows for quality demo)
 ├── shared/utils/                   # pii.py, quality.py, post_deployment_verifier.py (dependency-light, reused by both workloads)
 ├── workloads/
-│   ├── advisory_transactions/      # SOX / wealth-management workload
-│   └── web_events/                 # GDPR / clickstream workload
+│   ├── advisory_transactions/      # SOX / wealth-management (legacy TF in main.tf)
+│   ├── web_events/                 # GDPR / clickstream
+│   ├── product_inventory/          # Factory #3 (artifacts; TF pending until generated)
+│   ├── supplier_lead_times/        # Factory #4 SKU (generated workloads_*.tf)
+│   └── customer_orders/            # Tier B MWAA (Glue module, no SFN)
 │       ├── config/                 # source, semantic, transformations, quality_rules, schedule (YAML)
 │       ├── scripts/
 │       │   ├── extract/            # ingest_to_bronze.py
@@ -351,24 +335,16 @@ ADOP/
 
 ---
 
-## 11. Extending the pattern (adding a third workload)
+## 11. Extending the pattern (workload N)
 
-1. Copy the `web_events` directory tree as a starting skeleton (it's the more
-   recently added, so closest to current conventions).
-2. Write `config/{source,semantic,transformations,quality_rules,schedule}.yaml`
-   for the new source.
-3. Point `scripts/transform/local_runner.py` at the new config; write/adjust
-   `bronze_to_silver` / `silver_to_gold` logic.
-4. Add unit + integration tests; add the workload to `ci.yml`'s sample-data
-   generation step (or add a data generator if the source needs one).
-5. Copy `orchestration/<workload>_state_machine.json` from an existing
-   workload and rename the `JobName`/`FunctionName`/`TopicArn` strings to the
-   new workload prefix — the 8-state shape (Section 3) is designed to be
-   copied as-is.
-6. Add a third `module "new_workload" { source = "./modules/workload_pipeline" ... }`
-   block to `iac/terraform/main.tf` with the new workload's `glue_jobs` and
-   `lambda_functions` maps and schedule expression.
-7. Add the new workload to `deploy.yml`'s `for w in ...` loops.
+Zero hand-edits to `main.tf` or `deploy.yml`. After Phase 1 HITL answers:
 
-No shared file needs to change except `main.tf` and the two CI/CD loops — that
-list is the actual definition of "the pattern is reusable."
+1. Write `config/{source,semantic,transformations,quality_rules,schedule,compute}.yaml` plus `config/codegen/*.spec.yaml`.
+2. `python tools/validate_configs.py` and `python tools/validate_compute.py --workload {name}`.
+3. `python tools/render_workload.py --workload {name} --all --write` (Glue wrappers, SFN and/or DAG, EventBridge JSON).
+4. Transforms and catalog are **shared**: `shared/transforms/pandas_engine.py`, `shared/spark/transforms.py`, `shared/catalog/register.py`. Workload `local_runner.py` / `spark_transforms.py` / `register_catalog.py` stay thin shims.
+5. Add unit tests under `workloads/{name}/tests/`.
+6. `python tools/ensure_terraform_module.py --workload {name}` → `iac/terraform/workloads_{name}.tf`.
+7. `python tools/deploy_workload.py --workload {name} --dry-run` then, after approval, package/plan/apply.
+
+`schedule.yaml` `orchestrator` selects SFN+EventBridge vs MWAA DAG export. Do not copy ASL by hand. Do not add the workload name to `deploy.yml` — CI discovers modules.

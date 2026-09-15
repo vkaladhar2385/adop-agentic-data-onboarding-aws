@@ -36,6 +36,19 @@
           "items": { "type": "string" },
           "minItems": 1
         },
+        "quarantine_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "column": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
         "derived": { "type": "object" }
       },
       "additionalProperties": true

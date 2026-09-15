@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/schedule.schema.json",
+  "title": "Workload schedule / orchestrator (HITL)",
+  "type": "object",
+  "required": ["workload", "schedule"],
+  "additionalProperties": true,
+  "properties": {
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "orchestrator": {
+      "type": "string",
+      "enum": ["step_functions", "mwaa", "both"]
+    },
+    "ontology_staging": { "type": "boolean" },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "engine": { "type": "string" },
+        "cron": { "type": "string" },
+        "timezone": { "type": "string" }
+      }
+    },
+    "execution": { "type": "object", "additionalProperties": true },
+    "failure_handling": { "type": "object", "additionalProperties": true },
+    "dependencies": { "type": "array" }
+  }
+}

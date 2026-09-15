@@ -8,18 +8,12 @@
   "properties": {
     "schema_version": { "type": "string", "const": "v1" },
     "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
-    "template_id": { "type": "string" },
+    "template_id": {
+      "type": "string",
+      "enum": ["bronze_to_silver", "advisory_bronze_to_silver", "web_events_bronze_to_silver"]
+    },
+    "source_format": { "type": "string", "enum": ["csv", "jsonl", "parquet"] },
     "database": { "type": "string", "minLength": 1 },
     "silver_table": { "type": "string", "minLength": 1 }
-  },
-  "oneOf": [
-    {
-      "required": ["database", "silver_table"],
-      "properties": { "template_id": { "not": { "const": "web_events_bronze_to_silver" } } }
-    },
-    {
-      "required": ["template_id"],
-      "properties": { "template_id": { "const": "web_events_bronze_to_silver" } }
-    }
-  ]
+  }
 }

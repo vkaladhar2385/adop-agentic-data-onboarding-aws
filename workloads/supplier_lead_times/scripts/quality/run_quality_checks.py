@@ -2,7 +2,7 @@
 # template_id: quality_checks
 # template_hash: ad105c88d04422ad0fecb6fd16d46fefeb7af70807681676d5541aa66b17f771
 # schema_version: v1
-# rendered_at: 2026-09-09T05:17:05Z
+# rendered_at: 2026-09-15T05:10:41Z
 """Quality gate runner for `supplier_lead_times`."""
 from __future__ import annotations
 

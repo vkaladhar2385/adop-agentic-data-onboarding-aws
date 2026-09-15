@@ -1,13 +1,14 @@
 # spec_hash: 1088d5894d3deae109ff805b0c6bd4901068ed8bff381aab06310d45ccc2c10c
-# template_id: advisory_bronze_to_silver
-# template_hash: 3b715372cbd81aba347322cd48fedd953fd869d91ec6d6cef7b6ae14d7c1613d
+# template_id: bronze_to_silver
+# template_hash: 0f00c058d91ab54d115288be52e19985d0158b4ef3b6dee8b2857a34e4f6d72b
 # schema_version: v1
-# rendered_at: 2026-09-09T05:21:47Z
+# rendered_at: 2026-09-15T05:10:41Z
 """Bronze -> Silver transform for `customer_orders`.
 
 Local mode uses pandas/local_runner (pytest source of truth). Glue ETL (PySpark)
 writes Apache Iceberg to the Silver catalog table and exports Parquet to
 --silver_path for the Python Shell quality gate.
+Source format: csv.
 """
 from __future__ import annotations
 
@@ -24,7 +25,10 @@ try:
     from workloads.customer_orders.scripts.transform import local_runner, spark_transforms
 except ImportError:
     import local_runner  # type: ignore
-    import spark_transforms  # type: ignore
+    try:
+        import spark_transforms  # type: ignore
+    except ImportError:  # pragma: no cover
+        spark_transforms = None  # type: ignore
 
 
 def run_local(bronze_parquet: str, out_dir: str) -> dict:

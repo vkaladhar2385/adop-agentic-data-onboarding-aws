@@ -52,6 +52,7 @@ variable "schedule_name_suffix" {
 variable "state_machine_input" {
   type        = map(string)
   description = "JSON input passed from EventBridge Scheduler into the Step Functions execution."
+  default     = {}
 }
 
 variable "glue_jobs" {
@@ -120,13 +121,19 @@ variable "iam_owner" {
   }
 }
 
-variable "lakeformation_owner" {
+variable "orchestrator" {
   type        = string
-  description = "Who creates Lake Formation grants: terraform (default) or mcp."
-  default     = "terraform"
+  description = "step_functions (default SFN+Scheduler), mwaa (Glue/Lambdas only; DAG is exported separately), or both."
+  default     = "step_functions"
 
   validation {
-    condition     = contains(["terraform", "mcp"], var.lakeformation_owner)
-    error_message = "lakeformation_owner must be terraform or mcp."
+    condition     = contains(["step_functions", "mwaa", "both"], var.orchestrator)
+    error_message = "orchestrator must be step_functions, mwaa, or both."
   }
+}
+
+variable "glue_optional_py_files" {
+  type        = list(string)
+  description = "Basenames under glue-deps/{workload}/ appended to --extra-py-files. Omit helpers the package step did not upload."
+  default     = ["pandas_engine.py", "spark_transforms.py", "local_runner.py"]
 }

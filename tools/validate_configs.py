@@ -15,6 +15,10 @@ CONTRACTS = REPO_ROOT / "contracts" / "v1"
 CONFIG_SCHEMA_MAP = {
     "compute.yaml": "compute.schema.json",
     "transformations.yaml": "transformations.schema.json",
+    "source.yaml": "source.schema.json",
+    "semantic.yaml": "semantic.schema.json",
+    "quality_rules.yaml": "quality_rules.schema.json",
+    "schedule.yaml": "schedule.schema.json",
 }
 
 CODEGEN_SCHEMA_MAP = {

@@ -24,6 +24,10 @@ _SFN_RE = re.compile(
     r"workloads[/\\][^/\\]+[/\\]orchestration[/\\][^/\\]+_state_machine\.json$",
     re.IGNORECASE,
 )
+_EVENTBRIDGE_RE = re.compile(
+    r"workloads[/\\][^/\\]+[/\\]orchestration[/\\]eventbridge_schedule\.json$",
+    re.IGNORECASE,
+)
 _DAG_RE = re.compile(
     r"workloads[/\\][^/\\]+[/\\]dags[/\\][^/\\]+_pipeline\.py$",
     re.IGNORECASE,
@@ -61,6 +65,8 @@ def is_protected_path(file_path: str) -> bool:
     if _GENERATED_SCRIPT_RE.search(normalized):
         return True
     if _SFN_RE.search(normalized):
+        return True
+    if _EVENTBRIDGE_RE.search(normalized):
         return True
     return bool(_DAG_RE.search(normalized))
 

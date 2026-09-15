@@ -3,7 +3,7 @@
   "workload": "customer_orders",
   "namespace": "commerce",
   "version": "v1",
-  "staged_at": "2026-09-09T05:22:05.145621+00:00",
+  "staged_at": "2026-09-15T05:15:24.381919+00:00",
   "artifacts": {
     "ontology.ttl": {
       "sha256": "5483af3d056ce8159038951b651d41ec9b0696bfabfcbd81ebd2f5a6a35dd348"

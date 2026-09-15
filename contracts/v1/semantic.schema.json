@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/semantic.schema.json",
+  "title": "Workload semantic config (HITL)",
+  "type": "object",
+  "required": ["workload", "columns"],
+  "additionalProperties": true,
+  "properties": {
+    "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+    "namespace": { "type": "string" },
+    "entities": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "columns": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string" },
+          "type": { "type": "string" },
+          "pii": { "type": "boolean" },
+          "pii_type": { "type": "string" },
+          "sensitivity": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "lf_tags": { "type": "array" },
+    "hierarchies": { "type": "array" },
+    "relationships": { "type": "array" },
+    "business_terms": { "type": "object" }
+  }
+}

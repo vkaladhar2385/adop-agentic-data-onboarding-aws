@@ -46,7 +46,7 @@ pipeline_steps:
 
 terraform_sync:
   status: enforced
-  note: Tier B MWAA proof — DAG codegen + pytest; MWAA sync when sandbox redeployed.
+  note: Generated iac/terraform/workloads_customer_orders.tf (orchestrator=mwaa; no SFN).
 
 routing:
   rules:

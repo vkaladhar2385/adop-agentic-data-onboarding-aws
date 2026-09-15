@@ -42,6 +42,11 @@ def test_agent_output_round_trip():
     assert restored.can_proceed is True
 
 
+def test_ontology_staging_is_a_valid_agent_type():
+    out = _sample_output(agent_type="ontology_staging")
+    assert out.agent_type == "ontology_staging"
+
+
 def test_invalid_agent_type():
     with pytest.raises(ValueError, match="agent_type"):
         _sample_output(agent_type="invalid")
