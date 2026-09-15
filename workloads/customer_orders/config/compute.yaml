@@ -48,6 +48,32 @@ terraform_sync:
   status: enforced
   note: Generated iac/terraform/workloads_customer_orders.tf (orchestrator=mwaa; no SFN).
 
+# MCP-first data plane. Terraform owns Glue jobs and Lambdas (MWAA DAG is export-only).
+infrastructure:
+  catalog:
+    owner: mcp
+    database: customer_orders_db
+  kms:
+    owner: mcp
+    zones: [bronze, silver, gold]
+  iam:
+    owner: mcp
+  lakeformation:
+    owner: mcp
+  glue_jobs:
+    owner: terraform
+  orchestration:
+    owner: terraform
+
+catalog:
+  owner: mcp
+  database: customer_orders_db
+
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+
 routing:
   rules:
     - id: iceberg_transform_requires_spark

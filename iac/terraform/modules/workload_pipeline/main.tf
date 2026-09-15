@@ -88,7 +88,10 @@ data "aws_iam_policy_document" "sfn_permissions" {
   statement {
     sid       = "InvokeLambdas"
     actions   = ["lambda:InvokeFunction"]
-    resources = [for k in keys(var.lambda_functions) : aws_lambda_function.fn[k].arn]
+    resources = concat(
+      [for k in keys(var.lambda_functions) : aws_lambda_function.fn[k].arn],
+      local.sink_lambda_arns,
+    )
   }
   statement {
     sid       = "PublishAlerts"

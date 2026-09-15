@@ -90,8 +90,8 @@ variable "tags" {
 
 variable "catalog_owner" {
   type        = string
-  description = "Who creates the Glue catalog database: terraform (default) or mcp (Phase 5 MCP cutover)."
-  default     = "terraform"
+  description = "Who creates the Glue catalog database. Default mcp (MCP-first); terraform only as opt-out."
+  default     = "mcp"
 
   validation {
     condition     = contains(["terraform", "mcp"], var.catalog_owner)
@@ -101,8 +101,8 @@ variable "catalog_owner" {
 
 variable "kms_owner" {
   type        = string
-  description = "Who creates zone KMS keys: terraform (default) or mcp."
-  default     = "terraform"
+  description = "Who creates zone KMS keys. Default mcp; terraform only as opt-out."
+  default     = "mcp"
 
   validation {
     condition     = contains(["terraform", "mcp"], var.kms_owner)
@@ -112,12 +112,23 @@ variable "kms_owner" {
 
 variable "iam_owner" {
   type        = string
-  description = "Who creates pipeline IAM roles: terraform (default) or mcp."
-  default     = "terraform"
+  description = "Who creates pipeline IAM roles. Default mcp; terraform only as opt-out."
+  default     = "mcp"
 
   validation {
     condition     = contains(["terraform", "mcp"], var.iam_owner)
     error_message = "iam_owner must be terraform or mcp."
+  }
+}
+
+variable "lakeformation_owner" {
+  type        = string
+  description = "Who creates LF-Tags and grants. Default mcp; terraform only as opt-out."
+  default     = "mcp"
+
+  validation {
+    condition     = contains(["terraform", "mcp"], var.lakeformation_owner)
+    error_message = "lakeformation_owner must be terraform or mcp."
   }
 }
 
@@ -136,4 +147,17 @@ variable "glue_optional_py_files" {
   type        = list(string)
   description = "Basenames under glue-deps/{workload}/ appended to --extra-py-files. Omit helpers the package step did not upload."
   default     = ["pandas_engine.py", "spark_transforms.py", "local_runner.py"]
+}
+
+variable "enabled_sinks" {
+  type        = list(string)
+  description = "Opt-in extension sinks: redshift, opensearch, redis. Empty = catalog-only (no extra AWS cost). SFN may invoke those Lambdas via constructed ARNs (no module cycle)."
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for s in var.enabled_sinks : contains(["redshift", "opensearch", "redis"], s)
+    ])
+    error_message = "enabled_sinks may only contain redshift, opensearch, redis."
+  }
 }

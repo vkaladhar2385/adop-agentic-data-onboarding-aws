@@ -41,9 +41,9 @@ via `verify_gateway_mcp.py`. **Factory provision** requires human `APPROVE` in H
 - [ ] `python tools/check_codegen_drift.py` passed
 - [ ] User explicitly approved deploy
 
-### Step 5.1 — Terraform fallback (compute + orchestration)
+### Step 5.1 — Deploy wrapper (MCP data plane, then Terraform jobs)
 
-Run **first** for assets Terraform owns:
+`tools/deploy_workload.py` creates MCP-owned catalog/KMS/IAM/LF **first** (factory default), then Terraform for Glue jobs, Lambda functions, Step Functions, EventBridge, and SNS.
 
 ```bash
 python tools/deploy_workload.py --workload {name} --dry-run
@@ -51,8 +51,8 @@ python tools/deploy_workload.py --workload {name} --bucket {lake_bucket}
 # apply only with --approve-apply + user consent
 ```
 
-Creates/updates: Glue **jobs**, Lambda functions, Step Functions, EventBridge, SNS, IAM roles
-**only if still in `.tf`**. Do not MCP-create the same resources in the same session.
+IAM roles, KMS keys, and the Glue database are created by Terraform **only when**
+`infrastructure.*.owner` is `terraform`. Do not MCP-create a resource that `.tf` still manages.
 
 ### Step 5.2 — MCP catalog (Glue database + tables)
 
@@ -98,10 +98,11 @@ Wait for `PostDeploymentVerify` in the state machine.
 ## Guardrail rules
 
 1. **One owner per ARN** — MCP or Terraform, never both for the same resource type in one deploy.
-2. **MCP-first for data plane** — catalog, LF, S3 data uploads, verify queries.
-3. **TF fallback for control plane** — Glue jobs, SFN, EventBridge, Lambdas, extension modules.
-4. **No auto-retry on MCP failure** — report step, tool, error; ask human.
-5. **Sub-agents never use MCP** — build phases are file-only.
+2. **MCP-first for data plane** — catalog, KMS, IAM, LF, S3 data uploads, verify queries. This is the **factory default** when `compute.yaml` omits `infrastructure.*` or sets `owner: mcp`.
+3. **TF fallback for control plane** — Glue jobs, SFN, EventBridge, Lambdas, extension modules (`glue_jobs.owner` / `orchestration.owner` must stay `terraform`).
+4. **CI lock** — `python tools/validate_compute.py` errors if YAML owner is `mcp` but the pipeline module still has `catalog_owner` / `kms_owner` / `iam_owner` / `lakeformation_owner` = `terraform` (both would create the same ARN), or the reverse drift.
+5. **No auto-retry on MCP failure** — report step, tool, error; ask human.
+6. **Sub-agents never use MCP** — build phases are file-only.
 
 ---
 
@@ -112,8 +113,11 @@ becomes their owner. Do not MCP-create tables/jobs that `terraform plan` still m
 
 Recommended first cutover slice: **Glue catalog + LF only**, keeping jobs/SFN in Terraform.
 
-**Done for `advisory_transactions`:** `catalog_owner = "mcp"` in Terraform; database via
-`tools/mcp_deploy_catalog.py`. Runbook: `docs/MCP_CUTOVER.md`.
+**Done for factory SKUs:** `infrastructure.catalog/kms/iam/lakeformation.owner: mcp` in
+`compute.yaml`; generated `workloads_{name}.tf` and `advisory_transactions` in `main.tf`
+pass `catalog_owner` / `kms_owner` / `iam_owner` / `lakeformation_owner` = `"mcp"`.
+CLI: `tools/mcp_deploy_infrastructure.py`. Runbook: `docs/MCP_CUTOVER.md` (needed only
+when flipping a resource that already exists in Terraform state).
 
 ---
 

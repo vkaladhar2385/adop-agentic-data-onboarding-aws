@@ -46,19 +46,6 @@ output "alerts_topic_arns" {
   }
 }
 
-# ---- Extension outputs (advisory_transactions only) ----
-output "redshift_workgroup_endpoint" {
-  value = module.advisory_transactions_redshift.workgroup_endpoint
-}
-
-output "opensearch_domain_endpoint" {
-  value = module.advisory_transactions_opensearch.domain_endpoint
-}
-
-output "redis_endpoint" {
-  value = module.advisory_transactions_redis.redis_endpoint
-}
-
 output "factory_provision_state_machine_arn" {
   value       = module.factory_provision.state_machine_arn
   description = "Option B factory provision SFN (Harness trigger_provision target)."

@@ -80,6 +80,12 @@ infrastructure:
   orchestration:
     owner: terraform
 
+# Opt-in sinks — Terraform only (no MCP create). Keep false unless you want hourly cost.
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+
 # Legacy alias — kept for tools that read catalog.owner directly.
 catalog:
   owner: mcp

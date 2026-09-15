@@ -4,10 +4,10 @@
 module "customer_orders" {
   source = "./modules/workload_pipeline"
 
-  catalog_owner          = "terraform"
-  kms_owner              = "terraform"
-  iam_owner              = "terraform"
-  lakeformation_owner    = "terraform"
+  catalog_owner          = "mcp"
+  kms_owner              = "mcp"
+  iam_owner              = "mcp"
+  lakeformation_owner    = "mcp"
   workload               = "customer_orders"
   environment            = var.environment
   aws_region             = var.aws_region
@@ -18,6 +18,7 @@ module "customer_orders" {
   tags                   = var.tags
   orchestrator           = "mwaa"
   glue_optional_py_files = ["pandas_engine.py", "spark_transforms.py", "local_runner.py"]
+  enabled_sinks          = []
 
   schedule_expression  = "0 7 * * *"
   schedule_name_suffix = "daily"

@@ -140,3 +140,50 @@ def test_drift_detected_between_yaml_and_tf(tmp_path: Path):
         tf_modules["advisory_transactions"],
     )
     assert any(i.message.startswith("DRIFT bronze_to_silver") for i in issues)
+
+
+def test_dual_create_catalog_is_error():
+    data = {
+        "workload": "demo",
+        "infrastructure": {"catalog": {"owner": "mcp"}},
+    }
+    issues = vc.validate_infrastructure_owners(
+        "demo",
+        data,
+        {"catalog_owner": "terraform", "kms_owner": "mcp", "iam_owner": "mcp", "lakeformation_owner": "mcp"},
+    )
+    assert any("dual-create catalog" in i.message for i in issues)
+    assert all(i.level == "error" for i in issues if "dual-create" in i.message)
+
+
+def test_glue_jobs_mcp_owner_is_error():
+    data = {
+        "workload": "demo",
+        "infrastructure": {"glue_jobs": {"owner": "mcp"}},
+    }
+    issues = vc.validate_infrastructure_owners("demo", data, None)
+    assert any("glue_jobs.owner=mcp" in i.message for i in issues)
+
+
+def test_matching_mcp_owners_pass():
+    data = {
+        "workload": "demo",
+        "infrastructure": {
+            "catalog": {"owner": "mcp"},
+            "kms": {"owner": "mcp"},
+            "iam": {"owner": "mcp"},
+            "lakeformation": {"owner": "mcp"},
+            "glue_jobs": {"owner": "terraform"},
+        },
+    }
+    issues = vc.validate_infrastructure_owners(
+        "demo",
+        data,
+        {
+            "catalog_owner": "mcp",
+            "kms_owner": "mcp",
+            "iam_owner": "mcp",
+            "lakeformation_owner": "mcp",
+        },
+    )
+    assert issues == []

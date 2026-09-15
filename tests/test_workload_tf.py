@@ -17,6 +17,9 @@ def test_render_product_inventory_module_contains_glue_jobs():
     assert "glue_optional_py_files" in hcl
     assert "silver_product_inventory" in hcl
     assert "catalog_owner" in hcl
+    assert 'catalog_owner       = "mcp"' in hcl
+    assert 'kms_owner           = "mcp"' in hcl
+    assert 'iam_owner           = "mcp"' in hcl
 
 
 def test_advisory_module_declared_in_main_tf():

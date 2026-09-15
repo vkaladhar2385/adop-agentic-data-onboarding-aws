@@ -78,11 +78,14 @@ schema-validated config, rather than hand-writing bespoke HCL per workload.
    A Parallel branch after Gold is still a valid alternative if you want
    warehouse/search/cache to run concurrently instead of in series.
 
-6. **Instantiate from the root module, once per workload that needs it.**
-   `iac/terraform/main.tf` adds `module "advisory_transactions_redshift"` etc.
-   the same way it already instantiates `workload_pipeline` twice (once per
-   workload) — new capability = new module block, not a new copy of the whole
-   stack.
+6. **Instantiate from `compute.yaml` `sinks:` (and matching SFN spec flags), not `main.tf`.**
+   `python tools/ensure_terraform_module.py --workload {name}` emits
+   `module "{name}_redshift"` (etc.) into `workloads_{name}.tf` and sets
+   `enabled_sinks` on `workload_pipeline`. Step Functions invoke those Lambdas
+   via constructed ARNs (no root `sfn_extension_lambdas` cycle). Default is
+   all `false` — catalog-only, no OpenSearch/Redis/Redshift hourly cost.
+   Flip a flag only for a demo, keep `state_machine.spec.yaml` `enable_*` in
+   sync, then re-render the SFN JSON and regenerate the Terraform module.
 
 ## What this cost, concretely
 

@@ -1,5 +1,7 @@
 """Unit tests for sandbox lifecycle (no AWS)."""
 
+from pathlib import Path
+
 from shared.deploy.sandbox_lifecycle import (
     _terraform_targets,
     discover_mcp_workloads,
@@ -14,9 +16,19 @@ def test_terraform_targets_include_core_modules():
     assert "module.advisory_transactions_redshift" not in core
 
 
-def test_terraform_targets_include_extensions():
-    ext = _terraform_targets(include_extensions=True)
+def test_terraform_targets_include_extensions_when_declared(tmp_path: Path):
+    (tmp_path / "sinks.tf").write_text(
+        'module "advisory_transactions_opensearch" {\n  source = "./modules/opensearch_workload"\n}\n',
+        encoding="utf-8",
+    )
+    ext = _terraform_targets(include_extensions=True, tf_dir=tmp_path)
     assert "module.advisory_transactions_opensearch" in ext
+
+
+def test_terraform_targets_omit_sinks_when_not_in_hcl():
+    ext = _terraform_targets(include_extensions=True)
+    assert "module.advisory_transactions_opensearch" not in ext
+    assert "aws_iam_role_policy.sfn_extension_lambdas" not in ext
 
 
 def test_discover_mcp_workloads_includes_advisory():

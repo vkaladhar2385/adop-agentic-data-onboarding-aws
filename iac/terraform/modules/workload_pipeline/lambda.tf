@@ -1,4 +1,7 @@
-# ---- IAM role assumed by every Lambda in this workload ----
+# ---- Per-function IAM (P1-12): catalog write vs verifier read ----
+# register_catalog may tag Glue tables. post_deploy_verifier only reads
+# Glue/Athena/KMS/SFN/CloudTrail. Do not share one union role.
+
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -9,28 +12,32 @@ data "aws_iam_policy_document" "lambda_assume" {
   }
 }
 
-resource "aws_iam_role" "lambda" {
-  count              = var.iam_owner == "terraform" ? 1 : 0
-  name               = "${local.name}-lambda-role"
+locals {
+  lambda_role_suffix = {
+    register_catalog     = "register-catalog"
+    post_deploy_verifier = "verifier"
+  }
+}
+
+resource "aws_iam_role" "lambda_fn" {
+  for_each           = var.iam_owner == "terraform" ? var.lambda_functions : {}
+  name               = "${local.name}-${lookup(local.lambda_role_suffix, each.key, each.key)}-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   tags               = local.tags
 }
 
-data "aws_iam_role" "lambda" {
-  count = var.iam_owner == "mcp" ? 1 : 0
-  name  = "${local.name}-lambda-role"
+data "aws_iam_role" "lambda_fn" {
+  for_each = var.iam_owner == "mcp" ? var.lambda_functions : {}
+  name     = "${local.name}-${lookup(local.lambda_role_suffix, each.key, each.key)}-role"
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  count      = var.iam_owner == "terraform" ? 1 : 0
-  role       = aws_iam_role.lambda[0].name
+  for_each   = var.iam_owner == "terraform" ? var.lambda_functions : {}
+  role       = aws_iam_role.lambda_fn[each.key].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# register_catalog needs Lake Formation write; post_deploy_verifier needs
-# read-only Glue/Athena/KMS/StepFunctions/CloudTrail. Granting the union to
-# both keeps the module simple; tighten per-function in a hardened rollout.
-data "aws_iam_policy_document" "lambda_permissions" {
+data "aws_iam_policy_document" "register_catalog" {
   statement {
     sid = "LakeFormationTagging"
     actions = [
@@ -38,15 +45,42 @@ data "aws_iam_policy_document" "lambda_permissions" {
       "lakeformation:ListLFTags", "lakeformation:AddLFTagsToResource",
       "lakeformation:GetResourceLFTags", "lakeformation:GetDataAccess",
     ]
-    resources = ["*"] # LF-Tags are account-scoped resources; no ARN-level scoping available
+    resources = ["*"] # LF-Tags are account-scoped; no ARN-level scoping
   }
   statement {
-    sid = "GlueReadWrite"
+    sid = "GlueRegisterTables"
     actions = [
       "glue:GetTable", "glue:GetTables", "glue:GetDatabase",
       "glue:GetPartition", "glue:GetPartitions",
-      "glue:CreateTable", "glue:UpdateTable", # register_catalog registers Silver/Gold tables
+      "glue:CreateTable", "glue:UpdateTable",
     ]
+    resources = ["*"]
+  }
+  statement {
+    sid     = "KmsTableData"
+    actions = ["kms:DescribeKey", "kms:Decrypt", "kms:GenerateDataKey"]
+    resources = local.zone_kms_arns
+  }
+  statement {
+    sid     = "SilverGoldObjects"
+    actions = ["s3:GetObject", "s3:PutObject", "s3:ListBucket", "s3:GetBucketLocation"]
+    resources = [
+      "arn:aws:s3:::${var.data_lake_bucket}",
+      "arn:aws:s3:::${var.data_lake_bucket}/silver/*",
+      "arn:aws:s3:::${var.data_lake_bucket}/gold/*",
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "verifier" {
+  statement {
+    sid       = "GlueRead"
+    actions   = ["glue:GetTable", "glue:GetTables", "glue:GetDatabase", "glue:GetPartition", "glue:GetPartitions"]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "LakeFormationRead"
+    actions   = ["lakeformation:GetLFTag", "lakeformation:ListLFTags", "lakeformation:GetResourceLFTags"]
     resources = ["*"]
   }
   statement {
@@ -55,8 +89,8 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["*"]
   }
   statement {
-    sid       = "KmsVerifyAndDecrypt"
-    actions   = ["kms:DescribeKey", "kms:GetKeyRotationStatus", "kms:Decrypt", "kms:GenerateDataKey"]
+    sid     = "KmsVerifyAndDecrypt"
+    actions = ["kms:DescribeKey", "kms:GetKeyRotationStatus", "kms:Decrypt", "kms:GenerateDataKey"]
     resources = local.zone_kms_arns
   }
   statement {
@@ -70,7 +104,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["*"]
   }
   statement {
-    sid     = "AthenaResultsAndTableData"
+    sid     = "AthenaResultsAndReadTableData"
     actions = ["s3:GetObject", "s3:PutObject", "s3:ListBucket", "s3:GetBucketLocation"]
     resources = [
       "arn:aws:s3:::${var.data_lake_bucket}",
@@ -96,11 +130,11 @@ data "aws_iam_policy_document" "lambda_permissions" {
   }
 }
 
-resource "aws_iam_role_policy" "lambda" {
-  count  = var.iam_owner == "terraform" ? 1 : 0
-  name   = "${local.name}-lambda-policy"
-  role   = aws_iam_role.lambda[0].id
-  policy = data.aws_iam_policy_document.lambda_permissions.json
+resource "aws_iam_role_policy" "lambda_fn" {
+  for_each = var.iam_owner == "terraform" ? var.lambda_functions : {}
+  name     = "${local.name}-${lookup(local.lambda_role_suffix, each.key, each.key)}-policy"
+  role     = aws_iam_role.lambda_fn[each.key].id
+  policy   = each.key == "register_catalog" ? data.aws_iam_policy_document.register_catalog.json : data.aws_iam_policy_document.verifier.json
 }
 
 # ---- One aws_lambda_function per Step Functions Lambda target ----
@@ -111,7 +145,7 @@ resource "aws_lambda_function" "fn" {
   for_each = var.lambda_functions
 
   function_name = "${var.workload}_${each.key}"
-  role          = local.lambda_role_arn
+  role          = local.lambda_role_arn_by_key[each.key]
   runtime       = "python3.12"
   handler       = each.value.handler
   timeout       = each.value.timeout

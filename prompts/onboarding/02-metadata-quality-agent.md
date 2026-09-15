@@ -48,7 +48,8 @@ Per `AGENTS.md` compute routing:
 
 - `profile`: row counts, iceberg zones
 - `pipeline_steps`: job_type per step (`glueetl` for Iceberg writes, `pythonshell` for quality gates)
-- Must match future Terraform `glue_jobs` keys
+- `infrastructure`: MCP-first owners (catalog / kms / iam / lakeformation = `mcp`; glue_jobs / orchestration = `terraform`). Omit data-plane slices to default to MCP.
+- Must match future Terraform `glue_jobs` keys and `catalog_owner` / `kms_owner` / `iam_owner`
 
 ### 6. `config/codegen/*.spec.yaml` (when templates apply)
 

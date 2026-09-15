@@ -30,6 +30,8 @@ def test_mcp_deploy_infrastructure_dry_run_advisory() -> None:
     assert "advisory_transactions_db" in out
     assert "alias/advisory_transactions-bronze" in out
     assert "glue-role" in out
+    assert "register-catalog-role" in out
+    assert "verifier-role" in out
     assert "lakeformation grant" in out
 
 

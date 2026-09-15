@@ -53,18 +53,14 @@ three always-on hourly services.
 | ElastiCache Redis `advisory-transactions-dev-cache` | Always-on node | 5–10 min |
 | Redshift Serverless workgroup + namespace | RPUs while active / resume | 3–8 min |
 
-Comment out (or `-target`-destroy) the three module blocks in
-`iac/terraform/main.tf`:
+Comment out is no longer needed: extension modules are **off by default**
+(`compute.yaml` `sinks.*: false`). To demo them, set a flag to `true`, match
+`state_machine.spec.yaml`, regenerate TF + SFN JSON, then `terraform apply`.
+To stop hourly cost, set flags back to `false`, regenerate, and apply (Terraform
+destroys the modules).
 
-```hcl
-module "advisory_transactions_redshift" { ... }
-module "advisory_transactions_opensearch" { ... }
-module "advisory_transactions_redis" { ... }
-```
-
-Then `terraform apply`. The **core** pipeline (Glue → Athena → LF-Tags →
-verifier lake checks) still runs. The three extension states will fail until
-you bring those modules back and re-apply.
+The **core** pipeline (Glue → Athena → LF-Tags → verifier lake checks) still
+runs with all sinks false.
 
 **Morning-of-demo sequence (extensions off overnight):**
 

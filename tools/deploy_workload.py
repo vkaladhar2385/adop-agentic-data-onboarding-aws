@@ -73,23 +73,18 @@ def orchestration_artifacts(workload_dir: Path) -> frozenset[str]:
 
 
 def catalog_owner_mcp(workload_dir: Path) -> bool:
-    compute = load_compute(workload_dir)
-    catalog = compute.get("catalog") or {}
-    infra_catalog = (compute.get("infrastructure") or {}).get("catalog") or {}
-    return catalog.get("owner") == "mcp" or infra_catalog.get("owner") == "mcp"
+    from shared.deploy.infrastructure_config import load_infrastructure_owners
+
+    owners = load_infrastructure_owners(workload_dir.name, REPO_ROOT)
+    return owners["catalog_owner"] == "mcp"
 
 
 def mcp_infrastructure_enabled(workload_dir: Path) -> bool:
-    """True when any infrastructure slice is MCP-owned (run mcp_deploy_infrastructure before TF)."""
-    compute = load_compute(workload_dir)
-    infra = compute.get("infrastructure") or {}
-    if not infra:
-        return catalog_owner_mcp(workload_dir)
-    for key in ("catalog", "kms", "iam", "lakeformation"):
-        section = infra.get(key) or {}
-        if section.get("owner") == "mcp":
-            return True
-    return catalog_owner_mcp(workload_dir)
+    """True when any data-plane slice is MCP-owned (run mcp_deploy_infrastructure before TF)."""
+    from shared.deploy.infrastructure_config import DATA_PLANE_OWNER_KEYS, load_infrastructure_owners
+
+    owners = load_infrastructure_owners(workload_dir.name, REPO_ROOT)
+    return any(owners[key] == "mcp" for key in DATA_PLANE_OWNER_KEYS)
 
 
 def apply_block_reason(workload: str, approve_apply: bool, workload_dir: Path | None = None) -> str | None:

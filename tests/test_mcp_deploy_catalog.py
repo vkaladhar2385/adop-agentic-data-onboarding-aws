@@ -29,22 +29,25 @@ def test_mcp_deploy_catalog_dry_run_advisory() -> None:
     assert "advisory_transactions_db" in result.stdout
 
 
-def test_load_rejects_non_mcp_workload() -> None:
-    result = subprocess.run(
-        [
-            sys.executable,
-            "tools/mcp_deploy_catalog.py",
-            "--workload",
-            "product_inventory",
-            "--dry-run",
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
+def test_load_rejects_terraform_owned_catalog(tmp_path: Path) -> None:
+    from tools.mcp_deploy_catalog import load_catalog_config
+
+    wl = tmp_path / "workloads" / "tf_catalog"
+    (wl / "config").mkdir(parents=True)
+    (wl / "config" / "compute.yaml").write_text(
+        "workload: tf_catalog\ninfrastructure:\n  catalog:\n    owner: terraform\n",
+        encoding="utf-8",
     )
-    assert result.returncode == 1
-    assert "not mcp" in (result.stderr or result.stdout).lower()
+    with pytest.raises(ValueError, match="not mcp"):
+        load_catalog_config("tf_catalog", repo_root=tmp_path)
+
+
+def test_product_inventory_defaults_to_mcp_catalog() -> None:
+    from tools.mcp_deploy_catalog import load_catalog_config
+
+    cfg = load_catalog_config("product_inventory")
+    assert cfg["owner"] == "mcp"
+    assert cfg["database"] == "product_inventory_db"
 
 
 def test_advisory_compute_catalog_owner() -> None:

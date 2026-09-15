@@ -48,6 +48,32 @@ terraform_sync:
   status: enforced
   note: Factory SKU — generated iac/terraform/workloads_supplier_lead_times.tf (do not patch main.tf).
 
+# MCP-first data plane. Terraform owns Glue jobs, Lambdas, SFN/EventBridge only.
+infrastructure:
+  catalog:
+    owner: mcp
+    database: supplier_lead_times_db
+  kms:
+    owner: mcp
+    zones: [bronze, silver, gold]
+  iam:
+    owner: mcp
+  lakeformation:
+    owner: mcp
+  glue_jobs:
+    owner: terraform
+  orchestration:
+    owner: terraform
+
+catalog:
+  owner: mcp
+  database: supplier_lead_times_db
+
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+
 routing:
   rules:
     - id: iceberg_transform_requires_spark

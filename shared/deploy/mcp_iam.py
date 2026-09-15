@@ -138,7 +138,8 @@ def lambda_assume_policy() -> dict:
     }
 
 
-def lambda_permissions_policy(*, bucket: str, workload: str, region: str, account_id: str, kms_arns: list[str]) -> dict:
+def register_catalog_permissions_policy(*, bucket: str, kms_arns: list[str]) -> dict:
+    """Write path: register_catalog Lambda (LF-Tags + Glue tables)."""
     return {
         "Version": "2012-10-17",
         "Statement": [
@@ -157,7 +158,7 @@ def lambda_permissions_policy(*, bucket: str, workload: str, region: str, accoun
                 "Resource": ["*"],
             },
             {
-                "Sid": "GlueReadWrite",
+                "Sid": "GlueRegisterTables",
                 "Effect": "Allow",
                 "Action": [
                     "glue:GetTable",
@@ -168,6 +169,49 @@ def lambda_permissions_policy(*, bucket: str, workload: str, region: str, accoun
                     "glue:CreateTable",
                     "glue:UpdateTable",
                 ],
+                "Resource": ["*"],
+            },
+            {
+                "Sid": "KmsTableData",
+                "Effect": "Allow",
+                "Action": ["kms:DescribeKey", "kms:Decrypt", "kms:GenerateDataKey"],
+                "Resource": kms_arns,
+            },
+            {
+                "Sid": "SilverGoldObjects",
+                "Effect": "Allow",
+                "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket", "s3:GetBucketLocation"],
+                "Resource": [
+                    f"arn:aws:s3:::{bucket}",
+                    f"arn:aws:s3:::{bucket}/silver/*",
+                    f"arn:aws:s3:::{bucket}/gold/*",
+                ],
+            },
+        ],
+    }
+
+
+def verifier_permissions_policy(*, bucket: str, workload: str, region: str, account_id: str, kms_arns: list[str]) -> dict:
+    """Read path: post_deploy_verifier Lambda (no Glue CreateTable / LF write)."""
+    return {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "GlueRead",
+                "Effect": "Allow",
+                "Action": [
+                    "glue:GetTable",
+                    "glue:GetTables",
+                    "glue:GetDatabase",
+                    "glue:GetPartition",
+                    "glue:GetPartitions",
+                ],
+                "Resource": ["*"],
+            },
+            {
+                "Sid": "LakeFormationRead",
+                "Effect": "Allow",
+                "Action": ["lakeformation:GetLFTag", "lakeformation:ListLFTags", "lakeformation:GetResourceLFTags"],
                 "Resource": ["*"],
             },
             {
@@ -195,7 +239,7 @@ def lambda_permissions_policy(*, bucket: str, workload: str, region: str, accoun
                 "Resource": ["*"],
             },
             {
-                "Sid": "AthenaResultsAndTableData",
+                "Sid": "AthenaResultsAndReadTableData",
                 "Effect": "Allow",
                 "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket", "s3:GetBucketLocation"],
                 "Resource": [
@@ -311,6 +355,28 @@ def _resolve_kms_arns(workload: str, zones: list[str], *, dry_run: bool) -> list
     return arns
 
 
+def _lambda_role_names(name_prefix: str) -> dict[str, str]:
+    return {
+        "catalog": f"{name_prefix}-register-catalog-role",
+        "verifier": f"{name_prefix}-verifier-role",
+    }
+
+
+def _ensure_lambda_execution_role(
+    iam: Any,
+    *,
+    role_name: str,
+    policy_name: str,
+    policy: dict,
+    role_tags: list[dict] | None,
+    dry_run: bool,
+) -> str:
+    arn = _ensure_role(iam, role_name, lambda_assume_policy(), dry_run=dry_run, tags=role_tags)
+    _attach_managed(iam, role_name, "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole", dry_run=dry_run)
+    _put_inline_policy(iam, role_name, policy_name, policy, dry_run=dry_run)
+    return arn
+
+
 def ensure_pipeline_roles(
     *,
     name_prefix: str,
@@ -319,9 +385,9 @@ def ensure_pipeline_roles(
     zones: list[str],
     dry_run: bool,
 ) -> dict[str, str]:
-    """Create Glue, Lambda, SFN, and Scheduler roles when iam.owner=mcp."""
+    """Create Glue, per-function Lambda, SFN, and Scheduler roles when iam.owner=mcp."""
     glue_role = f"{name_prefix}-glue-role"
-    lambda_role = f"{name_prefix}-lambda-role"
+    lambda_names = _lambda_role_names(name_prefix)
     sfn_role = f"{name_prefix}-sfn-role"
     scheduler_role = f"{name_prefix}-scheduler-role"
 
@@ -330,6 +396,8 @@ def ensure_pipeline_roles(
     if dry_run:
         region = "us-east-1"
         account_id = "000000000000"
+        iam = None
+        role_tags = None
     else:
         import boto3
 
@@ -337,69 +405,63 @@ def ensure_pipeline_roles(
         ident = sts.get_caller_identity()
         account_id = ident["Account"]
         region = boto3.session.Session().region_name or "us-east-1"
+        iam = boto3.client("iam")
+        role_tags = iam_tag_list()
 
-    if dry_run:
-        _ensure_role(None, glue_role, glue_assume_policy(), dry_run=True)
-        _attach_managed(None, glue_role, "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole", dry_run=True)
-        _put_inline_policy(None, glue_role, f"{name_prefix}-glue-policy", glue_permissions_policy(bucket=bucket, workload=workload, kms_arns=kms_arns), dry_run=True)
-        _ensure_role(None, lambda_role, lambda_assume_policy(), dry_run=True)
-        _attach_managed(None, lambda_role, "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole", dry_run=True)
-        _put_inline_policy(None, lambda_role, f"{name_prefix}-lambda-policy", lambda_permissions_policy(bucket=bucket, workload=workload, region=region, account_id=account_id, kms_arns=kms_arns), dry_run=True)
-        _ensure_role(None, sfn_role, sfn_assume_policy(), dry_run=True)
-        _put_inline_policy(None, sfn_role, f"{name_prefix}-sfn-policy", sfn_permissions_policy(workload=workload, region=region, account_id=account_id), dry_run=True)
-        _ensure_role(None, scheduler_role, scheduler_assume_policy(), dry_run=True)
-        _put_inline_policy(None, scheduler_role, f"{name_prefix}-scheduler-policy", scheduler_permissions_policy(workload=workload, region=region, account_id=account_id), dry_run=True)
-        return {
-            "glue": f"arn:aws:iam::{account_id}:role/{glue_role}",
-            "lambda": f"arn:aws:iam::{account_id}:role/{lambda_role}",
-            "sfn": f"arn:aws:iam::{account_id}:role/{sfn_role}",
-            "scheduler": f"arn:aws:iam::{account_id}:role/{scheduler_role}",
-        }
+    catalog_policy = register_catalog_permissions_policy(bucket=bucket, kms_arns=kms_arns)
+    verifier_policy = verifier_permissions_policy(
+        bucket=bucket, workload=workload, region=region, account_id=account_id, kms_arns=kms_arns
+    )
 
-    import boto3
-
-    iam = boto3.client("iam")
-    role_tags = iam_tag_list()
-    glue_arn = _ensure_role(iam, glue_role, glue_assume_policy(), dry_run=False, tags=role_tags)
-    _attach_managed(iam, glue_role, "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole", dry_run=False)
+    glue_arn = _ensure_role(iam, glue_role, glue_assume_policy(), dry_run=dry_run, tags=role_tags)
+    _attach_managed(iam, glue_role, "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole", dry_run=dry_run)
     _put_inline_policy(
         iam,
         glue_role,
         f"{name_prefix}-glue-policy",
         glue_permissions_policy(bucket=bucket, workload=workload, kms_arns=kms_arns),
-        dry_run=False,
+        dry_run=dry_run,
     )
 
-    lambda_arn = _ensure_role(iam, lambda_role, lambda_assume_policy(), dry_run=False, tags=role_tags)
-    _attach_managed(iam, lambda_role, "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole", dry_run=False)
-    _put_inline_policy(
+    catalog_arn = _ensure_lambda_execution_role(
         iam,
-        lambda_role,
-        f"{name_prefix}-lambda-policy",
-        lambda_permissions_policy(
-            bucket=bucket, workload=workload, region=region, account_id=account_id, kms_arns=kms_arns
-        ),
-        dry_run=False,
+        role_name=lambda_names["catalog"],
+        policy_name=f"{name_prefix}-register-catalog-policy",
+        policy=catalog_policy,
+        role_tags=role_tags,
+        dry_run=dry_run,
+    )
+    verifier_arn = _ensure_lambda_execution_role(
+        iam,
+        role_name=lambda_names["verifier"],
+        policy_name=f"{name_prefix}-verifier-policy",
+        policy=verifier_policy,
+        role_tags=role_tags,
+        dry_run=dry_run,
     )
 
-    sfn_arn = _ensure_role(iam, sfn_role, sfn_assume_policy(), dry_run=False, tags=role_tags)
+    sfn_arn = _ensure_role(iam, sfn_role, sfn_assume_policy(), dry_run=dry_run, tags=role_tags)
     _put_inline_policy(
         iam,
         sfn_role,
         f"{name_prefix}-sfn-policy",
         sfn_permissions_policy(workload=workload, region=region, account_id=account_id),
-        dry_run=False,
+        dry_run=dry_run,
     )
-
-    scheduler_arn = _ensure_role(
-        iam, scheduler_role, scheduler_assume_policy(), dry_run=False, tags=role_tags
-    )
+    scheduler_arn = _ensure_role(iam, scheduler_role, scheduler_assume_policy(), dry_run=dry_run, tags=role_tags)
     _put_inline_policy(
         iam,
         scheduler_role,
         f"{name_prefix}-scheduler-policy",
         scheduler_permissions_policy(workload=workload, region=region, account_id=account_id),
-        dry_run=False,
+        dry_run=dry_run,
     )
 
-    return {"glue": glue_arn, "lambda": lambda_arn, "sfn": sfn_arn, "scheduler": scheduler_arn}
+    return {
+        "glue": glue_arn,
+        "lambda": catalog_arn,  # LF grants use the catalog Lambda role
+        "lambda_catalog": catalog_arn,
+        "lambda_verifier": verifier_arn,
+        "sfn": sfn_arn,
+        "scheduler": scheduler_arn,
+    }

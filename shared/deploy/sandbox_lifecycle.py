@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -309,7 +310,10 @@ def destroy_lf_grants(
         name_prefix = owners["name_prefix"]
         try:
             glue_arn = iam.get_role(RoleName=f"{name_prefix}-glue-role")["Role"]["Arn"]
-            lambda_arn = iam.get_role(RoleName=f"{name_prefix}-lambda-role")["Role"]["Arn"]
+            try:
+                lambda_arn = iam.get_role(RoleName=f"{name_prefix}-register-catalog-role")["Role"]["Arn"]
+            except iam.exceptions.NoSuchEntityException:
+                lambda_arn = iam.get_role(RoleName=f"{name_prefix}-lambda-role")["Role"]["Arn"]
         except iam.exceptions.NoSuchEntityException:
             report.skipped.append(f"lf-grants:{workload}")
             continue
@@ -373,7 +377,14 @@ def destroy_mcp_infrastructure(
                 report.deleted.append(f"kms-scheduled:{alias}")
 
         if owners["iam_owner"] == "mcp":
-            for suffix in ("glue-role", "lambda-role", "sfn-role", "scheduler-role"):
+            for suffix in (
+                "glue-role",
+                "register-catalog-role",
+                "verifier-role",
+                "lambda-role",  # pre-P1-12 union role
+                "sfn-role",
+                "scheduler-role",
+            ):
                 role_name = f"{name_prefix}-{suffix}"
                 if _delete_iam_role(iam, role_name, dry_run=dry_run):
                     report.deleted.append(f"iam-role:{role_name}")
@@ -381,7 +392,21 @@ def destroy_mcp_infrastructure(
                     report.skipped.append(f"iam-role:{role_name}")
 
 
-def _terraform_targets(include_extensions: bool) -> list[str]:
+_SINK_MODULE_RE = re.compile(r'module\s+"([^"]+_(?:redshift|opensearch|redis))"\s*\{')
+
+
+def _sink_module_targets(tf_dir: Path | None = None) -> list[str]:
+    directory = tf_dir or TERRAFORM_DIR
+    names: set[str] = set()
+    if not directory.is_dir():
+        return []
+    for path in sorted(directory.glob("*.tf")):
+        text = path.read_text(encoding="utf-8")
+        names.update(_SINK_MODULE_RE.findall(text))
+    return [f"module.{n}" for n in sorted(names)]
+
+
+def _terraform_targets(include_extensions: bool, tf_dir: Path | None = None) -> list[str]:
     targets = [
         "module.factory_provision",
         "module.advisory_transactions",
@@ -389,13 +414,7 @@ def _terraform_targets(include_extensions: bool) -> list[str]:
         "aws_budgets_budget.pilot",
     ]
     if include_extensions:
-        targets = [
-            "module.advisory_transactions_redshift",
-            "module.advisory_transactions_opensearch",
-            "module.advisory_transactions_redis",
-            "aws_iam_role_policy.sfn_extension_lambdas",
-            *targets,
-        ]
+        targets = [*_sink_module_targets(tf_dir), *targets]
     return targets
 
 

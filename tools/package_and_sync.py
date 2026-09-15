@@ -61,15 +61,19 @@ def _touch_packages(build: Path, workload: str) -> None:
 
 
 def lambdas_for_workload(workload: str) -> dict[str, dict]:
-    """Build only Lambda zips whose workload scripts exist (catalog-only vs extensions)."""
+    """Core catalog/verifier zips always; sink zips only when compute.yaml/spec enables them."""
+    from shared.deploy.sinks import SINK_LAMBDA_KEY, load_enabled_sinks
+
+    enabled = set(load_enabled_sinks(workload))
     selected: dict[str, dict] = {}
     for name, spec in LAMBDAS.items():
-        scripts = spec.get("scripts") or []
-        if not scripts:
-            selected[name] = spec
+        sink_for = next((sink for sink, key in SINK_LAMBDA_KEY.items() if key == name), None)
+        if sink_for and sink_for not in enabled:
             continue
-        if all((REPO_ROOT / "workloads" / workload / rel).is_file() for rel in scripts):
-            selected[name] = spec
+        scripts = spec.get("scripts") or []
+        if scripts and not all((REPO_ROOT / "workloads" / workload / rel).is_file() for rel in scripts):
+            continue
+        selected[name] = spec
     return selected
 
 

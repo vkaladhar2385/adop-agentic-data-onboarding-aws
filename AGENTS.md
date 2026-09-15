@@ -312,6 +312,12 @@ Prefer editing specs and `shared/templates/*.j2` over embedding business logic i
 
 ## Deploy path (Track A — MCP-first, Terraform fallback)
 
+`compute.yaml` `infrastructure.*` defaults to **MCP** for catalog, KMS, IAM, and Lake
+Formation. Glue jobs and orchestration stay Terraform (no MCP create tool).
+`tools/validate_compute.py` fails CI if YAML says MCP but generated `.tf` still
+creates that resource (dual-create). Opt a slice to Terraform only with an explicit
+`owner: terraform` **and** matching HCL.
+
 After Phase 4 artifacts pass `pytest workloads/{name}/ -v` and codegen drift is clean:
 
 1. `python tools/check_codegen_drift.py`

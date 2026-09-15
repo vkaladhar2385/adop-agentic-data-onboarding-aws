@@ -59,6 +59,67 @@
       },
       "additionalProperties": true
     },
-    "routing": { "type": "object" }
+    "infrastructure": {
+      "type": "object",
+      "description": "MCP-first owners. Omit a data-plane slice to default to mcp. glue_jobs and orchestration stay terraform.",
+      "additionalProperties": true,
+      "properties": {
+        "catalog": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "enum": ["mcp", "terraform"] },
+            "database": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "kms": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "enum": ["mcp", "terraform"] },
+            "zones": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "iam": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "enum": ["mcp", "terraform"] }
+          },
+          "additionalProperties": true
+        },
+        "lakeformation": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "enum": ["mcp", "terraform"] }
+          },
+          "additionalProperties": true
+        },
+        "glue_jobs": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "enum": ["terraform"] }
+          },
+          "additionalProperties": true
+        },
+        "orchestration": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "enum": ["terraform"] }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "routing": { "type": "object" },
+    "sinks": {
+      "type": "object",
+      "description": "Opt-in Terraform extension sinks. Default all false (catalog-only). MCP cannot create these services.",
+      "additionalProperties": false,
+      "properties": {
+        "redshift": { "type": "boolean" },
+        "opensearch": { "type": "boolean" },
+        "redis": { "type": "boolean" }
+      }
+    }
   }
 }

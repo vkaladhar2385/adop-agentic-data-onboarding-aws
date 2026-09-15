@@ -57,3 +57,8 @@ output "lambda_function_arns" {
   value       = { for k, f in aws_lambda_function.fn : k => f.arn }
   description = "All Lambda function ARNs provisioned for this workload."
 }
+
+output "lambda_role_arns" {
+  value       = local.lambda_role_arn_by_key
+  description = "IAM role ARN per Lambda key (register_catalog vs post_deploy_verifier)."
+}

@@ -46,7 +46,10 @@ Prompt files: `prompts/onboarding/01-dedup-agent.md` … `04-deploy-agent.md`.
 
 **Policy:** MCP creates any asset the official 13 servers can create. Terraform owns only
 what has **no MCP create tool** (or platform infra already in state). **Never both create the
-same ARN.**
+same ARN.** Factory default (omit `infrastructure` or set `owner: mcp`): catalog, KMS, IAM,
+Lake Formation are MCP. Glue jobs and orchestration stay Terraform. CI
+(`tools/validate_compute.py`) fails if YAML and `workloads_{name}.tf` disagree on those
+owners.
 
 Full guardrails: `docs/MCP_GUARDRAILS.md`. Server list: `tool-registry/servers.yaml`.
 
@@ -67,9 +70,9 @@ Full guardrails: `docs/MCP_GUARDRAILS.md`. Server list: `tool-registry/servers.y
 | Step Functions state machine | **Terraform** | `main.tf` (no SFN MCP in official 13) |
 | EventBridge Scheduler | **Terraform** | `main.tf` |
 | SNS alerts | **Terraform** | `main.tf` |
-| Redshift Serverless namespace/workgroup | **Terraform** | `modules/redshift_workload/` |
-| OpenSearch domain | **Terraform** | `modules/opensearch_workload/` |
-| ElastiCache Redis + VPC endpoint | **Terraform** | `modules/redis_workload/` |
+| Redshift Serverless namespace/workgroup | **Terraform** | `modules/redshift_workload/` via `compute.yaml` `sinks.redshift` (default false) |
+| OpenSearch domain | **Terraform** | `modules/opensearch_workload/` via `sinks.opensearch` |
+| ElastiCache Redis + VPC endpoint | **Terraform** | `modules/redis_workload/` via `sinks.redis` |
 | AWS Budgets | **Terraform** | `main.tf` |
 
 ### Phase 5 order (after human approval)

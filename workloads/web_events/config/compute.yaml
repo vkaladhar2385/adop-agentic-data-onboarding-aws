@@ -50,6 +50,32 @@ terraform_sync:
   status: pending
   note: module "web_events" is commented out in main.tf (PILOT-DISABLED).
 
+# MCP-first data plane. Terraform module still PILOT-DISABLED.
+infrastructure:
+  catalog:
+    owner: mcp
+    database: web_events_db
+  kms:
+    owner: mcp
+    zones: [bronze, silver, gold]
+  iam:
+    owner: mcp
+  lakeformation:
+    owner: mcp
+  glue_jobs:
+    owner: terraform
+  orchestration:
+    owner: terraform
+
+catalog:
+  owner: mcp
+  database: web_events_db
+
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+
 routing:
   rules:
     - id: iceberg_transform_requires_spark

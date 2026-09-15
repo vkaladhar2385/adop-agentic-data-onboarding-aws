@@ -145,11 +145,11 @@ uses MCP owners; `supplier_lead_times` uses Terraform owners.
 `register_catalog` still creates/tags tables after MCP catalog. Easy to
 double-own Glue DB / KMS / IAM.
 
-### 10. SFN IAM for extensions is root-level and advisory-hardcoded
+### 10. SFN IAM for extensions is root-level and advisory-hardcoded (closed P1-3)
 
-`iac/terraform/main.tf` `aws_iam_role_policy.sfn_extension_lambdas` names
-advisory’s three Lambdas to avoid a module cycle. A new sink on another
-workload cannot reuse this.
+Sinks are selected by `compute.yaml` `sinks:` + SFN spec flags. Pipeline SFN
+IAM uses constructed Lambda ARNs. `main.tf` no longer hardcodes advisory
+extension modules.
 
 ### 11. Orchestrator is not a module feature
 
@@ -177,11 +177,12 @@ CI tests generate all five datasets; deploy packaging does not.
 - `supplier_lead_times` compute note still says “until DevOps wires main.tf”
   while sync is enforced via the *other* file.
 
-### 15. Least-privilege is demo-shaped
+### 15. Least-privilege is demo-shaped (partially closed)
 
-`lambda.tf`: one IAM role is the union of catalog tagging + verifier read.
-Glue catalog IAM uses `resources = ["*"]`. Redis uses default VPC. Fine for a
-pitch; not a landing-zone pattern (`docs/ADAPTATION_GAP.md` #1–#3).
+Pipeline Lambdas no longer share one union role (P1-12): `register_catalog` and
+`post_deploy_verifier` have separate IAM roles. Glue catalog IAM still uses
+`resources = ["*"]`. Redis uses default VPC. Fine for a pitch; not a landing-zone
+pattern (`docs/ADAPTATION_GAP.md` #1–#3).
 
 ---
 
@@ -194,11 +195,11 @@ Assume Phase 1 HITL is complete. “Zero hand edits” means: specs + render +
 |----------|--------|-----|
 | New **catalog-only CSV** (clone of `supplier_lead_times`) | **Partial** | Still copy `spark_transforms.py`, `local_runner.py`, `register_catalog.py`, `eventbridge_schedule.json`, SQL, tests. Generator does not emit those. |
 | New **JSONL / GDPR** (clone of `web_events`) | **Blocked** | Second bronze template; consent/erasure in `local_runner`; no Spark helper; TF module PILOT-DISABLED. |
-| New **star-schema + Redshift** | **Blocked** | SFN flag alone is not enough. Need module instance, Spectrum Lambda, root IAM, packaging. All advisory-only in `main.tf`. |
-| New **OpenSearch / Redis sink** | **Blocked** | Flags exist; live advisory SFN has them off. Modules not selected by spec. Redis needs VPC + vendored client. |
-| New **orchestrator = MWAA** | **Blocked** | DAG renders. No MWAA Terraform. Pipeline module still wants `*_state_machine.json`. |
-| **CI/CD promotion** of a new SKU | **Blocked** | `deploy.yml` hardcoded two names. |
-| **Drift-safe TF** for a generated module | **Blocked** | `validate_compute.py` never reads `workloads_*.tf`. |
+| New **star-schema + Redshift** | **Unblocked** | `sinks.redshift: true` + SFN `enable_redshift` + `ensure_terraform_module`. Default false (cost). |
+| New **OpenSearch / Redis sink** | **Unblocked** | Same flags. Redis still needs VPC + vendored `redis-py` in the zip. |
+| New **orchestrator = MWAA** | **Partial** | DAG + pipeline skip SFN (P1-4). No `aws_mwaa_*` environment (P1-5). |
+| **CI/CD promotion** of a new SKU | **Done** | `deploy.yml` discovers TF modules. |
+| **Drift-safe TF** for a generated module | **Done** | `validate_compute.py` scans all `*.tf`; sink modules required when flags on. |
 
 `product_inventory` proves the gap: full codegen, `terraform_sync: pending`,
 “No Terraform module yet.” Factory #2 was artifacts + pytest, not a deployable
@@ -325,16 +326,16 @@ recipe tell the truth), then P0-4 (shared Spark/catalog).
 |----|------|--------|-------|
 | P1-1 | One generic `bronze_to_silver` template; `format: csv\|jsonl` + optional consent slot. Retire advisory-named default | M | `shared/templates/`, `tools/render_workload.py`, `contracts/v1/codegen_bronze_to_silver.spec.schema.json` |
 | P1-2 | JSON Schema for `source.yaml`, `semantic.yaml`, `quality_rules.yaml`, `schedule.yaml` | M | `contracts/v1/`, `tools/validate_configs.py` |
-| P1-3 | Sink plugin: spec flags instantiate TF modules + Lambda zips + SFN IAM without editing `main.tf` | L | `state_machine.json.j2`, `shared/deploy/workload_tf.py`, `modules/{redshift,opensearch,redis}_workload/`, `main.tf` cycle hack |
+| P1-3 | **Done** — sink flags instantiate TF modules + Lambda zips + SFN IAM without editing `main.tf` | L | `compute.yaml` `sinks`, `shared/deploy/workload_tf.py`, `modules/workload_pipeline` `enabled_sinks` |
 | P1-4 | Orchestrator-aware `workload_pipeline`: SFN+Scheduler **or** MWAA DAG bucket; do not require ASL for `orchestrator: mwaa` | M | `modules/workload_pipeline/main.tf`, `schedule.yaml` |
 | P1-5 | MWAA Terraform module (or honest “DAG export only” status in STATUS/SKILLS) | M | new `modules/mwaa_workload/`, `tools/sync_mwaa_dags.py` |
 | P1-6 | `deploy.yml` discovers workloads that have a TF module | S | `.github/workflows/deploy.yml` |
 | P1-7 | Add `ontology_staging` to `VALID_AGENT_TYPES` | S | `shared/templates/agent_output_schema.py` |
 | P1-8 | Unify Gold Spark function name (`silver_to_gold_dfs` everywhere) | S | `spark_transforms.py`, `*/codegen/silver_to_gold.spec.yaml` |
 | P1-9 | Codegen `eventbridge_schedule.json` | S | new template + `render_workload.py` ARTIFACTS |
-| P1-10 | Single infrastructure owner map: fail CI if MCP and TF both create catalog/KMS/IAM | M | `compute.yaml` `infrastructure`, `docs/MCP_GUARDRAILS.md`, validators |
+| P1-10 | **Done** — MCP-first default + CI lock if YAML/HCL would both create catalog/KMS/IAM | M | `compute.yaml` `infrastructure`, `docs/MCP_GUARDRAILS.md`, `tools/validate_compute.py` |
 | P1-11 | Rewrite `docs/ARCHITECTURE.md` to five workloads + generated TF; delete copy-paste §11 | S | `docs/ARCHITECTURE.md` |
-| P1-12 | Per-Lambda IAM (stop union role) | M | `modules/workload_pipeline/lambda.tf` |
+| P1-12 | **Done** — per-Lambda IAM (catalog write vs verifier read) | M | `modules/workload_pipeline/lambda.tf`, `shared/deploy/mcp_iam.py` |
 
 ### P2 — production / enterprise
 
@@ -367,6 +368,7 @@ Already well-stated in `docs/ADAPTATION_GAP.md`. Do not confuse with factory P0.
 ---
 
 *Review dated 2026-09-10. P0 + mechanical P1 implemented on
-`feat/factory-sku-pluggability` (2026-09-14). Remaining: sink plugins (P1-3),
-MWAA environment module (P1-5), dual-owner CI lock (P1-10), per-Lambda IAM (P1-12),
+`feat/factory-sku-pluggability` (2026-09-14). P1-10 MCP-first default + dual-owner CI
+lock added 2026-09-14. P1-12 per-Lambda IAM split and P1-3 sink plugins added
+2026-09-14. Remaining: MWAA environment module (P1-5),
 and enterprise P2 in `ADAPTATION_GAP.md`.*

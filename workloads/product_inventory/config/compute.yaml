@@ -50,6 +50,32 @@ terraform_sync:
   status: pending
   note: No Terraform module yet — factory proof is artifacts + pytest only.
 
+# MCP-first data plane (default). Generate TF with ensure_terraform_module when syncing.
+infrastructure:
+  catalog:
+    owner: mcp
+    database: product_inventory_db
+  kms:
+    owner: mcp
+    zones: [bronze, silver, gold]
+  iam:
+    owner: mcp
+  lakeformation:
+    owner: mcp
+  glue_jobs:
+    owner: terraform
+  orchestration:
+    owner: terraform
+
+catalog:
+  owner: mcp
+  database: product_inventory_db
+
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+
 routing:
   rules:
     - id: iceberg_transform_requires_spark

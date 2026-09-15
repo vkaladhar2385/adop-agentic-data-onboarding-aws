@@ -23,6 +23,15 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from shared.deploy.infrastructure_config import (  # noqa: E402
+    CONTROL_PLANE_OWNER_KEYS,
+    DEFAULT_DATA_PLANE_OWNER,
+    HCL_OWNER_ATTRS,
+    owners_from_compute,
+)
 TERRAFORM_DIR = REPO_ROOT / "iac" / "terraform"
 TERRAFORM_MAIN = TERRAFORM_DIR / "main.tf"
 MODULE_NAME_RE = re.compile(r'module\s+"([^"]+)"\s*\{')
@@ -30,6 +39,10 @@ MODULE_NAME_RE = re.compile(r'module\s+"([^"]+)"\s*\{')
 VALID_JOB_TYPES = frozenset({"glueetl", "pythonshell"})
 ICEBERG_TRANSFORM_STEPS = frozenset({"bronze_to_silver", "silver_to_gold"})
 QUALITY_STEP_PREFIX = "quality_"
+
+HCL_OWNER_ASSIGN_RE = re.compile(
+    r'(catalog_owner|kms_owner|iam_owner|lakeformation_owner)\s*=\s*"(terraform|mcp)"'
+)
 
 # Terraform: job_key = { script_path = "...", job_type = "..." ... }
 GLUE_JOB_ENTRY_RE = re.compile(
@@ -243,6 +256,116 @@ def parse_terraform_module_names(tf_dir: Path) -> set[str]:
     return names
 
 
+def parse_terraform_owners(tf_dir: Path) -> dict[str, dict[str, str]]:
+    """Per pipeline module, owner flags from HCL (defaults to MCP when omitted)."""
+    result: dict[str, dict[str, str]] = {}
+    if not tf_dir.is_dir():
+        return result
+    for path in sorted(tf_dir.glob("*.tf")):
+        text = _strip_hcl_line_comments(path.read_text(encoding="utf-8"))
+        for mod_match in MODULE_NAME_RE.finditer(text):
+            module_name = mod_match.group(1)
+            mod_start = mod_match.end() - 1
+            mod_block = _extract_balanced_block(text, mod_start)
+            if not mod_block:
+                continue
+            mod_body, _ = mod_block
+            found = {m.group(1): m.group(2) for m in HCL_OWNER_ASSIGN_RE.finditer(mod_body)}
+            if not found and "glue_jobs" not in mod_body:
+                continue
+            owners = {attr: DEFAULT_DATA_PLANE_OWNER for attr in HCL_OWNER_ATTRS}
+            owners.update(found)
+            result[module_name] = owners
+    return result
+
+
+def validate_infrastructure_owners(
+    workload: str,
+    data: dict,
+    hcl_owners: dict[str, str] | None,
+) -> list[Issue]:
+    """Fail if YAML and Terraform would both create catalog/KMS/IAM/LF, or MCP is asked to create jobs/SFN."""
+    issues: list[Issue] = []
+    owners = owners_from_compute(data, workload)
+
+    for key in CONTROL_PLANE_OWNER_KEYS:
+        if owners[key] == "mcp":
+            slice_name = key.removesuffix("_owner")
+            issues.append(
+                Issue(
+                    "error",
+                    f"infrastructure.{slice_name}.owner=mcp but MCP has no create tool for "
+                    f"{slice_name} (keep terraform; see TOOL_ROUTING.md / P2-5)",
+                )
+            )
+
+    if hcl_owners is None:
+        return issues
+
+    for yaml_key, hcl_attr in HCL_OWNER_ATTRS.items():
+        yaml_owner = owners[yaml_key]
+        hcl_owner = hcl_owners.get(hcl_attr, DEFAULT_DATA_PLANE_OWNER)
+        if yaml_owner == hcl_owner:
+            continue
+        slice_name = yaml_key.removesuffix("_owner")
+        if yaml_owner == "mcp" and hcl_owner == "terraform":
+            issues.append(
+                Issue(
+                    "error",
+                    f"dual-create {slice_name}: compute.yaml owner=mcp but Terraform "
+                    f"{hcl_attr}=terraform — both would create the same ARN. Set {hcl_attr}=mcp "
+                    f"or opt the YAML slice to terraform.",
+                )
+            )
+        else:
+            issues.append(
+                Issue(
+                    "error",
+                    f"owner drift {slice_name}: compute.yaml={yaml_owner}, "
+                    f"Terraform {hcl_attr}={hcl_owner}",
+                )
+            )
+    return issues
+
+
+def validate_sinks(workload: str, data: dict, tf_module_names: set[str]) -> list[Issue]:
+    """Fail if compute.yaml / SFN spec disagree, or an enabled sink has no Terraform module."""
+    from shared.deploy.sinks import (
+        SPEC_FLAG,
+        enabled_sinks_from_mapping,
+        enabled_sinks_from_spec,
+        load_enabled_sinks,
+        load_state_machine_spec,
+    )
+
+    issues: list[Issue] = []
+    spec = load_state_machine_spec(workload)
+    if "sinks" in data and spec:
+        yaml_set = set(enabled_sinks_from_mapping(data.get("sinks")))
+        spec_set = set(enabled_sinks_from_spec(spec))
+        if yaml_set != spec_set:
+            issues.append(
+                Issue(
+                    "error",
+                    f"sink drift: compute.yaml sinks={sorted(yaml_set)} vs "
+                    f"state_machine.spec.yaml {[f'{SPEC_FLAG[s]}=true' for s in sorted(spec_set)]}. "
+                    "Keep them in sync (or omit compute.yaml sinks and use the spec only).",
+                )
+            )
+    enabled = load_enabled_sinks(workload, data)
+    for sink in enabled:
+        mod = f"{workload}_{sink}"
+        if mod not in tf_module_names:
+            issues.append(
+                Issue(
+                    "error",
+                    f"sink {sink} is enabled but no module \"{mod}\" in iac/terraform/*.tf "
+                    f"(run tools/ensure_terraform_module.py --workload {workload})",
+                )
+            )
+    return issues
+
+
 def compare_terraform(
     workload: str,
     data: dict,
@@ -312,6 +435,7 @@ def validate_workload(
     tf_modules: dict[str, dict[str, dict[str, str]]],
     strict_terraform: bool,
     tf_module_names: set[str] | None = None,
+    tf_owners: dict[str, dict[str, str]] | None = None,
 ) -> WorkloadReport:
     compute_path = workload_dir / "config" / "compute.yaml"
     data = load_compute_yaml(compute_path)
@@ -323,6 +447,9 @@ def validate_workload(
     sync_cfg = data.get("terraform_sync") or {}
     sync_status = sync_cfg.get("status", "enforced")
     declared = workload in (tf_module_names or set(tf_modules))
+    hcl_owners = (tf_owners or {}).get(workload) if declared else None
+    report.issues.extend(validate_infrastructure_owners(workload, data, hcl_owners))
+    report.issues.extend(validate_sinks(workload, data, tf_module_names or set()))
 
     if (strict_terraform or sync_status == "enforced") and not declared:
         report.issues.append(
@@ -399,6 +526,7 @@ def main(argv: list[str] | None = None) -> int:
 
     tf_modules = parse_all_terraform_glue_jobs(TERRAFORM_DIR)
     tf_module_names = parse_terraform_module_names(TERRAFORM_DIR)
+    tf_owners = parse_terraform_owners(TERRAFORM_DIR)
     workloads = discover_workloads(args.workload)
 
     if not workloads:
@@ -408,7 +536,7 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 0
     for wl_dir in workloads:
         report = validate_workload(
-            wl_dir, tf_modules, args.strict_terraform, tf_module_names
+            wl_dir, tf_modules, args.strict_terraform, tf_module_names, tf_owners
         )
         print(f"\n=== {report.workload} ===")
         if not report.issues:

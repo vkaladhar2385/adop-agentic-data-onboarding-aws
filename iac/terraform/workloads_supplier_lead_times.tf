@@ -4,10 +4,10 @@
 module "supplier_lead_times" {
   source = "./modules/workload_pipeline"
 
-  catalog_owner          = "terraform"
-  kms_owner              = "terraform"
-  iam_owner              = "terraform"
-  lakeformation_owner    = "terraform"
+  catalog_owner          = "mcp"
+  kms_owner              = "mcp"
+  iam_owner              = "mcp"
+  lakeformation_owner    = "mcp"
   workload               = "supplier_lead_times"
   environment            = var.environment
   aws_region             = var.aws_region
@@ -18,6 +18,7 @@ module "supplier_lead_times" {
   tags                   = var.tags
   orchestrator           = "step_functions"
   glue_optional_py_files = ["pandas_engine.py", "spark_transforms.py", "local_runner.py"]
+  enabled_sinks          = []
 
   schedule_expression  = "cron(0 6 ? * MON *)"
   schedule_name_suffix = "daily"

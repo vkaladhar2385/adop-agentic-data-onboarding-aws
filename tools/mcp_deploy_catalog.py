@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """MCP Phase 5 catalog deploy — Glue database + optional LF-Tags (boto3 / MCP fallback).
 
-When compute.yaml catalog.owner=mcp, Terraform does NOT create aws_glue_catalog_database.
+When compute.yaml infrastructure.catalog.owner=mcp (the factory default), Terraform
+does not create aws_glue_catalog_database.
 This tool performs the MCP-equivalent create_database step before or after terraform apply.
 
 Agents with live MCP should prefer glue-athena create_database + lakeformation tags;
@@ -21,24 +22,20 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 
-def load_catalog_config(workload: str) -> dict[str, Any]:
-    compute_path = REPO_ROOT / "workloads" / workload / "config" / "compute.yaml"
-    with compute_path.open(encoding="utf-8") as fh:
-        compute = yaml.safe_load(fh) or {}
-    catalog = compute.get("catalog") or {}
-    if catalog.get("owner") != "mcp":
+def load_catalog_config(workload: str, repo_root: Path | None = None) -> dict[str, Any]:
+    from shared.deploy.infrastructure_config import load_infrastructure_owners
+
+    owners = load_infrastructure_owners(workload, repo_root)
+    if owners["catalog_owner"] != "mcp":
         raise ValueError(
-            f"{workload}: catalog.owner is not mcp in compute.yaml — "
+            f"{workload}: catalog owner is not mcp in compute.yaml — "
             "Terraform still owns the Glue database."
         )
-    database = catalog.get("database") or f"{workload}_db"
-    return {"owner": "mcp", "database": database, "workload": workload}
+    return {"owner": "mcp", "database": owners["database"], "workload": workload}
 
 
 from shared.deploy.mcp_catalog import ensure_database  # noqa: E402

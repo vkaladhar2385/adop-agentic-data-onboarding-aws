@@ -74,6 +74,9 @@ module "advisory_transactions" {
     register_catalog     = { handler = "workloads.advisory_transactions.scripts.load.register_catalog.lambda_handler", artifact_key = "register_catalog" }
     post_deploy_verifier = { handler = "shared.utils.post_deployment_verifier.lambda_handler", artifact_key = "post_deploy_verifier", timeout = 180 }
   }
+
+  # Opt-in sinks (compute.yaml sinks.* / SFN spec enable_*). Default off — no Redshift/OpenSearch/Redis cost.
+  enabled_sinks = []
 }
 
 # >>> PILOT-DISABLED (advisory_only sandbox deploy). Restore by uncommenting
@@ -116,66 +119,10 @@ module "advisory_transactions" {
 # }
 # <<< PILOT-DISABLED
 
-# ---- Extension modules (added after the core pilot, advisory_transactions
-# only): each demonstrates provisioning + a minimal integration point for one
-# additional AWS service, following the same one-module-per-capability recipe
-# as workload_pipeline. See docs/EXTENDING_TO_NEW_SERVICES.md. ----
-
-module "advisory_transactions_redshift" {
-  source = "./modules/redshift_workload"
-
-  workload         = "advisory_transactions"
-  environment      = var.environment
-  aws_region       = var.aws_region
-  account_id       = var.account_id
-  data_lake_bucket = var.data_lake_bucket
-  glue_database    = module.advisory_transactions.glue_database
-  gold_kms_key_arn = "arn:aws:kms:${var.aws_region}:${var.account_id}:${module.advisory_transactions.kms_key_aliases["gold"]}"
-  vpc_id           = var.sandbox_vpc_id # same "no default VPC" workaround as the Redis module
-  tags             = var.tags
-}
-
-module "advisory_transactions_opensearch" {
-  source = "./modules/opensearch_workload"
-
-  workload         = "advisory_transactions"
-  environment      = var.environment
-  aws_region       = var.aws_region
-  account_id       = var.account_id
-  data_lake_bucket = var.data_lake_bucket
-  glue_database    = module.advisory_transactions.glue_database
-  tags             = var.tags
-}
-
-module "advisory_transactions_redis" {
-  source = "./modules/redis_workload"
-
-  workload         = "advisory_transactions"
-  environment      = var.environment
-  data_lake_bucket = var.data_lake_bucket
-  vpc_id           = var.sandbox_vpc_id
-  tags             = var.tags
-}
-
-# workload_pipeline's SFN role only knows about its own Lambdas (cycle if it
-# referenced these module outputs as inputs). Attach invoke here at the root.
-resource "aws_iam_role_policy" "sfn_extension_lambdas" {
-  name = "advisory_transactions-dev-sfn-extensions"
-  role = module.advisory_transactions.sfn_role_name
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Sid    = "InvokeExtensionLambdas"
-      Effect = "Allow"
-      Action = ["lambda:InvokeFunction"]
-      Resource = [
-        module.advisory_transactions_redshift.register_spectrum_lambda_arn,
-        module.advisory_transactions_opensearch.index_lambda_arn,
-        module.advisory_transactions_redis.cache_lambda_arn,
-      ]
-    }]
-  })
-}
+# Extension sinks (Redshift / OpenSearch / Redis) are not hardcoded here.
+# Enable via compute.yaml `sinks:` + matching state_machine.spec.yaml flags,
+# then `python tools/ensure_terraform_module.py --workload {name}`.
+# See docs/EXTENDING_TO_NEW_SERVICES.md.
 
 # ---- Cost guardrail: single account-level budget alert (pilot's $25 threshold) ----
 resource "aws_budgets_budget" "pilot" {

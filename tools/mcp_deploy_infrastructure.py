@@ -86,13 +86,13 @@ def main(argv: list[str] | None = None) -> int:
         if not glue_arn or not lambda_arn:
             if dry:
                 glue_arn = glue_arn or f"arn:aws:iam::000000000000:role/{owners['name_prefix']}-glue-role"
-                lambda_arn = lambda_arn or f"arn:aws:iam::000000000000:role/{owners['name_prefix']}-lambda-role"
+                lambda_arn = lambda_arn or f"arn:aws:iam::000000000000:role/{owners['name_prefix']}-register-catalog-role"
             elif args.lf_only:
                 import boto3
 
                 iam = boto3.client("iam")
                 glue_arn = iam.get_role(RoleName=f"{owners['name_prefix']}-glue-role")["Role"]["Arn"]
-                lambda_arn = iam.get_role(RoleName=f"{owners['name_prefix']}-lambda-role")["Role"]["Arn"]
+                lambda_arn = iam.get_role(RoleName=f"{owners['name_prefix']}-register-catalog-role")["Role"]["Arn"]
             else:
                 print("ERROR: missing IAM role ARNs for LF grants", file=sys.stderr)
                 return 1
