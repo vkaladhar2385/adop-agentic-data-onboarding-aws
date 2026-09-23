@@ -52,4 +52,4 @@ Production Glue/PySpark and local pandas share the SAME config files, so demo
 behaviour cannot drift from what runs on AWS.
 
 **AWS:** SOX pilot with optional Redshift/OpenSearch/Redis extensions. Live SFN path and E2E history:
-`docs/STATUS.md`. MCP-first catalog cutover: `docs/MCP_CUTOVER.md`.
+`docs/STATUS.md`. MCP-first catalog ownership: `docs/MCP_GUARDRAILS.md`.

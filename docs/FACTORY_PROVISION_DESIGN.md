@@ -139,4 +139,4 @@ python tools/start_provision_api.py --workload supplier_lead_times --bucket adop
 
 ## Teardown
 
-`python tools/destroy_sandbox.py --yes` destroys `module.factory_provision` (SFN, CodeBuild, Lambdas). See [`PERSONAL_SANDBOX_RUNBOOK.md`](PERSONAL_SANDBOX_RUNBOOK.md).
+`python tools/destroy_sandbox.py --yes` destroys `module.factory_provision` (SFN, CodeBuild, Lambdas). See [`SANDBOX_LIFECYCLE.md`](SANDBOX_LIFECYCLE.md).

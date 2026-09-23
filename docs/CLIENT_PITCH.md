@@ -77,8 +77,9 @@ a few dollars of tokens and a consistent, auditable governance posture on every 
 - **Your guardrails:** Cedar policies + invariants (immutable Bronze, mandatory lineage,
   zone-scoped KMS, PII masking, quality gates) travel with every workload.
 
-See `AWS_CICD_FIT.md` for the integration diagram and the mapping to a typical
-enterprise landing zone.
+A landing-zone split (catalog and Lake Formation in one account, Glue and S3 in a
+consumer account, `sts:AssumeRole` between them) is item 5 in `ADAPTATION_GAP.md`.
+CI promotion through the client's pipeline is item 7.
 
 ## 6. The consulting offer (how we engage)
 

@@ -79,7 +79,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "error: remote(s) not configured: "
             + ", ".join(missing)
-            + "\nAdd with: git remote add <name> <url>\nSee docs/GIT_REMOTES.md",
+            + "\nAdd with: git remote add origin <personal-url>"
+            + "\n         git remote add perficient <corporate-url>",
             file=sys.stderr,
         )
         return 1

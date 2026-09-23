@@ -135,9 +135,7 @@ Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · No-laptop provi
 | [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) | Client narrative |
 | [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) | Demo timing, keep vs destroy |
 | [`docs/API_ONLY_FACTORY.md`](docs/API_ONLY_FACTORY.md) | Harness-only provision demo (Option B) |
-| [`docs/CLIENT_DEMO_RUNBOOK.md`](docs/CLIENT_DEMO_RUNBOOK.md) | Live client script (Acts 1–6) |
-| [`docs/PERSONAL_SANDBOX_RUNBOOK.md`](docs/PERSONAL_SANDBOX_RUNBOOK.md) | Personal account: rebuild → demo → destroy ($0 idle) |
-| [`docs/GIT_REMOTES.md`](docs/GIT_REMOTES.md) | Push to personal + corporate remotes |
+| [`docs/CLIENT_DEMO_RUNBOOK.md`](docs/CLIENT_DEMO_RUNBOOK.md) | Live client script (Acts 1–5; Act 6 points at the API script) |
 | [`iac/terraform/APPLY_GUIDE.md`](iac/terraform/APPLY_GUIDE.md) | Terraform apply / verify |
 
 Presenting? [`docs/presentations/adop-client-deck.html`](docs/presentations/adop-client-deck.html) ·

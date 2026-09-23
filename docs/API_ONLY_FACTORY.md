@@ -6,7 +6,7 @@
 **Typical runtime:** ~20–25 minutes (CodeBuild full deploy + workload E2E)  
 **Status:** Green in sandbox (Harness → `trigger_provision` → factory SFN → CodeBuild → workload pipeline **SUCCEEDED**).
 
-**Related:** architecture and components → [`FACTORY_PROVISION_DESIGN.md`](FACTORY_PROVISION_DESIGN.md) · Harness setup → [`MODE_C1_HARNESS.md`](MODE_C1_HARNESS.md) · laptop demo → [`CLIENT_DEMO_RUNBOOK.md`](CLIENT_DEMO_RUNBOOK.md) Act 6.
+**Related:** architecture and components → [`FACTORY_PROVISION_DESIGN.md`](FACTORY_PROVISION_DESIGN.md) · Harness setup → [`MODE_C1_HARNESS.md`](MODE_C1_HARNESS.md) · laptop demo → [`CLIENT_DEMO_RUNBOOK.md`](CLIENT_DEMO_RUNBOOK.md) (Acts 1–5).
 
 ---
 
@@ -224,7 +224,7 @@ After demo (personal account — stop all spend):
 python tools/destroy_sandbox.py --yes --profile aws-agent
 ```
 
-Includes factory SFN, CodeBuild, and factory Lambdas. Full personal-account guide → [`PERSONAL_SANDBOX_RUNBOOK.md`](PERSONAL_SANDBOX_RUNBOOK.md).
+Includes factory SFN, CodeBuild, and factory Lambdas. Personal-account cost rules → [`SANDBOX_LIFECYCLE.md`](SANDBOX_LIFECYCLE.md).
 
 ---
 

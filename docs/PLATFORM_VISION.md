@@ -120,7 +120,7 @@ Streaming-lite (Kinesis → S3, Lambda) may appear as a **future profile**, not 
 
 - Introduce `pipeline_profile` in config (`medallion` default)
 - Job / workload **registry** (YAML or DynamoDB)
-- Document rebuild path: factory resync vs full Terraform ([`PERSONAL_SANDBOX_RUNBOOK.md`](PERSONAL_SANDBOX_RUNBOOK.md))
+- Document rebuild path: factory resync vs full Terraform ([`SANDBOX_LIFECYCLE.md`](SANDBOX_LIFECYCLE.md))
 - Medallion remains **Profile A** — no regression
 
 ### Phase 2 — Second profile (~3–4 weeks)

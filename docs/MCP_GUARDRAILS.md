@@ -116,8 +116,8 @@ Recommended first cutover slice: **Glue catalog + LF only**, keeping jobs/SFN in
 **Done for factory SKUs:** `infrastructure.catalog/kms/iam/lakeformation.owner: mcp` in
 `compute.yaml`; generated `workloads_{name}.tf` and `advisory_transactions` in `main.tf`
 pass `catalog_owner` / `kms_owner` / `iam_owner` / `lakeformation_owner` = `"mcp"`.
-CLI: `tools/mcp_deploy_infrastructure.py`. Runbook: `docs/MCP_CUTOVER.md` (needed only
-when flipping a resource that already exists in Terraform state).
+CLI: `tools/mcp_deploy_infrastructure.py`. If that resource is already in Terraform
+state, `terraform state rm` the address before MCP creates it. A fresh sandbox skips this.
 
 ---
 
@@ -126,6 +126,6 @@ when flipping a resource that already exists in Terraform state).
 | Doc | Purpose |
 |---|---|
 | `TOOL_ROUTING.md` | Phase → tool map, ownership table |
-| `docs/MCP_CUTOVER.md` | advisory_transactions state rm + deploy order |
+| `docs/MCP_WIRING.md` | Install the 13 servers and switch Cursor MCP mode |
 | `docs/TRACK_B.md` | Official ADOP comparison |
 | `docs/PILOT_FAILURES_AND_FIXES.md` | Sandbox lessons |

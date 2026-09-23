@@ -1,84 +1,61 @@
 # Demo runbook — time, cost, what to keep
 
-**Sandbox lifecycle:** prefer `python tools/provision_sandbox.py --bucket …` to bring up Gateway +
-workloads, and `python tools/destroy_sandbox.py --yes` when done. See `docs/SANDBOX_LIFECYCLE.md`.
-**Live client script:** `docs/CLIENT_DEMO_RUNBOOK.md`.
+**Live client script:** `docs/CLIENT_DEMO_RUNBOOK.md` (laptop) and `docs/API_ONLY_FACTORY.md` (Harness).
+**Sandbox up/down:** `docs/SANDBOX_LIFECYCLE.md`.
 
-## 1. From-scratch time (clean replay, credentials already logged in)
+The catalog-only demo (`supplier_lead_times`) does not create the hourly services below.
+This page is the cost table for when `advisory_transactions` sinks are turned on.
 
-A **first-time** `terraform apply` in an empty account is dominated by
-OpenSearch, not by Glue or Step Functions.
+## 1. From-scratch time (extensions on)
+
+A first `terraform apply` in an empty account is dominated by OpenSearch, not by Glue or Step Functions.
 
 | Step | Wall clock | Notes |
 |---|---|---|
-| `python tools/package_and_sync.py` | 2–4 min | Uploads scripts + 5 Lambda zips |
+| `python tools/package_and_sync.py` | 2–4 min | Uploads scripts + Lambda zips |
 | Terraform: S3/IAM/KMS/Glue/SFN/Lambda/SNS | 3–5 min | Cheap, fast |
 | Terraform: ElastiCache Redis | 5–10 min | Single `cache.t3.micro` |
 | Terraform: Redshift Serverless | 3–8 min | Namespace + workgroup ENIs |
 | Terraform: OpenSearch domain | **15–25 min** | One-node `t3.small.search` |
 | One-time Lake Formation grants + Athena workgroup | 2–5 min | Admin must be an LF admin |
-| First Step Functions run | 6–12 min | Mixed Glue ETL (Iceberg transforms) + Python Shell quality gates + Lambdas |
-| **Total, no surprises** | **~35–50 min** | |
+| First Step Functions run | 6–12 min | Glue ETL (Iceberg) + Python Shell quality gates + Lambdas |
+| **Total, no surprises** | **~35–50 min** | With OpenSearch + Redis + Redshift |
 
-The first time we did this it took **hours**, almost all of it credential
-expiry, Glue Python Shell packaging, and ASL/IAM bugs. Those are now fixed
-in code. A clean replay should stay in the 35–50 minute band **if** the SSO
-session stays alive (OpenSearch create is longer than a typical `aws login`
-token).
+A clean replay stays in that band if the SSO session stays alive. OpenSearch create is longer than a typical `aws login` token.
 
-## 2. If 35–50 minutes is too long before a client demo
+## 2. Keep vs destroy
 
-**Do not destroy the cheap, slow-to-recreate control plane.** Destroy only the
-three always-on hourly services.
+Extension modules are **off by default** (`compute.yaml` `sinks.*: false`). Turn a sink on only for that demo, then set it back to `false` and apply so Terraform destroys the module.
 
 ### Keep (near-zero idle cost; slow or painful to recreate)
 
 | Resource | Why keep |
 |---|---|
-| S3 data-lake bucket + landing/bronze/silver/gold objects | $0.00-something/day; landing CSV is the demo input |
-| Glue database + tables + LF-Tags | Recreating tags/grants is fiddly (LF admin) |
+| S3 data-lake bucket + landing/bronze/silver/gold objects | Pennies per day; landing file is the demo input |
+| Glue database + tables + LF-Tags | Recreating tags and grants is fiddly (LF admin) |
 | KMS CMKs (`alias/advisory_transactions-*`) | **Deletion window is 7 days** — destroying them still bills for a week |
-| IAM roles/policies (Glue, SFN, Lambdas, Spectrum) | Instant to recreate, but coupled to LF grants |
+| IAM roles/policies (Glue, SFN, Lambdas, Spectrum) | Fast to recreate, coupled to LF grants |
 | Step Functions + EventBridge + SNS + budget | Pennies |
-| Lambda functions + their S3 zips | Pennies; code is already packaged |
-| Glue job definitions | Pennies; 0.0625 DPU only when a job runs |
+| Lambda functions + their S3 zips | Pennies |
+| Glue job definitions | Pennies; DPU only while a job runs |
 | S3 Gateway VPC endpoint | Free (gateway type) |
-| Athena `primary` workgroup output location | One CLI call, but easy to forget in the room |
+| Athena `primary` workgroup output location | One CLI call, easy to forget in the room |
 
-### Destroy before the idle period / recreate the morning of the demo
+### Destroy before the idle period
 
 | Resource | Why destroy | Recreate time |
 |---|---|---|
 | OpenSearch `advisory-dev-search` | Largest hourly cost | **15–25 min** |
 | ElastiCache Redis `advisory-transactions-dev-cache` | Always-on node | 5–10 min |
-| Redshift Serverless workgroup + namespace | RPUs while active / resume | 3–8 min |
+| Redshift Serverless workgroup + namespace | RPUs while active | 3–8 min |
 
-Comment out is no longer needed: extension modules are **off by default**
-(`compute.yaml` `sinks.*: false`). To demo them, set a flag to `true`, match
-`state_machine.spec.yaml`, regenerate TF + SFN JSON, then `terraform apply`.
-To stop hourly cost, set flags back to `false`, regenerate, and apply (Terraform
-destroys the modules).
+The core pipeline (Glue → Athena → LF-Tags → verifier) still runs with all sinks false.
 
-The **core** pipeline (Glue → Athena → LF-Tags → verifier lake checks) still
-runs with all sinks false.
-
-**Morning-of-demo sequence (extensions off overnight):**
-
-1. `aws login --profile aws-agent` (keep the session alive).
-2. Uncomment the three modules; `terraform apply` (~20–30 min, OpenSearch).
-3. `python tools/package_and_sync.py --workload advisory_transactions` if any
-   Lambda code changed.
-4. Start `advisory_transactions_pipeline` (~7 min).
-5. Athena: `SELECT * FROM fact_transactions LIMIT 20;`
-
-## 3. What a “cheap core-only” demo still shows
-
-Without OpenSearch/Redis/Redshift you can still show:
+## 3. What a core-only demo still shows
 
 - Step Functions graph, Glue job runs, S3 medallion prefixes
 - Athena on `fact_transactions` / `silver_advisory_transactions`
 - Lake Formation LF-Tags on `client_ssn` / `client_email` / `client_name`
 - Quality gates and quarantine CSV
 
-That is enough for a 15-minute client walkthrough. Bring the three extensions
-back when you want “warehouse + search + cache” in the same run.
+That covers a 15-minute walkthrough. Bring the three extensions back when the room needs warehouse, search, and cache in the same run.
