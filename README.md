@@ -132,14 +132,20 @@ Harness: [`docs/MODE_C1_HARNESS.md`](docs/MODE_C1_HARNESS.md) · No-laptop provi
 | [`docs/SANDBOX_LIFECYCLE.md`](docs/SANDBOX_LIFECYCLE.md) | Provision / destroy one command |
 | [`docs/MCP_WIRING.md`](docs/MCP_WIRING.md) | 13 MCP servers + Gateway (14 targets), Cursor `.mcp.json` |
 | [`docs/PLATFORM_VISION.md`](docs/PLATFORM_VISION.md) | North star, AWS scope (no EMR), roadmap, pitch language |
-| [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) | Client narrative |
-| [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) | Demo timing, keep vs destroy |
+| [`docs/demo/README.md`](docs/demo/README.md) | **Demo kit hub** — slides, runbooks, cheatsheet |
 | [`docs/API_ONLY_FACTORY.md`](docs/API_ONLY_FACTORY.md) | Harness-only provision demo (Option B) |
-| [`docs/CLIENT_DEMO_RUNBOOK.md`](docs/CLIENT_DEMO_RUNBOOK.md) | Live client script (Acts 1–5; Act 6 points at the API script) |
 | [`iac/terraform/APPLY_GUIDE.md`](iac/terraform/APPLY_GUIDE.md) | Terraform apply / verify |
 
-Presenting? [`docs/presentations/adop-client-deck.html`](docs/presentations/adop-client-deck.html) ·
-[`docs/presentations/conventional-vs-agentic-adop.html`](docs/presentations/conventional-vs-agentic-adop.html)
+Presenting? → [`docs/demo/README.md`](docs/demo/README.md) (all decks under `docs/demo/presentations/`)
+
+| Deck | Use when |
+|------|----------|
+| [`demo-laptop-hybrid-deck.html`](docs/demo/presentations/demo-laptop-hybrid-deck.html) | **Live demo** — laptop + hybrid MCP, mixed audience (Parts 1–3) |
+| [`adop-client-deck.html`](docs/demo/presentations/adop-client-deck.html) | Client pitch — pattern, ROI, engagement model |
+| [`executive-sandbox-deck.html`](docs/demo/presentations/executive-sandbox-deck.html) | Executive summary — sandbox proof, 3 deploy paths |
+| [`conventional-vs-agentic-adop.html`](docs/demo/presentations/conventional-vs-agentic-adop.html) | Conventional vs agentic comparison |
+| [`adop-requirements-status.html`](docs/presentations/adop-requirements-status.html) | Factory requirements vs status |
+| [`adop-one-pager.html`](docs/demo/presentations/adop-one-pager.html) | Single-page leave-behind |
 
 ---
 
@@ -214,18 +220,20 @@ ADOP/
 │   └── switch_mcp_mode.py          <- local | hybrid | gateway
 ├── iac/terraform/                  <- modules: workload_pipeline, redshift, opensearch, redis
 ├── contracts/v1/                   <- JSON Schema for configs
-└── docs/                           <- STATUS, MCP_WIRING, SANDBOX_LIFECYCLE, …
+└── docs/
+    ├── demo/                       <- demo kit (runbooks, slides, cheatsheet)
+    └── …                           <- STATUS, MCP_WIRING, SANDBOX_LIFECYCLE, …
 ```
 
 ---
 
 ## Presenting to a client
 
-1. **Frame** — [`docs/CLIENT_PITCH.md`](docs/CLIENT_PITCH.md) or HTML deck.
+1. **Frame** — [`docs/demo/CLIENT_PITCH.md`](docs/demo/CLIENT_PITCH.md) or HTML deck.
 2. **Run local** — SOX pipeline quarantine demo; optional GDPR `web_events`.
 3. **Show factory** — specs, rendered scripts, Step Functions, Terraform, MCP health.
-4. **Quantify** — [`docs/BEFORE_AFTER.md`](docs/BEFORE_AFTER.md).
+4. **Quantify** — [`docs/demo/BEFORE_AFTER.md`](docs/demo/BEFORE_AFTER.md).
 5. **Agentic angle** — Gateway + Harness smoke test or hybrid MCP in Cursor.
 6. **Close** — [`docs/ADAPTATION_GAP.md`](docs/ADAPTATION_GAP.md); live AWS status in [`docs/STATUS.md`](docs/STATUS.md).
 
-Demo timing / overnight resources: [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
+Demo timing / overnight resources: [`docs/demo/DEMO_RUNBOOK.md`](docs/demo/DEMO_RUNBOOK.md).

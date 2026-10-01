@@ -1,6 +1,6 @@
 # Demo runbook — time, cost, what to keep
 
-**Live client script:** `docs/CLIENT_DEMO_RUNBOOK.md` (laptop) and `docs/API_ONLY_FACTORY.md` (Harness).
+**Live client script:** [`CLIENT_DEMO_RUNBOOK.md`](CLIENT_DEMO_RUNBOOK.md) (laptop) and [`../API_ONLY_FACTORY.md`](../API_ONLY_FACTORY.md) (Harness).
 **Sandbox up/down:** `docs/SANDBOX_LIFECYCLE.md`.
 
 The catalog-only demo (`supplier_lead_times`) does not create the hourly services below.

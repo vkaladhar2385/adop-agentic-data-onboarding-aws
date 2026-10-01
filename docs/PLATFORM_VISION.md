@@ -164,7 +164,8 @@ Do **not** claim “any DE workload” until **Phase 2** ships with a second gre
 | Doc | Topic |
 |-----|--------|
 | [`STATUS.md`](STATUS.md) | Milestones done / deferred |
-| [`CLIENT_PITCH.md`](CLIENT_PITCH.md) | Narrative for presentations |
+| [`demo/CLIENT_PITCH.md`](demo/CLIENT_PITCH.md) | Narrative for presentations |
+| [`demo/README.md`](demo/README.md) | Demo kit hub (slides, runbooks, cheatsheet) |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Current artifact map |
 | [`EXTENDING_TO_NEW_SERVICES.md`](EXTENDING_TO_NEW_SERVICES.md) | Adding Redshift / OpenSearch / Redis |
 | [`AGENTS.md`](../AGENTS.md) | Agent contract (medallion rules today) |

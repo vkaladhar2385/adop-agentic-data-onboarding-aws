@@ -4,8 +4,8 @@ This is the build/review reference for the repo: what exists, why it's shaped
 this way, how the pieces connect, and where the honest edges are. Read this
 before extending the pattern to a new workload or redeploying the sandbox.
 
-- Client-facing story: [`docs/CLIENT_PITCH.md`](CLIENT_PITCH.md)
-- Time/cost comparison: [`docs/BEFORE_AFTER.md`](BEFORE_AFTER.md)
+- Client-facing story: [`docs/demo/CLIENT_PITCH.md`](demo/CLIENT_PITCH.md)
+- Time/cost comparison: [`docs/demo/BEFORE_AFTER.md`](demo/BEFORE_AFTER.md)
 - What's demo-grade vs. enterprise-grade: [`docs/ADAPTATION_GAP.md`](ADAPTATION_GAP.md)
 - Sandbox provision / destroy: [`docs/SANDBOX_LIFECYCLE.md`](SANDBOX_LIFECYCLE.md)
 - Current milestone status: [`docs/STATUS.md`](STATUS.md)

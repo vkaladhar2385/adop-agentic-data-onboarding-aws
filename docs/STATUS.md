@@ -286,6 +286,6 @@ IngestToBronze → BronzeToSilver → SilverQualityGate → SilverToGold
 2. **Tier B files** — complete (Gateway manifest, Cedar, ontology, MWAA codegen, workload #5).
 3. **Live AWS** — redeploy when demoing: `python tools/provision_sandbox.py --bucket …` or
    `deploy_workload.py`; tear down with `destroy_sandbox.py` (`docs/SANDBOX_LIFECYCLE.md`).
-4. **Client demo script** — `docs/CLIENT_DEMO_RUNBOOK.md` (factory) + timing/cost in `docs/DEMO_RUNBOOK.md`.
+4. **Client demo script** — `docs/demo/README.md` hub · `docs/demo/CLIENT_DEMO_RUNBOOK.md` + timing/cost in `docs/demo/DEMO_RUNBOOK.md`.
 
 Historical Phase 3 sandbox narrative was removed; see `docs/PILOT_FAILURES_AND_FIXES.md` for resolved E2E issues.

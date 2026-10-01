@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADOP Demo — Presenter Q&amp;A (private)</title>
+  <style>
+    :root {
+      --navy:#1b2a4a; --slate:#4a5568; --line:#d8dee9; --bg:#f7f6f2;
+      --card:#fff; --teal:#0f6e6b; --ink:#1a1a1a; --green:#1a7f4c; --amber:#b45309;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin:0; height:100%; background:#111; color:var(--ink);
+      font-family:"Segoe UI", Calibri, system-ui, sans-serif;
+    }
+    .deck {
+      height:100%; display:flex; align-items:center; justify-content:center;
+      padding:24px 24px 64px;
+    }
+    .slide {
+      display:none; width:min(1120px, 96vw); aspect-ratio:16/9;
+      background:var(--bg); padding:32px 44px 24px;
+      flex-direction:column; overflow:hidden;
+      box-shadow:0 8px 32px rgba(0,0,0,.35);
+    }
+    .slide.active { display:flex; }
+    .slide-main { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:4px; }
+    h1 {
+      font-size:clamp(22px, 2.8vw, 28px); font-weight:650; color:var(--navy);
+      margin:0 0 8px; letter-spacing:-0.02em; line-height:1.15;
+    }
+    h2 {
+      font-size:clamp(18px, 2vw, 22px); font-weight:650; color:var(--navy);
+      margin:0 0 10px;
+    }
+    p, li { font-size:14px; line-height:1.4; color:var(--slate); margin:0 0 6px; }
+    .kicker {
+      font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--teal); font-weight:600; margin-bottom:6px;
+    }
+    .kicker.private { color:var(--amber); }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td {
+      text-align:left; padding:5px 8px; border-bottom:1px solid var(--line);
+      vertical-align:top;
+    }
+    th { color:var(--navy); font-weight:600; font-size:11px; width:34%; }
+    td q { font-style:normal; font-weight:600; color:var(--navy); }
+    .foot {
+      flex:0 0 auto; margin-top:8px; padding-top:8px;
+      border-top:1px solid var(--line); font-size:11px; color:#7a8494;
+      display:flex; justify-content:space-between; gap:16px;
+    }
+    .nav {
+      position:fixed; bottom:16px; right:20px; display:flex; gap:8px; z-index:10;
+    }
+    .nav button {
+      background:var(--navy); color:#fff; border:0;
+      padding:8px 14px; cursor:pointer; font-size:13px; border-radius:2px;
+    }
+    .hint {
+      position:fixed; bottom:20px; left:20px; font-size:11px; color:#aaa; z-index:10;
+    }
+    .callout {
+      border-left:3px solid var(--teal); padding:8px 12px;
+      background:#fff; margin:8px 0 0; font-size:13px;
+    }
+    .callout.warn {
+      border-left-color:var(--amber); background:#fffbeb;
+    }
+    .flow {
+      background:var(--card); border:1px solid var(--line);
+      padding:8px 12px; font-size:11px; line-height:1.45;
+      color:var(--navy); font-family:Consolas,"Courier New",monospace;
+      white-space:pre-wrap; margin:6px 0;
+    }
+    ul.tight { margin:0; padding-left:18px; }
+    ul.tight li { margin:3px 0; font-size:13px; }
+    .badge {
+      display:inline-block; font-size:10px; font-weight:600;
+      padding:2px 6px; border-radius:2px; margin-right:4px;
+    }
+    .badge.exec { background:#e0e7ff; color:#3730a3; }
+    .badge.tech { background:#d1fae5; color:var(--green); }
+    .badge.mix { background:#fef3c7; color:#92400e; }
+    .dense th, .dense td { font-size:11px; padding:4px 7px; }
+    .hitl th:nth-child(1) { width:14%; }
+    .hitl th:nth-child(2) { width:36%; }
+    .hitl th:nth-child(3) { width:10%; }
+    .hitl th:nth-child(4) { width:40%; }
+    code { font-size:10px; background:#eee; padding:1px 4px; }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide active">
+  <div class="slide-main">
+    <div class="kicker private">Presenter only · do not share screen</div>
+    <h1>Q&amp;A cheat sheet for hybrid laptop demo</h1>
+    <p>Companion to <strong>demo-laptop-hybrid-deck.html</strong> — keep on your laptop while the audience sees the main deck or live terminal.</p>
+    <div class="callout warn"><strong>Setup:</strong> Main deck on projector / audience monitor · this file on your private screen (second window or Alt-Tab).</div>
+    <ul class="tight">
+      <li><strong>Slide 2</strong> — Exec + mixed questions (Slide 1 opener)</li>
+      <li><strong>Slide 3</strong> — Technical questions (Slide 1 opener)</li>
+      <li><strong>Slide 4</strong> — Pilot / “before you continue” questions</li>
+      <li><strong>Slide 5</strong> — “Drift-checked scripts” example + 30 sec demo beat</li>
+      <li><strong>Slide 6</strong> — <strong>HITL</strong> — what human does + main-deck slide / command map</li>
+      <li><strong>Slide 7</strong> — Main deck Slide 6 — MCP vs Terraform questions</li>
+      <li><strong>Slide 8</strong> — Main deck Slide 7 — hybrid MCP / Gateway questions</li>
+      <li><strong>Slide 9</strong> — Pivot lines — defer without losing flow</li>
+    </ul>
+    <p style="font-size:12px; margin-top:10px;">← → or Space · F11 on whichever window is focused</p>
+  </div>
+  <div class="foot"><span>docs/demo/CLIENT_DEMO_RUNBOOK.md</span><span>1 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker"><span class="badge exec">Exec</span> After main deck Slide 1</div>
+    <h2>Business &amp; risk questions</h2>
+    <table>
+      <tr><th>Question</th><th>One-line answer</th></tr>
+      <tr><td><q>What problem are you solving?</q></td><td>One governed feed = weeks of bespoke Glue, inconsistent quality, IaC/LF/PII redone every time. Factory repeats the same pattern from specs.</td></tr>
+      <tr><td><q>ROI?</q></td><td>Illustrative ~14 engineer-days → ~0.5 day per source once pattern is in place. See <code>docs/demo/BEFORE_AFTER.md</code>.</td></tr>
+      <tr><td><q>Replace our data engineers?</q></td><td>No — they own discovery, business rules, approval. Factory removes boilerplate and enforces governance.</td></tr>
+      <tr><td><q>Production-ready?</q></td><td>Pattern proven here; client adapts IAM, VPC, modules, compliance. Pilot → enable your team.</td></tr>
+      <tr><td><q>Lock-in?</q></td><td>Specs + templates in git; Terraform + Glue/Iceberg runtime. Portable, not black-box SaaS.</td></tr>
+      <tr><td><q>Cost?</q></td><td>Serverless per run; demo ~$2–5; destroy sandbox — $0 idle.</td></tr>
+      <tr><td><q>vs Databricks / Snowflake?</q></td><td>Complementary — AWS-native lakehouse <strong>onboarding factory</strong>, not a warehouse replacement.</td></tr>
+      <tr><td><q>Security / compliance?</q></td><td>PII/SOX rules in YAML; LF tags, KMS, gates before promotion. Humans confirm PII in discovery — we don’t guess.</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span>Then → main deck Slide 2 (three layers) or live demo</span><span>2 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker"><span class="badge tech">Tech</span> After main deck Slide 1</div>
+    <h2>Technical questions</h2>
+    <table>
+      <tr><th>Question</th><th>One-line answer</th></tr>
+      <tr><td><q>What is drift-checked?</q></td><td>Generated <code>.py</code> has <code>spec_hash</code> header. CI re-renders from YAML; fails if file ≠ spec. → Slide 5 here for example.</td></tr>
+      <tr><td><q>What’s in YAML specs?</q></td><td>Human: source, transforms, quality, compute. Machine: <code>config/codegen/*.spec.yaml</code>. Show folder in Live Part 1 (slide 9).</td></tr>
+      <tr><td><q>Who approves?</q></td><td>Discovery: human answers before codegen. Deploy: explicit “I approve deploy” before AWS changes.</td></tr>
+      <tr><td><q>Why Iceberg?</q></td><td>ACID on S3, time travel, Glue catalog. Silver/Gold writes need Spark (<code>glueetl</code>).</td></tr>
+      <tr><td><q>Quality gates 0.80 / 0.95?</q></td><td>Silver ≥ 0.80, Gold ≥ 0.95 before SFN continues. Rule scores from <code>quality_rules.yaml</code>, not checksums.</td></tr>
+      <tr><td><q>Agent autonomous?</q></td><td>No — HITL discovery, deploy gate, write guard blocks direct edits to generated scripts.</td></tr>
+      <tr><td><q>Spec wrong?</q></td><td>pytest + drift + validators locally; gates catch bad data. Wrong <strong>business</strong> rules still need human discovery.</td></tr>
+      <tr><td><q>MCP vs Terraform?</q></td><td>MCP: catalog, LF, metadata. Terraform: Glue <strong>jobs</strong>, Lambda, Step Functions. Jobs always TF in Track A.</td></tr>
+      <tr><td><q>Why hybrid MCP?</q></td><td>Cursor local; Gateway for cloud deploy tools. Operations layer only — Glue runs in AWS after deploy.</td></tr>
+      <tr><td><q>Real or toy data?</q></td><td><code>supplier_lead_times</code> = factory acceptance SKU, real CSV pattern, catalog-only Gold, low cost.</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span>Drift detail → presenter slide 5</span><span>3 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker"><span class="badge mix">Mixed</span> Pilot &amp; scope</div>
+    <h2>Before you move to Slide 2</h2>
+    <table>
+      <tr><th>Question</th><th>One-line answer</th></tr>
+      <tr><td><q>Plug into our existing lake?</q></td><td>Yes — same S3/Glue/LF model; map buckets, roles, modules. See <code>docs/ADAPTATION_GAP.md</code>.</td></tr>
+      <tr><td><q>How long for our first feed?</q></td><td>Discovery is still human time; catalog-only CSV deploy is what we show in ~30 min. Enterprise cutover = pilot scope.</td></tr>
+      <tr><td><q>What do you need from us?</q></td><td>Sample data, PII classification, transform rules, schedule, AWS sandbox — discovery answers, not guesswork.</td></tr>
+      <tr><td><q>What will we see today?</q></td><td>Specs in repo → render + tests → you approve → one deploy → green SFN → optional Athena → teardown.</td></tr>
+      <tr><td><q>What is MCP / Gateway?</q></td><td>Agent tool bus for deploy — not the data pipeline. → main deck Slide 2 (three layers).</td></tr>
+      <tr><td><q>Show architecture?</q></td><td>Main deck Slide 3 — inline build → deploy → run flow (Factory / Operations / Pipeline).</td></tr>
+    </table>
+    <p class="callout" style="font-size:12px; margin-top:8px;"><strong>Rule:</strong> One sentence + “I’ll show that live in two minutes” — don’t stall the demo.</p>
+  </div>
+  <div class="foot"><span>Summary also on main deck slide 12 (3 themes)</span><span>4 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main">
+    <div class="kicker">Deep dive · if asked on Slide 1</div>
+    <h2>“Drift-checked scripts” — example</h2>
+    <p style="font-size:13px;"><strong>Chain:</strong> <code>transformations.yaml</code> → <code>config/codegen/bronze_to_silver.spec.yaml</code> → template → <code>scripts/transform/bronze_to_silver.py</code></p>
+    <div class="flow"># spec_hash: 648e102f...   ← fingerprint of spec YAML
+# template_id: bronze_to_silver
+# rendered_at: 2026-09-15T05:10:41Z
+→ Hand-edit .py without updating spec → CI FAIL</div>
+    <p style="font-size:13px;"><strong>Commands (Live Part 1 or if challenged):</strong></p>
+    <div class="flow">python tools/render_workload.py --workload supplier_lead_times --all --check-drift
+python tools/check_codegen_drift.py   # CI runs this for all workloads</div>
+    <ul class="tight">
+      <li><strong>Pass:</strong> <code>OK no drift: ...</code></li>
+      <li><strong>Fail:</strong> <code>spec_hash mismatch</code> or <code>body drift</code></li>
+      <li><strong>Guard:</strong> Cursor write guard blocks direct edits to generated scripts — change spec, re-render</li>
+    </ul>
+    <p class="callout" style="font-size:12px;"><strong>Say:</strong> “Spec drives code. If the committed script doesn’t match the spec, nothing ships.”</p>
+  </div>
+  <div class="foot"><span>workloads/supplier_lead_times/scripts/transform/bronze_to_silver.py</span><span>5 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">HITL · Human-in-the-Loop</div>
+    <h2>What the human does — slide &amp; command map</h2>
+    <p style="font-size:12px; margin:0 0 6px;"><strong>HITL</strong> = human answers rules + explicit approve gates. Agent does not guess PK/PII/dedup or deploy without approval. Demo SKU: <code>supplier_lead_times</code> (discovery pre-done — walk <code>config/</code>, don’t re-ask 20 min).</p>
+    <table class="hitl dense">
+      <tr><th>When</th><th>Human does</th><th>Main</th><th>Command / file</th></tr>
+      <tr><td>Opener</td><td>Frame what / why / how</td><td>1</td><td>—</td></tr>
+      <tr><td>Map</td><td>Explain Pipeline · Factory · Operations</td><td>2</td><td>—</td></tr>
+      <tr><td>Timeline</td><td>Point at APPROVE in deploy box</td><td>3</td><td>—</td></tr>
+      <tr><td>Pipeline ex.</td><td>Good vs bad row story</td><td>4</td><td>—</td></tr>
+      <tr><td>Factory</td><td>Show human YAML vs generated artifacts</td><td>5</td><td><code>workloads/supplier_lead_times/config/</code></td></tr>
+      <tr><td>Part 1 · Build</td><td>Walk Phase 1 answers (already captured)</td><td>5, 9</td><td><code>.discovery_complete</code> · source · transforms · quality</td></tr>
+      <tr><td>Part 1 · Build</td><td>Run factory proof (not hand-written Glue)</td><td>5, 9</td><td><code>render_workload.py ... --check-drift</code></td></tr>
+      <tr><td>Part 1 · Build</td><td>Confirm tests pass on human rules</td><td>5, 9</td><td><code>pytest workloads/supplier_lead_times/tests/ -v</code></td></tr>
+      <tr><td>Part 2 · Deploy</td><td><strong>Say aloud: “I approve deploy”</strong></td><td>3, 10</td><td>Then <code>deploy_workload.py ... --auto-provision</code></td></tr>
+      <tr><td>Part 3 · Verify</td><td>Human verifies green + spot-check</td><td>4, 11</td><td>SFN console · optional Athena COUNT</td></tr>
+      <tr><td>Close</td><td>Approve teardown</td><td>13</td><td><code>destroy_sandbox.py --yes</code></td></tr>
+    </table>
+    <p class="callout" style="font-size:11px; margin-top:6px;"><strong>Discovery → YAML (human owns):</strong> source · PK/dedup · transforms/quarantine · PII · quality thresholds · schedule · compute. <strong>New workload:</strong> <code>/onboard-workflow</code> — 6 question groups before build.</p>
+    <p class="callout warn" style="font-size:11px; margin-top:4px;"><strong>Human never:</strong> hand-edit generated <code>.py</code> · deploy without approve · let agent infer business rules from column names.</p>
+  </div>
+  <div class="foot"><span>.cursor/commands/onboard-workflow.md · main deck slide 5</span><span>6 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Main deck Slide 6</div>
+    <h2>MCP vs Terraform — likely questions</h2>
+    <table>
+      <tr><th>Question</th><th>One-line answer</th></tr>
+      <tr><td><q>Why two tools?</q></td><td>MCP = agent catalog/LF/metadata tools. TF = Glue <strong>jobs</strong>, SFN, Lambda — no MCP create for those in Track A. One owner per ARN.</td></tr>
+      <tr><td><q>Does MCP create Glue jobs?</q></td><td><strong>No.</strong> MCP creates database/tables. Terraform creates job definitions that point at synced scripts.</td></tr>
+      <tr><td><q>What runs first?</q></td><td>Validate/drift → sync scripts to S3 → MCP catalog/LF → you APPROVE → terraform apply → SFN.</td></tr>
+      <tr><td><q>Can we use Terraform only?</q></td><td>Yes — set <code>owner: terraform</code> in <code>compute.yaml</code> for a slice; must match generated <code>.tf</code> (CI checks).</td></tr>
+      <tr><td><q>Who owns IAM/KMS?</q></td><td>Default MCP in factory SKUs; declared in <code>compute.yaml</code>. Client may flip to TF for enterprise module fit.</td></tr>
+      <tr><td><q>Is this production IaC?</q></td><td>Pattern + generated modules; client maps to their TF pipelines and approval gates.</td></tr>
+      <tr><td><q>What if MCP fails?</q></td><td>Phase 0 health check before deploy; fix Gateway/profile — don’t apply TF with half catalog.</td></tr>
+      <tr><td><q>vs our existing Terraform?</q></td><td>Same runtime assets — factory generates <code>workloads_*.tf</code> module; you merge into existing root module.</td></tr>
+    </table>
+    <p class="callout" style="font-size:11px; margin-top:6px;"><strong>Say:</strong> “Metadata via MCP agents; compute via Terraform — declared in compute.yaml, not ad hoc.”</p>
+  </div>
+  <div class="foot"><span>TOOL_ROUTING.md · MCP_GUARDRAILS.md</span><span>7 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Main deck Slide 7</div>
+    <h2>Hybrid MCP / Gateway — likely questions</h2>
+    <table>
+      <tr><th>Question</th><th>One-line answer</th></tr>
+      <tr><td><q>Is MCP the pipeline?</q></td><td><strong>No.</strong> MCP = agent tool bus (Operations). Pipeline = Glue + SFN in AWS (Slide 4).</td></tr>
+      <tr><td><q>Does data run on my laptop?</q></td><td><strong>No.</strong> Hybrid only changes how Cursor calls deploy tools. Bronze→Gold runs in AWS after deploy.</td></tr>
+      <tr><td><q>local vs hybrid vs gateway?</q></td><td><strong>local</strong> = all stdio on laptop. <strong>hybrid</strong> = Gateway + some local (demo default). <strong>gateway</strong> = all cloud MCP.</td></tr>
+      <tr><td><q>Why hybrid for demo?</q></td><td>Cloud glue-athena/LF without running 13 local processes; still laptop-led story.</td></tr>
+      <tr><td><q>What is AgentCore Gateway?</q></td><td>AWS-hosted MCP endpoint — Lambda targets behind one Gateway URL (via stdio proxy in Cursor).</td></tr>
+      <tr><td><q>Slide 6 vs Slide 7?</q></td><td>Slide 6 = <strong>what</strong> MCP creates. Slide 7 = <strong>how</strong> Cursor connects to MCP.</td></tr>
+      <tr><td><q>Gateway error in Cursor?</q></td><td>Use stdio proxy: <code>switch_mcp_mode.py --mode gateway --aws-profile aws-agent</code>, Reload Window, <code>verify_gateway_mcp.py</code>.</td></tr>
+      <tr><td><q>Can we skip Gateway?</q></td><td>Yes — <code>local</code> mode + Part 1 works; deploy still uses MCP stdio or TF per compute.yaml.</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span>MODE_B_SETUP.md · FACTORY_LEARNING_GUIDE Step 1</span><span>8 / 9</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main">
+    <div class="kicker">Stay on schedule</div>
+    <h2>Pivot lines — defer without losing credibility</h2>
+    <table class="dense">
+      <tr><th>If they ask…</th><th>Say…</th><th>Then show…</th></tr>
+      <tr><td>Drift / specs / codegen</td><td>“Short answer on my screen — full proof in Part 1.”</td><td><code>config/</code> + <code>--check-drift</code></td></tr>
+      <tr><td>MCP / hybrid / Gateway</td><td>“Gateway is the agent tool bus, not the pipeline.”</td><td>Main Slide 2 or MCP panel 30 sec</td></tr>
+      <tr><td>Architecture / flow</td><td>“Left = factory; middle = approve + deploy; right = pipeline in AWS.”</td><td>Main Slide 3 SVG</td></tr>
+      <tr><td>ROI / before-after</td><td>“~14 days → ~half day illustrative; pattern is the point.”</td><td>Slide 1 compare boxes</td></tr>
+      <tr><td>Production / lock-in / cost</td><td>One line from tables above</td><td>Main Slide 12 Q&amp;A if needed</td></tr>
+      <tr><td>Deep SOX / GDPR workloads</td><td>“Same factory; different specs — advisory_transactions, web_events.”</td><td>Main Slide 8 mention only</td></tr>
+    </table>
+    <p class="callout" style="font-size:12px; margin-top:10px;"><strong>Close opener:</strong> “Let’s run it.” → main deck Slide 2 or straight to Live Part 1 (slide 9).</p>
+  </div>
+  <div class="foot"><span>demo-laptop-hybrid-deck.html · HITL → 6 · MCP/TF → 7 · Gateway → 8</span><span>9 / 9</span></div>
+</section>
+
+</div>
+<div class="hint">← → Space · private window — not for projector</div>
+<div class="nav">
+  <button type="button" onclick="go(-1)">Prev</button>
+  <button type="button" onclick="go(1)">Next</button>
+</div>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  }
+  function go(d) { show(i + d); }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+  });
+</script>
+</body>
+</html>

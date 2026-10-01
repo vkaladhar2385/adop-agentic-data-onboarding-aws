@@ -63,7 +63,7 @@ If dry-run fails: stop and fix artifacts. Do not touch AWS.
 
 ### Group 3 — Runbook
 
-- Point at `docs/DEMO_RUNBOOK.md` + `docs/PILOT_FAILURES_AND_FIXES.md`.
+- Point at `docs/demo/DEMO_RUNBOOK.md` + `docs/PILOT_FAILURES_AND_FIXES.md`.
 - Add a short `workloads/{name}/README.md` ops section if missing (local pytest, dry-run deploy, no apply).
 
 ---

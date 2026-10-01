@@ -336,7 +336,7 @@ Optional extensions (per workload): Redshift Spectrum, OpenSearch, Redis — see
 After deploy verification passes, offer (do not skip):
 
 1. **E2E pipeline test** — full Step Functions run on AWS with row-count / Athena spot-check
-2. **DevOps follow-up** — dashboards, SNS routing, runbook updates (`docs/DEMO_RUNBOOK.md`)
+2. **DevOps follow-up** — dashboards, SNS routing, runbook updates (`docs/demo/DEMO_RUNBOOK.md`)
 
 ---
 

@@ -114,7 +114,7 @@ python tools/destroy_sandbox.py --yes --no-extensions       # Skip OpenSearch/Re
 
 Idle AgentCore Gateway + Lambdas cost very little; **Bedrock Harness invocations** and **OpenSearch/Redshift** (if extensions applied) cost more. Use `destroy_sandbox.py --yes` when done demoing.
 
-**Personal account:** set a **$5/month** budget alert before the first demo, and run `destroy_sandbox.py --yes` after every demo. Do not leave Gateway, the factory, or workloads up overnight. Skip `advisory_transactions` OpenSearch, Redshift, Redis, and MWAA — those bill by the hour. The Option B demo (`supplier_lead_times`) does not need them. KMS CMKs stay in a **7-day** pending-deletion window if destroyed (see `docs/DEMO_RUNBOOK.md`).
+**Personal account:** set a **$5/month** budget alert before the first demo, and run `destroy_sandbox.py --yes` after every demo. Do not leave Gateway, the factory, or workloads up overnight. Skip `advisory_transactions` OpenSearch, Redshift, Redis, and MWAA — those bill by the hour. The Option B demo (`supplier_lead_times`) does not need them. KMS CMKs stay in a **7-day** pending-deletion window if destroyed (see `docs/demo/DEMO_RUNBOOK.md`).
 
 ---
 

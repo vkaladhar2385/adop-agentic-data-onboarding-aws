@@ -7,9 +7,9 @@ specs → render → deploy → E2E pipeline on AWS. Default demo workload:
 **Prerequisites:** AWS profile `aws-agent` (or your sandbox profile), Cursor with MCP
 loaded, ~$2–5 sandbox spend for one deploy + one pipeline run.
 
-**Related:** timing/cost/keep-vs-destroy → `docs/DEMO_RUNBOOK.md` · full sandbox up/down →
-`docs/SANDBOX_LIFECYCLE.md` · Gateway hybrid → `docs/MODE_B_SETUP.md` · Harness API →
-`docs/MODE_C1_HARNESS.md` · **no-laptop provision** → `docs/API_ONLY_FACTORY.md`.
+**Related:** timing/cost/keep-vs-destroy → [`DEMO_RUNBOOK.md`](DEMO_RUNBOOK.md) · full sandbox up/down →
+[`../SANDBOX_LIFECYCLE.md`](../SANDBOX_LIFECYCLE.md) · Gateway hybrid → [`../MODE_B_SETUP.md`](../MODE_B_SETUP.md) · Harness API →
+[`../MODE_C1_HARNESS.md`](../MODE_C1_HARNESS.md) · **no-laptop provision** → [`../API_ONLY_FACTORY.md`](../API_ONLY_FACTORY.md).
 
 ---
 
@@ -71,7 +71,7 @@ What `--auto-provision` does:
 - `terraform apply` → Glue jobs, Lambdas, Step Functions, EventBridge, SNS
 - Uploads landing CSV → starts SFN → polls to **SUCCEEDED**
 
-**Talking point:** Terraform is fallback; catalog/KMS/IAM/LF can be MCP-first (`docs/MCP_GUARDRAILS.md`).
+**Talking point:** Terraform is fallback; catalog/KMS/IAM/LF can be MCP-first ([`../MCP_GUARDRAILS.md`](../MCP_GUARDRAILS.md)).
 
 ### Act 3 — Verify (5 min)
 
@@ -113,7 +113,7 @@ python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "List Glue
 python tools/invoke_agentcore_harness.py --profile aws-agent --prompt "What Phase 1 questions for a HIPAA weekly CSV pipeline?"
 ```
 
-See `docs/MODE_B_SETUP.md` and `docs/MODE_C1_HARNESS.md`.
+See [`../MODE_B_SETUP.md`](../MODE_B_SETUP.md) and [`../MODE_C1_HARNESS.md`](../MODE_C1_HARNESS.md).
 
 ### Act 5 — Second workload proof (5 min, M2)
 
@@ -142,7 +142,7 @@ Run the Harness **APPROVE** script in [`docs/API_ONLY_FACTORY.md`](API_ONLY_FACT
 | Terraform `No valid credential sources` | Use `aws login --profile aws-agent`; deploy maps to `aws-agent-terraform` (credential_process) for Terraform |
 | `Module not installed` | `cd iac/terraform && terraform init` |
 | `FileNotFoundError` in `package_and_sync` | Extension Lambdas skipped automatically; ensure `register_catalog.py` exists |
-| SFN fails at PostDeploymentVerify | LF grants / MCP catalog — see `docs/PILOT_FAILURES_AND_FIXES.md` |
+| SFN fails at PostDeploymentVerify | LF grants / MCP catalog — see [`../PILOT_FAILURES_AND_FIXES.md`](../PILOT_FAILURES_AND_FIXES.md) |
 | Harness tool-use / model error | Enable **Anthropic** in Bedrock; use `us.anthropic.claude-sonnet-4-6` in `config/agentcore/harness.yaml` (Nova fails Gateway ToolUse) |
 | Harness provision stuck RUNNING | Poll with `get_provision_status` or `aws stepfunctions describe-execution`; E2E can take ~15 min |
 | Factory CodeBuild DOWNLOAD_SOURCE fail | Re-run `python tools/package_factory_artifact.py --bucket adop-datalake-<account>-us-east-1` |
@@ -163,7 +163,7 @@ terraform destroy -target=module.supplier_lead_times -auto-approve
 ```
 
 Keep the S3 bucket if re-demoing; destroy OpenSearch/Redshift only for `advisory_transactions`
-(see `docs/DEMO_RUNBOOK.md`).
+(see [`DEMO_RUNBOOK.md`](DEMO_RUNBOOK.md)).
 
 ---
 

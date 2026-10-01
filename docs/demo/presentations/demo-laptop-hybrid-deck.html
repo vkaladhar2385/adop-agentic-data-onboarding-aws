@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADOP Live Demo — Laptop + Hybrid MCP (Mixed Audience)</title>
+  <style>
+    :root {
+      --navy:#1b2a4a; --slate:#4a5568; --line:#d8dee9; --bg:#f7f6f2;
+      --card:#fff; --teal:#0f6e6b; --ink:#1a1a1a; --green:#1a7f4c; --amber:#b45309;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin:0; height:100%; background:#111; color:var(--ink);
+      font-family:"Segoe UI", Calibri, system-ui, sans-serif;
+    }
+    .deck {
+      height:100%; display:flex; align-items:center; justify-content:center;
+      padding:24px 24px 64px;
+    }
+    .slide {
+      display:none; width:min(1120px, 96vw); aspect-ratio:16/9;
+      background:var(--bg); padding:36px 48px 28px;
+      flex-direction:column; overflow:hidden;
+      box-shadow:0 8px 32px rgba(0,0,0,.35);
+    }
+    .slide.active { display:flex; }
+    .slide-main { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:4px; }
+    h1 {
+      font-size:clamp(24px, 3vw, 32px); font-weight:650; color:var(--navy);
+      margin:0 0 10px; letter-spacing:-0.02em; line-height:1.15;
+    }
+    h2 {
+      font-size:clamp(20px, 2.2vw, 24px); font-weight:650; color:var(--navy);
+      margin:0 0 12px;
+    }
+    h3 { font-size:14px; font-weight:650; color:var(--navy); margin:0 0 6px; }
+    p, li { font-size:15px; line-height:1.42; color:var(--slate); margin:0 0 8px; }
+    .kicker {
+      font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--teal); font-weight:600; margin-bottom:6px;
+    }
+    .stats-row {
+      display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:16px;
+    }
+    .stat {
+      background:var(--card); border:1px solid var(--line);
+      padding:14px 16px; min-height:76px;
+    }
+    .stat b {
+      display:block; font-size:clamp(18px, 2vw, 22px);
+      color:var(--navy); margin-bottom:4px; line-height:1.2;
+    }
+    .stat span { font-size:12px; color:var(--slate); line-height:1.35; display:block; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td {
+      text-align:left; padding:6px 9px; border-bottom:1px solid var(--line);
+      vertical-align:top;
+    }
+    th { color:var(--navy); font-weight:600; font-size:12px; }
+    .foot {
+      flex:0 0 auto; margin-top:10px; padding-top:8px;
+      border-top:1px solid var(--line); font-size:11px; color:#7a8494;
+      display:flex; justify-content:space-between; gap:16px;
+    }
+    .nav {
+      position:fixed; bottom:16px; right:20px; display:flex; gap:8px; z-index:10;
+    }
+    .nav button {
+      background:var(--navy); color:#fff; border:0;
+      padding:8px 14px; cursor:pointer; font-size:13px; border-radius:2px;
+    }
+    .hint {
+      position:fixed; bottom:20px; left:20px; font-size:11px; color:#aaa; z-index:10;
+    }
+    .callout {
+      border-left:3px solid var(--teal); padding:8px 12px;
+      background:#fff; margin:8px 0 0; font-size:14px;
+    }
+    ul.tight { margin:0; padding-left:18px; }
+    ul.tight li { margin:4px 0; font-size:14px; }
+    .flow {
+      background:var(--card); border:1px solid var(--line);
+      padding:10px 14px; font-size:12px; line-height:1.5;
+      color:var(--navy); font-family:Consolas,"Courier New",monospace;
+      white-space:pre-wrap; margin:8px 0;
+    }
+    .steps {
+      display:grid; grid-template-columns:repeat(9, 1fr); gap:4px;
+      align-items:center; margin:10px 0;
+    }
+    .step {
+      background:var(--card); border:1px solid var(--line);
+      padding:8px 4px; text-align:center; min-height:58px;
+      display:flex; flex-direction:column; justify-content:center;
+    }
+    .step b { display:block; font-size:10px; color:var(--navy); margin-bottom:3px; }
+    .step span { font-size:9px; color:var(--slate); line-height:1.25; }
+    .arrow { color:#9aa3b2; font-size:14px; text-align:center; }
+    .compare { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .compare .box { background:var(--card); border:1px solid var(--line); padding:12px 14px; }
+    .compare .box h3 { margin-bottom:6px; }
+    .compare ul { margin:0; padding-left:16px; }
+    .compare li { font-size:13px; }
+    .act {
+      background:var(--card); border:1px solid var(--line);
+      padding:10px 12px; margin-bottom:8px;
+    }
+    .act .tag {
+      display:inline-block; font-size:10px; font-weight:600;
+      letter-spacing:0.06em; text-transform:uppercase;
+      color:#fff; background:var(--navy); padding:2px 8px; margin-bottom:6px;
+    }
+    .act p { margin:0; font-size:13px; line-height:1.4; }
+    .act .time { font-size:11px; color:var(--teal); font-weight:600; margin-bottom:4px; }
+    .note {
+      display:none; font-size:12px; color:#6b7280; font-style:italic;
+      margin-top:10px; padding:8px 10px; background:#eef2f0;
+      border-left:3px solid #b8c4bc; line-height:1.4;
+    }
+    body.show-notes .note { display:block; }
+    .badge {
+      display:inline-block; font-size:10px; font-weight:600;
+      padding:2px 6px; border-radius:2px; margin-right:4px;
+    }
+    .badge.exec { background:#e0e7ff; color:#3730a3; }
+    .badge.tech { background:#d1fae5; color:var(--green); }
+    .dense p, .dense li { font-size:13px; }
+    img.arch {
+      max-width:100%; max-height:38vh; object-fit:contain;
+      border:1px solid var(--line); background:#fff; margin-top:6px;
+    }
+    .slide.opener h1 { font-size:clamp(22px, 2.6vw, 28px); margin-bottom:4px; }
+    .slide.opener .wwh th, .slide.opener .wwh td { font-size:12px; padding:5px 8px; }
+    .slide.opener .compare { margin-top:8px; gap:10px; }
+    .slide.opener .compare .box { padding:8px 10px; }
+    .slide.opener .compare h3 { font-size:12px; margin-bottom:4px; }
+    .slide.opener .compare li { font-size:11px; margin:2px 0; }
+    .slide.opener .stats-row {
+      margin-top:10px; gap:10px;
+      grid-template-columns:repeat(4, 1fr);
+    }
+    .slide.opener .stat { padding:8px 10px; min-height:54px; }
+    .slide.opener .stat b { font-size:clamp(15px, 1.8vw, 18px); }
+    .slide.opener .stat span { font-size:11px; }
+    .arch-flow {
+      width:100%; max-height:42vh; margin:6px 0 4px;
+      border:1px solid var(--line); background:#fff;
+    }
+    .arch-flow text { font-family:"Segoe UI", Calibri, system-ui, sans-serif; }
+    .context-flow { max-height:36vh; }
+    .example-box {
+      background:var(--card); border:1px solid var(--line);
+      padding:10px 12px; margin-top:6px;
+    }
+    .example-box h3 { font-size:12px; margin-bottom:4px; }
+    .example-box p { font-size:12px; margin:0 0 4px; }
+    .qa-block { margin-top:6px; }
+    .qa-block h3 { font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--teal); margin:0 0 4px; }
+    .slide.qa .dense th, .slide.qa .dense td { font-size:10px; padding:3px 6px; }
+    .slide.qa h2 { font-size:clamp(17px, 2vw, 21px); margin-bottom:8px; }
+    @media (max-width:900px) {
+      .stats-row, .compare { grid-template-columns:1fr; }
+      .steps { grid-template-columns:1fr; }
+      .arrow { display:none; }
+    }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide opener active">
+  <div class="slide-main">
+    <div class="kicker">Live demo · laptop + hybrid MCP · mixed audience</div>
+    <h1>Agentic data onboarding factory on AWS</h1>
+    <table class="wwh" style="margin-top:4px;">
+      <tr><th style="width:56px;">What</th><td>Human-approved <strong>YAML specs</strong> → governed Bronze → Silver → Gold on AWS (Glue, Iceberg, Step Functions).</td></tr>
+      <tr><th>Why</th><td>One new feed = <strong>multi-week</strong> manual work — bespoke PySpark, inconsistent quality, IaC/LF/PII redone every time.</td></tr>
+      <tr><th>How</th><td>Discovery → specs → codegen → pytest &amp; drift → <strong>you approve</strong> → hybrid MCP + Terraform → green pipeline → destroy sandbox.</td></tr>
+    </table>
+    <div class="compare">
+      <div class="box">
+        <h3>Today (manual)</h3>
+        <ul class="tight">
+          <li>Hand-written PySpark every time</li>
+          <li>Quality rules vary by engineer</li>
+          <li>IaC + LF + PII redone per source</li>
+          <li>Defects found in production</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>With ADOP factory</h3>
+        <ul class="tight">
+          <li>Declarative YAML specs</li>
+          <li>Generated, drift-checked scripts</li>
+          <li>Same governance every workload</li>
+          <li>Tests + gates before promotion</li>
+        </ul>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><b>~30 min</b><span>live demo · 3 parts</span></div>
+      <div class="stat"><b>~14 → ~0.5 days</b><span>per source (illustrative)</span></div>
+      <div class="stat"><b>supplier_lead_times</b><span>demo workload</span></div>
+      <div class="stat"><b>~$2–5</b><span>sandbox, then destroy</span></div>
+    </div>
+    <p class="note"><strong>~90 sec opener.</strong> One sentence each for What / Why / How, point at the compare boxes, then “Let’s run it.” Do not read bullets aloud. Exec: “Weeks → hours, governance built in.” Tech: “Specs → Glue + SFN; MCP catalog; Terraform jobs.”</p>
+  </div>
+  <div class="foot"><span>docs/demo/CLIENT_DEMO_RUNBOOK.md · presenter Q&amp;A: demo-laptop-hybrid-presenter-qa.html</span><span>1 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Three layers</div>
+    <h2>Pipeline · Factory · Operations</h2>
+    <p style="font-size:13px; margin:0 0 8px;">One map for today — hybrid MCP, generated code, and Glue jobs are <strong>not</strong> the same thing.</p>
+    <table>
+      <tr><th>Layer</th><th>Answers</th><th>Examples today</th></tr>
+      <tr><td><strong>Pipeline</strong></td><td>What <strong>runs the data</strong> in AWS</td><td>Bronze → Gold · Glue · Step Functions · Iceberg · Lambda verify</td></tr>
+      <tr><td><strong>Factory</strong></td><td>How the SKU is <strong>built from specs</strong> (laptop/CI — no AWS apply)</td><td><code>config/*.yaml</code> · codegen specs · render · pytest · drift check</td></tr>
+      <tr><td><strong>Operations</strong></td><td>How the agent <strong>deploys</strong> &amp; manages sandbox lifecycle</td><td>MCP · Gateway · Terraform apply · provision/destroy</td></tr>
+    </table>
+    <p class="callout" style="font-size:13px;"><strong>Factory builds · Operations deploys · Pipeline runs.</strong> Hybrid MCP = Operations only — deploy tools from the laptop, not the data plane. Glue always runs in AWS after deploy.</p>
+    <p class="note">~45 sec. Transition from Slide 1: “Three moving parts — quick map before the terminal.” If Gateway confusion: tool bus, not pipeline. Live Part 1 = Factory · Part 2 = Operations · Part 3 = Pipeline.</p>
+  </div>
+  <div class="foot"><span>docs/demo/FACTORY_LEARNING_GUIDE.md — Step 1</span><span>2 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">End-to-end flow</div>
+    <h2>Build on laptop · deploy with approval · run in AWS</h2>
+    <svg class="arch-flow" viewBox="0 0 980 220" role="img" aria-label="ADOP flow: Factory build, Operations deploy, Pipeline runtime">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#4a5568"/>
+        </marker>
+      </defs>
+      <!-- Factory -->
+      <rect x="8" y="28" width="290" height="164" rx="4" fill="#f0faf9" stroke="#0f6e6b" stroke-width="1.5"/>
+      <text x="18" y="48" font-size="11" font-weight="650" fill="#0f6e6b">FACTORY · laptop / CI · no AWS apply</text>
+      <rect x="18" y="58" width="72" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="54" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">Human</text>
+      <text x="54" y="92" font-size="9" fill="#4a5568" text-anchor="middle">discovery</text>
+      <line x1="90" y1="76" x2="108" y2="76" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="110" y="58" width="72" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="146" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">YAML</text>
+      <text x="146" y="92" font-size="9" fill="#4a5568" text-anchor="middle">specs</text>
+      <line x1="182" y1="76" x2="200" y2="76" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="202" y="58" width="84" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="244" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">render</text>
+      <text x="244" y="92" font-size="9" fill="#4a5568" text-anchor="middle">+ templates</text>
+      <rect x="18" y="108" width="268" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="152" y="130" font-size="10" fill="#1b2a4a" text-anchor="middle">validate · pytest · drift check</text>
+      <text x="152" y="168" font-size="9" fill="#4a5568" text-anchor="middle">Generated: Glue scripts + Step Functions JSON</text>
+      <!-- Operations -->
+      <rect x="318" y="28" width="290" height="164" rx="4" fill="#f4f6fa" stroke="#1b2a4a" stroke-width="1.5"/>
+      <text x="328" y="48" font-size="11" font-weight="650" fill="#1b2a4a">OPERATIONS · human APPROVE · hybrid MCP</text>
+      <rect x="328" y="62" width="88" height="32" rx="3" fill="#fff3cd" stroke="#b45309"/>
+      <text x="372" y="82" font-size="10" font-weight="650" fill="#92400e" text-anchor="middle">APPROVE</text>
+      <line x1="416" y1="78" x2="434" y2="78" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="436" y="58" width="78" height="40" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="475" y="76" font-size="10" fill="#1b2a4a" text-anchor="middle">MCP</text>
+      <text x="475" y="90" font-size="9" fill="#4a5568" text-anchor="middle">catalog · LF</text>
+      <line x1="514" y1="78" x2="528" y2="78" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="530" y="58" width="68" height="40" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="564" y="76" font-size="10" fill="#1b2a4a" text-anchor="middle">Terraform</text>
+      <text x="564" y="90" font-size="9" fill="#4a5568" text-anchor="middle">jobs · SFN</text>
+      <rect x="328" y="112" width="270" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="463" y="134" font-size="10" fill="#1b2a4a" text-anchor="middle">package_and_sync → plan/apply (after approval)</text>
+      <text x="463" y="168" font-size="9" fill="#4a5568" text-anchor="middle">Gateway = deploy tools only · not the data plane</text>
+      <!-- Pipeline -->
+      <rect x="628" y="28" width="344" height="164" rx="4" fill="#f0fdf4" stroke="#1a7f4c" stroke-width="1.5"/>
+      <text x="638" y="48" font-size="11" font-weight="650" fill="#1a7f4c">PIPELINE · always AWS when live</text>
+      <rect x="638" y="58" width="68" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="672" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">Event</text>
+      <text x="672" y="92" font-size="9" fill="#4a5568" text-anchor="middle">Bridge</text>
+      <line x1="706" y1="76" x2="724" y2="76" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="726" y="58" width="78" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="765" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">Step Fn</text>
+      <line x1="804" y1="76" x2="822" y2="76" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="824" y="58" width="68" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="858" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">Glue</text>
+      <line x1="892" y1="76" x2="910" y2="76" stroke="#4a5568" marker-end="url(#arr)"/>
+      <rect x="912" y="58" width="50" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="937" y="80" font-size="10" fill="#1b2a4a" text-anchor="middle">S3</text>
+      <rect x="638" y="108" width="334" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="805" y="128" font-size="10" fill="#1b2a4a" text-anchor="middle">Bronze → Silver → Gold · Iceberg · quality gates · Lambda verify</text>
+      <text x="805" y="168" font-size="9" fill="#4a5568" text-anchor="middle">No EMR · no always-on Airflow (Step Functions default)</text>
+      <!-- cross-column arrows -->
+      <line x1="298" y1="100" x2="318" y2="100" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="608" y1="100" x2="628" y2="100" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
+    </svg>
+    <p style="font-size:12px; margin:4px 0 0;"><strong>AWS services:</strong> S3 · Glue · Iceberg · Athena · Lake Formation · Step Functions · EventBridge · KMS · Lambda</p>
+    <p class="note">~60 sec. Follow left → right: matches Slide 2 layers in time. Next slide = medallion detail inside the green box. Skip this slide if short on time — Slide 2 + live demo is enough.</p>
+  </div>
+  <div class="foot"><span>docs/demo/FACTORY_LEARNING_GUIDE.md master diagram · docs/ARCHITECTURE.md</span><span>3 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Pipeline product · one example</div>
+    <h2><code>supplier_lead_times</code> — what Live Part 3 will show green</h2>
+    <p style="font-size:13px; margin:0 0 6px;">Weekly CSV (~120 rows): <strong>supplier_id</strong>, product_category, <strong>lead_time_days</strong> → flat Gold Iceberg for analytics.</p>
+    <div class="steps">
+      <div class="step"><b>Land</b><span>CSV → Bronze</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Clean</b><span>dedup · cast</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Silver</b><span>Iceberg</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Gate</b><span>≥0.80</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Gold</b><span>flat table</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Gate</b><span>≥0.95</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Done</b><span>catalog · verify</span></div>
+    </div>
+    <div class="compare" style="margin-top:8px;">
+      <div class="example-box">
+        <h3>Good row → promotes</h3>
+        <p><code>S001 · Hardware · lead_time_days=14</code></p>
+        <p>Dedup by supplier + category → Silver Iceberg → passes gates → Gold.</p>
+      </div>
+      <div class="example-box">
+        <h3>Bad row → blocked</h3>
+        <p><code>(blank supplier_id)</code> or <code>lead_time_days=-1</code></p>
+        <p>Quarantine in B→S transform · critical rules fail · Step Functions <strong>stops</strong> — no bad Gold.</p>
+      </div>
+    </div>
+    <p class="callout" style="font-size:12px; margin-top:8px;"><strong>Compute mix:</strong> Python Shell for ingest + quality scoring · Spark (<code>glueetl</code>) for Iceberg transforms · Lambda for catalog + post-deploy verify. Other workloads use the same shape (SOX star schema, GDPR rollup).</p>
+    <p class="note">~45 sec. One story only — do not walk every box. Say: “Same CSV you’ll see in Athena after deploy.” Skip slide if you go straight to live demo; return here while SFN runs if you need a filler.</p>
+  </div>
+  <div class="foot"><span>workloads/supplier_lead_times/config/ · orchestration/*.json</span><span>4 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Factory · framework outcome</div>
+    <h2>Human specs in → governed artifacts out</h2>
+    <p style="font-size:13px; margin:0 0 6px;">Slide 4’s pipeline is <strong>generated from this folder</strong> — demo: <code>workloads/supplier_lead_times/</code></p>
+    <div class="compare">
+      <div class="box">
+        <h3>Human owns (HITL)</h3>
+        <ul class="tight">
+          <li>Phase 1 discovery — answers <strong>before</strong> codegen (<code>.discovery_complete</code>)</li>
+          <li><code>config/source.yaml</code> · <code>transformations.yaml</code> · <code>quality_rules.yaml</code></li>
+          <li><code>config/compute.yaml</code> · <code>schedule.yaml</code> · <code>semantic.yaml</code></li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Factory generates</h3>
+        <ul class="tight">
+          <li><code>scripts/</code> + <code>orchestration/*_state_machine.json</code></li>
+          <li><code>sql/bronze|silver|gold/</code> · <code>tests/unit/</code></li>
+          <li><code>iac/terraform/workloads_*.tf</code> (on deploy)</li>
+        </ul>
+      </div>
+    </div>
+    <table style="margin-top:8px;">
+      <tr><th>Human rule</th><th>Machine spec</th><th>Generated artifact</th></tr>
+      <tr>
+        <td><code>transformations.yaml</code><br/><span style="font-size:10px;color:#4a5568;">dedup · cast · quarantine bad rows</span></td>
+        <td><code>codegen/bronze_to_silver.spec.yaml</code></td>
+        <td><code>scripts/.../bronze_to_silver.py</code></td>
+      </tr>
+      <tr>
+        <td><code>quality_rules.yaml</code><br/><span style="font-size:10px;color:#4a5568;">Silver ≥0.80 · supplier_id critical</span></td>
+        <td><code>codegen/quality_checks.spec.yaml</code></td>
+        <td><code>scripts/.../run_quality_checks.py</code></td>
+      </tr>
+      <tr>
+        <td><code>compute.yaml</code> + <code>schedule.yaml</code><br/><span style="font-size:10px;color:#4a5568;">Shell ingest · Spark Iceberg · SFN</span></td>
+        <td><code>codegen/state_machine.spec.yaml</code></td>
+        <td><code>orchestration/*_state_machine.json</code></td>
+      </tr>
+    </table>
+    <p style="font-size:11px; margin:4px 0 0; color:#4a5568;">Every generated file carries a <code>spec_hash</code> header — same factory pattern for ingest and Silver→Gold.</p>
+    <div class="flow" style="margin-top:6px;">/onboard-workflow → YAML specs → render_workload.py → validate · pytest · drift → ready for APPROVE + deploy</div>
+    <p class="callout" style="font-size:12px;"><strong>Proof:</strong> <code>spec_hash</code> in generated files · write guard blocks hand-edits · CI fails on drift.</p>
+    <p class="note">~60 sec. Point at one row only: “Transform, quality, orchestration — same pattern.” Don’t read all three. Then open <code>config/</code> in Live Part 1 (Slide 9).</p>
+  </div>
+  <div class="foot"><span>.cursor/commands/onboard-workflow.md · Live Part 1 = slide 9</span><span>5 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Operations layer · deploy</div>
+    <h2>Who creates what in AWS — no duplicate ARNs</h2>
+    <p style="font-size:12px; margin:0 0 6px;">Declared in <code>compute.yaml</code> → <code>infrastructure.*.owner</code> (demo: MCP for catalog/KMS/IAM/LF · Terraform for jobs/SFN).</p>
+    <div class="compare">
+      <div class="box">
+        <h3>MCP creates (metadata plane)</h3>
+        <ul class="tight">
+          <li>Glue <strong>database / tables</strong> (catalog)</li>
+          <li>Lake Formation tags &amp; grants</li>
+          <li>IAM roles · KMS keys (when <code>owner: mcp</code>)</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Terraform creates (compute plane)</h3>
+        <ul class="tight">
+          <li>Glue <strong>job</strong> definitions (not tables)</li>
+          <li>Lambda functions</li>
+          <li>Step Functions + EventBridge + SNS</li>
+        </ul>
+      </div>
+    </div>
+    <p class="callout" style="font-size:12px; margin-top:8px;"><strong>Deploy order (Live Part 2):</strong> validate + drift → <code>package_and_sync</code> (scripts to S3) → MCP catalog/LF → <strong>human APPROVE</strong> → <code>terraform apply</code> → SFN E2E.</p>
+    <p style="font-size:12px; margin:4px 0 0;"><strong>Phase 0:</strong> <code>mcp_health_check.py</code> — REQUIRED: glue-athena, lakeformation, iam</p>
+    <p class="note">~45 sec · optional before Live Part 2 (or while deploy runs). <strong>#1 mistake:</strong> “MCP creates Glue jobs” — no. <strong>#2:</strong> “Why two tools?” — MCP has no SFN/job create in Track A; TF has no catalog agent. Skip → Slide 10 / deploy command.</p>
+  </div>
+  <div class="foot"><span>TOOL_ROUTING.md · workloads/supplier_lead_times/config/compute.yaml</span><span>6 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Context · before “hybrid MCP”</div>
+    <h2>MCP is the agent’s toolbelt — not the data pipeline</h2>
+    <p style="font-size:13px; margin:0 0 6px;">People often assume <strong>laptop + MCP = data runs on the laptop</strong>. It doesn’t. Two separate stories:</p>
+    <svg class="arch-flow context-flow" viewBox="0 0 980 200" role="img" aria-label="MCP toolbelt vs data pipeline">
+      <defs>
+        <marker id="arr7" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#4a5568"/>
+        </marker>
+      </defs>
+      <!-- Toolbelt path -->
+      <rect x="8" y="12" width="964" height="78" rx="4" fill="#f4f6fa" stroke="#1b2a4a" stroke-width="1.5"/>
+      <text x="18" y="30" font-size="11" font-weight="650" fill="#1b2a4a">A · AGENT DEPLOY TOOLS (Operations — this slide)</text>
+      <rect x="18" y="40" width="100" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="68" y="62" font-size="10" fill="#1b2a4a" text-anchor="middle">You + Cursor</text>
+      <text x="68" y="74" font-size="9" fill="#4a5568" text-anchor="middle">on laptop</text>
+      <line x1="118" y1="59" x2="138" y2="59" stroke="#4a5568" marker-end="url(#arr7)"/>
+      <rect x="140" y="40" width="120" height="38" rx="3" fill="#fff3cd" stroke="#b45309"/>
+      <text x="200" y="58" font-size="10" font-weight="650" fill="#92400e" text-anchor="middle">MCP tools</text>
+      <text x="200" y="72" font-size="9" fill="#92400e" text-anchor="middle">agent’s AWS remote</text>
+      <line x1="260" y1="59" x2="280" y2="59" stroke="#4a5568" marker-end="url(#arr7)"/>
+      <rect x="282" y="40" width="200" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="382" y="58" font-size="10" fill="#1b2a4a" text-anchor="middle">Register catalog · Lake Formation</text>
+      <text x="382" y="72" font-size="9" fill="#4a5568" text-anchor="middle">before / during deploy (Slide 6)</text>
+      <text x="520" y="62" font-size="10" fill="#b45309" font-weight="650">Hybrid</text>
+      <text x="580" y="62" font-size="9" fill="#4a5568">= some MCP tools reach AWS via</text>
+      <text x="580" y="76" font-size="9" fill="#4a5568">AgentCore Gateway instead of all on laptop</text>
+      <!-- Pipeline path -->
+      <rect x="8" y="108" width="964" height="78" rx="4" fill="#f0fdf4" stroke="#1a7f4c" stroke-width="1.5"/>
+      <text x="18" y="126" font-size="11" font-weight="650" fill="#1a7f4c">B · DATA PIPELINE (always AWS after deploy — Slide 4)</text>
+      <rect x="18" y="136" width="72" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="54" y="158" font-size="10" fill="#1b2a4a" text-anchor="middle">CSV</text>
+      <line x1="90" y1="155" x2="108" y2="155" stroke="#4a5568" marker-end="url(#arr7)"/>
+      <rect x="110" y="136" width="68" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="144" y="158" font-size="10" fill="#1b2a4a" text-anchor="middle">Glue</text>
+      <line x1="178" y1="155" x2="196" y2="155" stroke="#4a5568" marker-end="url(#arr7)"/>
+      <rect x="198" y="136" width="78" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="237" y="158" font-size="10" fill="#1b2a4a" text-anchor="middle">Iceberg</text>
+      <line x1="276" y1="155" x2="294" y2="155" stroke="#4a5568" marker-end="url(#arr7)"/>
+      <rect x="296" y="136" width="88" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
+      <text x="340" y="158" font-size="10" fill="#1b2a4a" text-anchor="middle">Step Fn</text>
+      <text x="420" y="152" font-size="10" fill="#1a7f4c" font-weight="650">Runs in AWS — not on your laptop.</text>
+      <text x="420" y="168" font-size="9" fill="#4a5568">MCP sets up metadata; Glue moves the data.</text>
+    </svg>
+    <p class="callout" style="font-size:13px;"><strong>Remember one thing:</strong> MCP helps the <em>agent</em> deploy. The <em>pipeline</em> is Glue + Step Functions in the cloud.</p>
+    <p style="font-size:12px; margin:4px 0 0;"><strong>Today:</strong> hybrid mode for demo · ~30 sec show MCP connected in Cursor · then terminal deploy (Slide 10).</p>
+    <p class="note">Presenter: prep Gateway before room (MODE_B_SETUP.md). Do not read CLI on slide. If they missed Slides 2–6, re-use the A/B diagram above. Skip slide → say callout line only.</p>
+  </div>
+  <div class="foot"><span>Recall Slide 2 Operations · Slide 4 Pipeline · Slide 6 what MCP creates</span><span>7 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Today’s demo SKU</div>
+    <h2>Why <code>supplier_lead_times</code> — one feed, full factory proof</h2>
+    <p style="font-size:13px; margin:0 0 8px;"><strong>Business story:</strong> Procurement receives a <strong>weekly CSV</strong> of supplier lead times by product category (~120 rows). Goal: governed Bronze → Gold in the lake for analytics — same pattern as any new enterprise feed.</p>
+    <div class="compare">
+      <div class="box">
+        <h3>What this SKU is</h3>
+        <ul class="tight">
+          <li>Source: CSV landing on S3 (weekly)</li>
+          <li>Gold: flat Iceberg table (Athena-ready)</li>
+          <li>Orchestrator: Step Functions + EventBridge</li>
+          <li>Extensions: <strong>none</strong> — no Redshift / OpenSearch / Redis</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Live demo — 3 parts (~30 min)</h3>
+        <ul class="tight">
+          <li><strong>Part 1 · Build</strong> — human YAML in <code>config/</code> → render → pytest (Slide 9)</li>
+          <li><strong>Part 2 · Deploy</strong> — you APPROVE → AWS catalog + jobs (Slides 10, 6–7)</li>
+          <li><strong>Part 3 · Verify</strong> — Slide 4 pipeline goes green + spot-check (Slide 11)</li>
+        </ul>
+      </div>
+    </div>
+    <table style="margin-top:8px;">
+      <tr><th>Why this SKU for the room</th><th>Not live today (mention if asked)</th></tr>
+      <tr>
+        <td>Tier A factory acceptance · lowest sandbox cost (~$2–5) · full medallion + gates without expensive sinks</td>
+        <td><code>advisory_transactions</code> — SOX star schema<br/><code>web_events</code> — GDPR rollup<br/><code>customer_orders</code> — Tier B MWAA</td>
+      </tr>
+    </table>
+    <p class="callout" style="font-size:12px; margin-top:8px;"><strong>One folder all day:</strong> <code>workloads/supplier_lead_times/</code> — same name on Slide 1, 4, 5, and in every command we run next.</p>
+    <p class="note">~45 sec. Say: “Realistic feed, smallest SKU that still proves the whole factory.” Then → Slide 9 / open IDE. Do not compare workloads unless asked.</p>
+  </div>
+  <div class="foot"><span>workloads/supplier_lead_times/README.md · demo CSV in demo/sample_data/</span><span>8 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Live demo · Part 1 of 3 · ~10 min</div>
+    <h2>Build factory artifacts — Factory layer, laptop only</h2>
+    <p style="font-size:12px; margin:0 0 6px;"><strong>“Act 1” in the runbook</strong> = this part. Not a separate product — <strong>Part 1 of 3:</strong> Build → Deploy → Verify. <em>No AWS apply yet.</em></p>
+    <table style="margin-bottom:6px;">
+      <tr><th>Part</th><th>Name</th><th>Layer</th><th>Slide</th></tr>
+      <tr><td><strong>1</strong></td><td>Build (now)</td><td>Factory</td><td>9</td></tr>
+      <tr><td>2</td><td>Deploy</td><td>Operations</td><td>10</td></tr>
+      <tr><td>3</td><td>Verify</td><td>Pipeline</td><td>11</td></tr>
+    </table>
+    <div class="act">
+      <div class="time">Step 1 · ~3 min</div>
+      <span class="badge exec">Exec</span><span class="badge tech">Tech</span>
+      <p>Walk <strong>human answers already captured</strong> — <code>.discovery_complete</code> + <code>config/</code> (source, transforms, quality, compute). New onboardings use <code>/onboard-workflow</code> for live Q&amp;A.</p>
+    </div>
+    <div class="act">
+      <div class="time">Step 2 · ~5 min</div>
+      <p>Open IDE — show YAML drives generated scripts (Slide 5 example chains).</p>
+    </div>
+    <div class="act">
+      <div class="time">Step 3 · ~2 min</div>
+      <p>Run factory proof (pre-run if Wi‑Fi is slow):</p>
+      <div class="flow">python tools/render_workload.py --workload supplier_lead_times --all --check-drift
+python -m pytest workloads/supplier_lead_times/tests/ -v</div>
+    </div>
+    <p class="callout" style="font-size:12px;">Say: “Specs are the contract — Python and Step Functions JSON are generated, drift-checked.” → <strong>Part 2</strong> (Slide 10).</p>
+    <p class="note">Presenter cheat sheet — not for reading aloud. Switch to terminal/Cursor now. HITL map: presenter QA slide 6.</p>
+  </div>
+  <div class="foot"><span>Part 1 · onboard-workflow · CLIENT_DEMO_RUNBOOK.md</span><span>9 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Live demo · Part 2 of 3 · ~15 min</div>
+    <h2>Deploy to AWS — Operations layer</h2>
+    <div class="act">
+      <div class="time">Optional · ~2 min</div>
+      <p>Cursor Settings → MCP: Gateway connected (Slide 7 context). Then terminal — don’t debug MCP on stage.</p>
+    </div>
+    <div class="act">
+      <div class="time">Deploy · ~13 min</div>
+      <p>Say <strong>“I approve deploy”</strong> in chat, then:</p>
+      <div class="flow">python tools/deploy_workload.py `
+  --workload supplier_lead_times `
+  --bucket adop-datalake-&lt;ACCOUNT&gt;-us-east-1 `
+  --auto-provision `
+  --aws-profile aws-agent</div>
+      <p style="font-size:12px; margin-top:6px;">--auto-provision = TF module + apply + landing sync + SFN E2E poll</p>
+    </div>
+    <p class="note">While waiting: Slide 6 deploy order · Slide 4 filler. → <strong>Part 3</strong> when SFN green.</p>
+  </div>
+  <div class="foot"><span>Part 2 · deploy_workload.py</span><span>10 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Live demo · Part 3 of 3 · ~5 min</div>
+    <h2>Verify pipeline — Pipeline layer</h2>
+    <ul class="tight">
+      <li>Show SFN execution graph — all states <strong style="color:var(--green)">Succeeded</strong></li>
+      <li>Mention quality gates passed (Silver ≥ 0.80, Gold ≥ 0.95)</li>
+      <li>Optional Athena: <code>SELECT COUNT(*) FROM supplier_lead_times_db.silver_supplier_lead_times</code></li>
+    </ul>
+    <div class="flow">aws stepfunctions list-executions --state-machine-arn &lt;arn&gt; --max-results 1</div>
+    <p class="callout" style="font-size:13px;">Last verified green run: <strong>tier-b-e2e-fix-v3-20260909-124345</strong> (see docs/STATUS.md)</p>
+    <p class="note">Exec close: “Governed pipeline live in ~30 minutes, with approval gates and verification.”</p>
+  </div>
+  <div class="foot"><span>Part 3 · verify · closes live demo</span><span>11 / 13</span></div>
+</section>
+
+<section class="slide qa">
+  <div class="slide-main dense">
+    <div class="kicker">Q&amp;A — after live demo</div>
+    <h2>Likely questions from today’s walkthrough</h2>
+    <div class="compare">
+      <div class="qa-block">
+        <h3>Business &amp; value</h3>
+        <table>
+          <tr><th>Question</th><th>Answer</th></tr>
+          <tr><td>ROI?</td><td>Illustrative ~14 engineer-days → ~0.5 day per source once factory pattern is in place.</td></tr>
+          <tr><td>Production-ready?</td><td>Pattern proven; client adapts IAM, VPC, modules, compliance.</td></tr>
+          <tr><td>Lock-in?</td><td>Specs + templates in git; Terraform + Glue/Iceberg — portable, not black-box SaaS.</td></tr>
+          <tr><td>Cost?</td><td>Serverless per run; ~$2–5 demo; destroy sandbox — $0 idle.</td></tr>
+          <tr><td>vs Databricks / Snowflake?</td><td>Complementary — AWS-native <strong>onboarding factory</strong>, not a warehouse replacement.</td></tr>
+          <tr><td>Plug into our lake?</td><td>Yes — same S3/Glue/LF model; map buckets, roles, modules (<code>ADAPTATION_GAP.md</code>).</td></tr>
+        </table>
+      </div>
+      <div class="qa-block">
+        <h3>Factory · HITL · drift</h3>
+        <table>
+          <tr><th>Question</th><th>Answer</th></tr>
+          <tr><td>What is HITL?</td><td>Human-in-the-loop — you answer discovery rules + say <strong>I approve deploy</strong>; agent doesn’t guess PK/PII.</td></tr>
+          <tr><td>Agent autonomous?</td><td>No — discovery gate, deploy gate, write guard on generated scripts.</td></tr>
+          <tr><td>Drift-checked scripts?</td><td><code>spec_hash</code> in generated <code>.py</code>; CI re-renders from YAML — hand-edits fail.</td></tr>
+          <tr><td>Replace data engineers?</td><td>No — they own business rules &amp; approval; factory removes boilerplate.</td></tr>
+          <tr><td>Quality gates 0.80 / 0.95?</td><td>Rule scores from <code>quality_rules.yaml</code>; SFN stops if gate fails — not checksums.</td></tr>
+          <tr><td>Why Iceberg?</td><td>ACID on S3, time travel, Glue catalog; Silver/Gold need Spark (<code>glueetl</code>).</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="qa-block">
+      <h3>MCP · hybrid · Terraform (Slides 6–7)</h3>
+      <table>
+        <tr><th>Question</th><th>Answer</th></tr>
+        <tr><td>Is MCP the pipeline?</td><td><strong>No.</strong> MCP = agent deploy toolbelt (Operations). Pipeline = Glue + Step Functions in AWS.</td></tr>
+        <tr><td>Does data run on the laptop?</td><td><strong>No.</strong> Hybrid/local only changes how Cursor calls tools. Bronze→Gold runs in AWS.</td></tr>
+        <tr><td>MCP vs Terraform?</td><td>MCP: catalog, LF, metadata. Terraform: Glue <strong>jobs</strong>, Lambda, Step Functions.</td></tr>
+        <tr><td>Does MCP create Glue jobs?</td><td><strong>No.</strong> MCP creates database/tables; Terraform creates job definitions.</td></tr>
+        <tr><td>Why two tools?</td><td>One owner per ARN — declared in <code>compute.yaml</code>; CI catches drift.</td></tr>
+        <tr><td>Phase 0 health check?</td><td>Preflight before deploy — confirms glue-athena, lakeformation, iam MCP tools are wired.</td></tr>
+      </table>
+    </div>
+    <p class="note">Presenter: full Q&amp;A + HITL command map → <code>demo-laptop-hybrid-presenter-qa.html</code>. Backup decks: conventional-vs-agentic-adop.html · adop-client-deck.html</p>
+  </div>
+  <div class="foot"><span>docs/demo/DEMO_PREP_ABCD.md · docs/demo/BEFORE_AFTER.md</span><span>12 / 13</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Teardown &amp; next steps</div>
+    <h2>Demo down — no idle spend</h2>
+    <div class="flow">python tools/destroy_sandbox.py --yes
+python tools/switch_mcp_mode.py --mode local</div>
+    <div class="stats-row" style="margin-top:12px;">
+      <div class="stat"><b>Pilot</b><span>Adapt pattern to client modules + CI/CD</span></div>
+      <div class="stat"><b>Enable</b><span>Their team onboard next feeds in hours</span></div>
+      <div class="stat"><b>Optional</b><span>Option B Harness APPROVE path (API_ONLY_FACTORY.md)</span></div>
+    </div>
+    <p class="callout"><strong>Close:</strong> Agents generate · Humans approve · AWS runs · Sandbox destroys.</p>
+    <p class="note">Before room: dry-run Day D from DEMO_PREP_ABCD.md. Capture SFN screenshot for backup if live deploy fails.</p>
+  </div>
+  <div class="foot"><span>Questions · docs/demo/CLIENT_PITCH.md · docs/ADAPTATION_GAP.md</span><span>13 / 13</span></div>
+</section>
+
+</div>
+<div class="hint">← → or Space · N = presenter notes · F11 for fullscreen</div>
+<div class="nav">
+  <button type="button" onclick="go(-1)">Prev</button>
+  <button type="button" onclick="go(1)">Next</button>
+</div>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  }
+  function go(d) { show(i + d); }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); go(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+    if (e.key === "n" || e.key === "N") { document.body.classList.toggle("show-notes"); }
+  });
+</script>
+</body>
+</html>

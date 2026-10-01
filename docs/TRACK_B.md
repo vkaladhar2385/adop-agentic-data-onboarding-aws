@@ -161,7 +161,7 @@ Runs **after** onboard completes. Parallel sub-agents generate:
 |---|---|---|
 | IaC | Terraform / CDK / CloudFormation (user choice) | `iac/terraform/modules/workload_pipeline/` + extension modules |
 | Monitoring | CloudWatch dashboards, SNS/Slack alerts | SNS topic + budget alarm in Terraform |
-| Runbook | Operational doc from discovery answers | `docs/DEMO_RUNBOOK.md`, `docs/PILOT_FAILURES_AND_FIXES.md` |
+| Runbook | Operational doc from discovery answers | `docs/demo/DEMO_RUNBOOK.md`, `docs/PILOT_FAILURES_AND_FIXES.md` |
 
 **Study:** `.claude/commands/devops-workflow.md`, `prompts/devops-agent/iac-generator.md`
 
@@ -172,7 +172,7 @@ Runs **after** onboard completes. Parallel sub-agents generate:
 | Official ADOP | Track A |
 |---|---|
 | Same-session destroy; verify no MWAA/Glue left running | `terraform destroy` + Cost Explorer next morning |
-| Pilot plan warns: MWAA ~$350/mo if forgotten | OpenSearch/Redis/Redshift are the hourly risks — see `DEMO_RUNBOOK.md` |
+| Pilot plan warns: MWAA ~$350/mo if forgotten | OpenSearch/Redis/Redshift are the hourly risks — see `docs/demo/DEMO_RUNBOOK.md` |
 
 ---
 

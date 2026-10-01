@@ -28,4 +28,4 @@ pytest workloads/supplier_lead_times/tests/ -v
 
 Tier A acceptance + Tier B green run: SFN `tier-b-e2e-fix-v3-20260909-124345` (see `docs/STATUS.md`).
 Deploy: `python tools/deploy_workload.py --workload supplier_lead_times --auto-provision` or
-`docs/CLIENT_DEMO_RUNBOOK.md`.
+`docs/demo/CLIENT_DEMO_RUNBOOK.md`.
