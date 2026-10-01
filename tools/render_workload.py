@@ -122,6 +122,18 @@ def _load_schedule(wl_dir: Path) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def _load_profile(wl_dir: Path) -> str:
+    """Platform profile from config/platform.yaml (defaults to aws)."""
+    path = wl_dir / "config" / "platform.yaml"
+    if not path.is_file():
+        return "aws"
+    with path.open(encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    if isinstance(data, dict):
+        return str(data.get("profile") or "aws")
+    return "aws"
+
+
 def _output_path(wl_dir: Path, workload: str, meta: dict) -> Path:
     return wl_dir / meta["output"].format(workload=workload)
 
@@ -147,13 +159,14 @@ def _render_one(
 
     meta = ARTIFACTS[artifact]
     wl_dir = REPO_ROOT / "workloads" / workload
+    profile = _load_profile(wl_dir)
     spec_path = wl_dir / meta["spec"]
     if artifact == "eventbridge_schedule" and not spec_path.is_file():
         spec = _eventbridge_spec(workload, wl_dir)
         spec_hash = compute_spec_hash(spec)
         template_id = "eventbridge_schedule"
         out_path = _output_path(wl_dir, workload, meta)
-        content = render(spec, spec_hash, template_id, schema_version="v1")
+        content = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
         if write:
             os.environ[TOKEN_ENV] = "render"
             out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -163,7 +176,7 @@ def _render_one(
             if not out_path.is_file():
                 print(f"DRIFT: {out_path}: missing eventbridge_schedule.json", file=sys.stderr)
                 return 1
-            expected = render(spec, spec_hash, template_id, schema_version="v1")
+            expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
             if out_path.read_text(encoding="utf-8") != expected:
                 print(f"DRIFT: {out_path}: eventbridge_schedule.json does not match schedule.yaml", file=sys.stderr)
                 return 1
@@ -180,7 +193,9 @@ def _render_one(
     spec_hash = compute_spec_hash(spec)
     template_id = _resolve_template_id(spec, meta)
     out_path = _output_path(wl_dir, spec.get("workload", workload), meta)
-    content = render(spec, spec_hash, template_id, schema_version=spec.get("schema_version", "v1"))
+    content = render(
+        spec, spec_hash, template_id, schema_version=spec.get("schema_version", "v1"), profile=profile
+    )
 
     if write:
         os.environ[TOKEN_ENV] = "render"
@@ -189,7 +204,7 @@ def _render_one(
         print(f"Wrote {out_path.relative_to(REPO_ROOT)}")
 
     if check_drift:
-        report = verify_artifact(out_path, spec_path, "", template_id=template_id)
+        report = verify_artifact(out_path, spec_path, "", template_id=template_id, profile=profile)
         if not report.ok:
             print(f"DRIFT: {report.path}: {report.reason}", file=sys.stderr)
             return 1

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/platform.schema.json",
+  "title": "Workload platform profile",
+  "description": "Selects the target platform pack and the cloud-neutral capability resolution (table format, transform engine, orchestrator, deploy adapter). Absent or profile=aws resolves to the legacy AWS behavior with zero change.",
+  "type": "object",
+  "required": ["profile", "storage"],
+  "additionalProperties": true,
+  "properties": {
+    "profile": {
+      "type": "string",
+      "enum": ["aws", "azure", "gcp", "databricks", "snowflake"],
+      "description": "Platform pack under platform-packs/<profile>/."
+    },
+    "host_cloud": {
+      "type": "string",
+      "enum": ["aws", "azure", "gcp"],
+      "description": "Where object store / compute accounts live. For databricks/snowflake this is the underlying cloud."
+    },
+    "storage": {
+      "type": "object",
+      "required": ["lake_format"],
+      "additionalProperties": true,
+      "properties": {
+        "lake_format": {
+          "type": "string",
+          "enum": ["iceberg", "delta", "native"],
+          "description": "iceberg (default) | delta (Databricks/Synapse) | native (Snowflake managed tables, Mode B)."
+        },
+        "object_store": {
+          "type": "string",
+          "description": "s3 | adls | gcs | uc_volume (informational; resolved by the pack)."
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "transform_engine": {
+          "type": "string",
+          "enum": ["spark", "snowpark", "sql"],
+          "description": "spark (Glue/Dataproc/Synapse/Databricks) | snowpark | sql (Snowflake)."
+        },
+        "batch_python": {
+          "type": "boolean",
+          "description": "Whether lightweight Python batch (quality gates, small ingest) is available on this profile."
+        },
+        "catalog": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "glue | unity | purview | dataplex | snowflake."
+            },
+            "database": { "type": "string" }
+          }
+        },
+        "governance": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "pii_tags": { "type": "boolean" },
+            "kind": {
+              "type": "string",
+              "description": "lakeformation | unity | purview | snowflake_rbac."
+            }
+          }
+        },
+        "orchestrator": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "step_functions | adf | durable_functions | composer | workflows | snowflake_tasks | mwaa."
+            }
+          }
+        }
+      }
+    },
+    "snowflake_mode": {
+      "type": "string",
+      "enum": ["sink", "platform"],
+      "description": "Only for profile=snowflake. sink = Mode A (Gold sink over an existing lake, default). platform = Mode B (full medallion in Snowflake, on request)."
+    },
+    "deploy_adapter": {
+      "type": "string",
+      "enum": ["terraform", "bundle", "snowflake_cli", "mcp"],
+      "description": "How the pack's infrastructure is applied."
+    }
+  }
+}

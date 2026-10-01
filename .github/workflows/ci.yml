@@ -46,6 +46,10 @@ jobs:
         run: python tools/mcp_health_check.py --skip-aws
       - name: Validate JSON Schema contracts
         run: python tools/validate_configs.py
+      - name: Validate platform profiles (Phase 7 capability resolution)
+        run: python tools/validate_platform.py
+      - name: Enforce platform-pack import boundary (Phase 7)
+        run: python tools/check_import_boundaries.py
       - name: Validate Cedar policies (Tier B)
         run: python tools/validate_cedar_policies.py
       - name: Tier B local acceptance (customer_orders)

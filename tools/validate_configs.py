@@ -19,6 +19,7 @@ CONFIG_SCHEMA_MAP = {
     "semantic.yaml": "semantic.schema.json",
     "quality_rules.yaml": "quality_rules.schema.json",
     "schedule.yaml": "schedule.schema.json",
+    "platform.yaml": "platform.schema.json",
 }
 
 CODEGEN_SCHEMA_MAP = {

@@ -44,6 +44,7 @@ def verify_artifact(
     spec_path: Path,
     schema_name: str,
     template_id: str | None = None,
+    profile: str = "aws",
 ) -> DriftReport:
     artifact_path = Path(artifact_path)
     spec_path = Path(spec_path)
@@ -68,6 +69,7 @@ def verify_artifact(
             spec_hash,
             tid,
             schema_version=spec.get("schema_version", "v1"),
+            profile=profile,
         )
         if content != expected:
             return DriftReport(str(artifact_path), False, "body drift (re-render differs from file)")
@@ -86,6 +88,7 @@ def verify_artifact(
         header["template_id"],
         schema_version=header["schema_version"],
         rendered_at=header["rendered_at"],
+        profile=profile,
     )
     if content != expected:
         return DriftReport(str(artifact_path), False, "body drift (re-render differs from file)")

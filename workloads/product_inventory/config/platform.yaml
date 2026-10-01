@@ -1,0 +1,22 @@
+# Platform profile — selects the platform pack + capability resolution.
+# profile=aws resolves to the legacy AWS/Glue/Step Functions behavior (no change).
+profile: aws
+host_cloud: aws
+
+storage:
+  lake_format: iceberg
+  object_store: s3
+
+capabilities:
+  transform_engine: spark
+  batch_python: true
+  catalog:
+    kind: glue
+    database: product_inventory_db
+  governance:
+    pii_tags: true
+    kind: lakeformation
+  orchestrator:
+    type: step_functions
+
+deploy_adapter: terraform

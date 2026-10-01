@@ -1,0 +1,23 @@
+# Platform profile — selects the platform pack + capability resolution.
+# profile=aws resolves to the legacy AWS/Glue behavior (no change).
+# customer_orders is the MWAA pilot — orchestrator reflects schedule.yaml.
+profile: aws
+host_cloud: aws
+
+storage:
+  lake_format: iceberg
+  object_store: s3
+
+capabilities:
+  transform_engine: spark
+  batch_python: true
+  catalog:
+    kind: glue
+    database: customer_orders_db
+  governance:
+    pii_tags: true
+    kind: lakeformation
+  orchestrator:
+    type: mwaa
+
+deploy_adapter: terraform
