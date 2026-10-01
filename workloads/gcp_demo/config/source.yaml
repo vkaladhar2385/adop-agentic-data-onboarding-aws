@@ -1,0 +1,43 @@
+workload: gcp_demo
+domain: procurement
+description: >-
+  GCP-native Phase 7.2 demo — same business rules as supplier_lead_times,
+  rendered via platform-packs/gcp (Dataproc Spark + GCS + Composer).
+
+source:
+  type: gcs
+  format: csv
+  has_header: true
+  location: gs://<bucket>/landing/gcp_demo/
+  compression: none
+  primary_key: supplier_id
+  estimated_row_count: 120
+
+cadence:
+  mode: batch
+  frequency: weekly
+  time_utc: "06:00"
+
+zones:
+  bronze:
+    database: gcp_demo_db
+    table: bronze_gcp_demo
+    format: parquet
+  silver:
+    database: gcp_demo_db
+    table: silver_gcp_demo
+    format: iceberg
+  gold:
+    database: gcp_demo_db
+    table: gold_gcp_demo
+    schema_style: flat
+    format: iceberg
+
+compliance:
+  regulation: none
+  retention_years: 2
+  bronze_immutable: true
+
+orchestration:
+  engine: composer
+  schedule: composer_trigger

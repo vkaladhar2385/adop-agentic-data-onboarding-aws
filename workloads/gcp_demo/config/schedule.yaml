@@ -1,0 +1,16 @@
+workload: gcp_demo
+orchestrator: composer
+
+schedule:
+  engine: composer_trigger
+  cron: "0 6 * * MON"
+  timezone: UTC
+
+execution:
+  pipeline: gcp_demo_pipeline
+  retries: 2
+
+failure_handling:
+  on_failure: notify
+
+dependencies: []

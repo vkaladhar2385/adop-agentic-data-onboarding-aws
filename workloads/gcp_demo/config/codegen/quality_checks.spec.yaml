@@ -1,0 +1,4 @@
+schema_version: v1
+workload: gcp_demo
+silver_s3_prefix: silver/gcp_demo/quality_export/
+gold_s3_prefix: gold/gcp_demo/gold_gcp_demo/

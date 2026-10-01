@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adop.internal/contracts/v1/codegen_composer_dag.spec.schema.json",
+  "title": "Cloud Composer DAG codegen spec",
+  "type": "object",
+  "required": ["schema_version", "workload", "dataset_name", "schedule"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "v1" },
+    "workload": { "type": "string" },
+    "template_id": { "type": "string" },
+    "dataset_name": { "type": "string" },
+    "dag_id": { "type": "string" },
+    "schedule": {
+      "type": "object",
+      "required": ["cron"],
+      "properties": {
+        "cron": { "type": "string" },
+        "timezone": { "type": "string" }
+      }
+    }
+  }
+}

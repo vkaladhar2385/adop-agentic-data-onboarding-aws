@@ -1,0 +1,8 @@
+schema_version: v1
+workload: gcp_demo
+template_id: composer_dag
+dataset_name: gcp_demo
+dag_id: gcp_demo_pipeline
+schedule:
+  cron: "0 6 * * MON"
+  timezone: UTC

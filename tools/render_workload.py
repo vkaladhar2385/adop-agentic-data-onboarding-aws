@@ -76,6 +76,13 @@ ARTIFACTS = {
         "orchestration": True,
         "artifact_key": "adf_pipeline",
     },
+    "composer_dag": {
+        "spec": "config/codegen/composer_dag.spec.yaml",
+        "template_id": "composer_dag",
+        "output": "dags/{workload}_pipeline.py",
+        "orchestration": True,
+        "artifact_key": "composer_dag",
+    },
 }
 
 
@@ -93,6 +100,22 @@ def _adf_pipeline_spec(workload: str) -> dict:
         "schema_version": "v1",
         "workload": workload,
         "template_id": "adf_pipeline",
+    }
+
+
+def _composer_dag_spec(workload: str, wl_dir: Path) -> dict:
+    schedule = _load_schedule(wl_dir)
+    sched = schedule.get("schedule") or {}
+    return {
+        "schema_version": "v1",
+        "workload": workload,
+        "template_id": "composer_dag",
+        "dataset_name": workload,
+        "dag_id": f"{workload}_pipeline",
+        "schedule": {
+            "cron": sched.get("cron") or "0 6 * * MON",
+            "timezone": sched.get("timezone") or "UTC",
+        },
     }
 
 
@@ -176,6 +199,30 @@ def _render_one(
     wl_dir = REPO_ROOT / "workloads" / workload
     profile = _load_profile(wl_dir)
     spec_path = wl_dir / meta["spec"]
+    if artifact == "composer_dag" and not spec_path.is_file():
+        spec = _composer_dag_spec(workload, wl_dir)
+        spec_hash = compute_spec_hash(spec)
+        template_id = "composer_dag"
+        out_path = _output_path(wl_dir, workload, meta)
+        content = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+        if write:
+            os.environ[TOKEN_ENV] = "render"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(content, encoding="utf-8", newline="\n")
+            print(f"Wrote {out_path.relative_to(REPO_ROOT)}")
+        if check_drift:
+            if not out_path.is_file():
+                print(f"DRIFT: {out_path}: missing composer DAG", file=sys.stderr)
+                return 1
+            expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+            if out_path.read_text(encoding="utf-8") != expected:
+                print(f"DRIFT: {out_path}: composer DAG does not match synthesized spec", file=sys.stderr)
+                return 1
+            print(f"OK no drift: {out_path}")
+        if not write and not check_drift:
+            print(content)
+        return 0
+
     if artifact == "adf_pipeline" and not spec_path.is_file():
         spec = _adf_pipeline_spec(workload)
         spec_hash = compute_spec_hash(spec)

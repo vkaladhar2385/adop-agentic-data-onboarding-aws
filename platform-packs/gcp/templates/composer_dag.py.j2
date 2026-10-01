@@ -1,0 +1,89 @@
+{# template_id: composer_dag #}
+{# required_slots: schema_version, workload, dataset_name, schedule #}
+"""Cloud Composer DAG for `{{ workload }}` (GCP medallion + quality gates)."""
+from datetime import datetime, timedelta
+
+from airflow import DAG
+from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
+from airflow.operators.python import BranchPythonOperator, DummyOperator
+
+default_args = {
+    "owner": "data-engineering",
+    "depends_on_past": False,
+    "retries": 2,
+    "retry_delay": timedelta(minutes=5),
+}
+
+DAG_ID = "{{ dag_id | default(dataset_name ~ '_pipeline') }}"
+PROJECT_ID = "{{ gcp_project | default('adop-gcp-project') }}"
+REGION = "{{ gcp_region | default('us-central1') }}"
+CLUSTER_NAME = "{{ dataproc_cluster | default('adop-' ~ workload) }}"
+
+with DAG(
+    dag_id=DAG_ID,
+    default_args=default_args,
+    description="{{ workload }} medallion pipeline (Dataproc + GCS Iceberg)",
+    schedule_interval="{{ schedule.cron }}",
+    start_date=datetime(2026, 1, 1),
+    catchup=False,
+    tags=["adop", "{{ workload }}", "gcp"],
+) as dag:
+    ingest = DataprocSubmitJobOperator(
+        task_id="ingest_to_bronze",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job={
+            "reference": {"project_id": PROJECT_ID},
+            "placement": {"cluster_name": CLUSTER_NAME},
+            "pyspark_job": {"main_python_file_uri": f"gs://adop-scripts/{{ workload }}/ingest_to_bronze.py"},
+        },
+    )
+    bronze_to_silver = DataprocSubmitJobOperator(
+        task_id="bronze_to_silver",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job={
+            "reference": {"project_id": PROJECT_ID},
+            "placement": {"cluster_name": CLUSTER_NAME},
+            "pyspark_job": {"main_python_file_uri": f"gs://adop-scripts/{{ workload }}/bronze_to_silver.py"},
+        },
+    )
+    quality_silver = DataprocSubmitJobOperator(
+        task_id="quality_silver",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job={
+            "reference": {"project_id": PROJECT_ID},
+            "placement": {"cluster_name": CLUSTER_NAME},
+            "pyspark_job": {"main_python_file_uri": f"gs://adop-scripts/{{ workload }}/run_quality_checks.py"},
+        },
+    )
+
+    def _silver_gate(**context):
+        # Production: read GCS quality sidecar JSON; demo assumes pass.
+        return "silver_to_gold"
+
+    gate_silver = BranchPythonOperator(task_id="gate_silver", python_callable=_silver_gate)
+    silver_to_gold = DataprocSubmitJobOperator(
+        task_id="silver_to_gold",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job={
+            "reference": {"project_id": PROJECT_ID},
+            "placement": {"cluster_name": CLUSTER_NAME},
+            "pyspark_job": {"main_python_file_uri": f"gs://adop-scripts/{{ workload }}/silver_to_gold.py"},
+        },
+    )
+    quality_gold = DataprocSubmitJobOperator(
+        task_id="quality_gold",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job={
+            "reference": {"project_id": PROJECT_ID},
+            "placement": {"cluster_name": CLUSTER_NAME},
+            "pyspark_job": {"main_python_file_uri": f"gs://adop-scripts/{{ workload }}/run_quality_checks.py"},
+        },
+    )
+    done = DummyOperator(task_id="pipeline_complete", trigger_rule="none_failed_min_one_success")
+
+    ingest >> bronze_to_silver >> quality_silver >> gate_silver >> silver_to_gold >> quality_gold >> done

@@ -29,3 +29,7 @@ def test_both_emits_dag_and_sfn():
 
 def test_adf_emits_adf_pipeline_only():
     assert resolve_orchestration_artifacts({"orchestrator": "adf"}) == frozenset({"adf_pipeline"})
+
+
+def test_composer_emits_composer_dag_only():
+    assert resolve_orchestration_artifacts({"orchestrator": "composer"}) == frozenset({"composer_dag"})

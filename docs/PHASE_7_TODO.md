@@ -51,11 +51,15 @@ Legend: `[ ]` todo · `[x]` done · `[~]` in progress · `[B]` blocked on sandbo
 - azurerm `terraform validate` passes · all validators PASS
 - Gate C parked until Azure sandbox
 
-## Phase 7.2 — GCP-native pack
+## Phase 7.2 — GCP-native pack (Dataproc + GCS + Composer)
 
-- [ ] A Build: `platform-packs/gcp/` templates + specs render
-- [ ] B Plan: `terraform plan` clean + unit tests
-- [B] C Live E2E on GCP sandbox (1 workload) — **blocked: no GCP account**
+- [x] 7.2-a Composer orchestrator routing + `composer_dag` synthesis in `render_workload`
+- [x] 7.2-b `platform-packs/gcp/` templates (Dataproc PySpark, GCS ingest, Composer DAG)
+- [x] 7.2-c `platform-packs/gcp/terraform/` (GCS + Dataproc) — `terraform validate` PASS
+- [x] 7.2-d `workloads/gcp_demo/` full render e2e + `tests/test_gcp_pack.py`
+- [B] 7.2-e C Live E2E on GCP sandbox — **blocked: no GCP account**
+
+**7.2 Gate A+B status:** ✅ **COMPLETE (2026-10-01)**
 
 ## Phase 7.3 — Databricks pack
 

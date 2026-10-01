@@ -1,0 +1,21 @@
+# GCP-native demo workload — Phase 7.2 proof (Dataproc + GCS + Composer).
+profile: gcp
+host_cloud: gcp
+
+storage:
+  lake_format: iceberg
+  object_store: gcs
+
+capabilities:
+  transform_engine: spark
+  batch_python: true
+  catalog:
+    kind: dataplex
+    database: gcp_demo_db
+  governance:
+    pii_tags: true
+    kind: dataplex
+  orchestrator:
+    type: composer
+
+deploy_adapter: terraform

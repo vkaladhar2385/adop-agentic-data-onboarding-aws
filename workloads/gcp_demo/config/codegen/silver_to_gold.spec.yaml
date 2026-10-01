@@ -1,0 +1,5 @@
+schema_version: v1
+workload: gcp_demo
+gold_spark_fn: silver_to_gold_dfs
+silver_parquet: output/gcp_demo/silver/silver_gcp_demo.parquet
+silver_read_suffix: /quality_export

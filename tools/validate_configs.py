@@ -29,6 +29,7 @@ CODEGEN_SCHEMA_MAP = {
     "quality_checks.spec.yaml": "codegen_quality_checks.spec.schema.json",
     "state_machine.spec.yaml": "codegen_state_machine.spec.schema.json",
     "dag.spec.yaml": "codegen_dag.spec.schema.json",
+    "composer_dag.spec.yaml": "codegen_composer_dag.spec.schema.json",
 }
 
 
