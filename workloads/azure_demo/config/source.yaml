@@ -1,0 +1,43 @@
+workload: azure_demo
+domain: procurement
+description: >-
+  Azure-native Phase 7.1 demo — same business rules as supplier_lead_times,
+  rendered via platform-packs/azure (Synapse Spark + ADLS + ADF).
+
+source:
+  type: adls
+  format: csv
+  has_header: true
+  location: abfss://bronze@<storage-account>.dfs.core.windows.net/landing/azure_demo/
+  compression: none
+  primary_key: supplier_id
+  estimated_row_count: 120
+
+cadence:
+  mode: batch
+  frequency: weekly
+  time_utc: "06:00"
+
+zones:
+  bronze:
+    database: azure_demo_db
+    table: bronze_azure_demo
+    format: parquet
+  silver:
+    database: azure_demo_db
+    table: silver_azure_demo
+    format: iceberg
+  gold:
+    database: azure_demo_db
+    table: gold_azure_demo
+    schema_style: flat
+    format: iceberg
+
+compliance:
+  regulation: none
+  retention_years: 2
+  bronze_immutable: true
+
+orchestration:
+  engine: adf
+  schedule: adf_trigger

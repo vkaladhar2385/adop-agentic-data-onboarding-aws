@@ -1,0 +1,16 @@
+workload: azure_demo
+orchestrator: adf
+
+schedule:
+  engine: adf_trigger
+  cron: "0 6 * * MON"
+  timezone: UTC
+
+execution:
+  pipeline: azure_demo_pipeline
+  retries: 2
+
+failure_handling:
+  on_failure: notify
+
+dependencies: []

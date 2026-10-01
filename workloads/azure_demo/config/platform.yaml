@@ -1,0 +1,21 @@
+# Azure-native demo workload — Phase 7.1 proof (Synapse + ADLS + ADF).
+profile: azure
+host_cloud: azure
+
+storage:
+  lake_format: iceberg
+  object_store: adls
+
+capabilities:
+  transform_engine: spark
+  batch_python: true
+  catalog:
+    kind: purview
+    database: azure_demo_db
+  governance:
+    pii_tags: true
+    kind: purview
+  orchestrator:
+    type: adf
+
+deploy_adapter: terraform

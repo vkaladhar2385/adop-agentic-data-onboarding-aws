@@ -25,3 +25,7 @@ def test_both_emits_dag_and_sfn():
     assert resolve_orchestration_artifacts(schedule) == frozenset(
         {"state_machine", "dag", "eventbridge_schedule"}
     )
+
+
+def test_adf_emits_adf_pipeline_only():
+    assert resolve_orchestration_artifacts({"orchestrator": "adf"}) == frozenset({"adf_pipeline"})

@@ -1,0 +1,49 @@
+{# template_id: adf_pipeline #}
+{# required_slots: schema_version, workload #}
+{
+  "name": "{{ workload }}_pipeline",
+  "properties": {
+    "description": "ADOP medallion pipeline for {{ workload }} (Azure Data Factory + Synapse Spark). Quality gates block promotion.",
+    "activities": [
+      {
+        "name": "IngestToBronze",
+        "type": "SynapseSparkJobDefinitionActivity",
+        "typeProperties": { "sparkJob": { "referenceName": "{{ workload }}_ingest_to_bronze" } }
+      },
+      {
+        "name": "BronzeToSilver",
+        "type": "SynapseSparkJobDefinitionActivity",
+        "dependsOn": [ { "activity": "IngestToBronze", "dependencyConditions": ["Succeeded"] } ],
+        "typeProperties": { "sparkJob": { "referenceName": "{{ workload }}_bronze_to_silver" } }
+      },
+      {
+        "name": "QualitySilver",
+        "type": "SynapseNotebook",
+        "dependsOn": [ { "activity": "BronzeToSilver", "dependencyConditions": ["Succeeded"] } ],
+        "typeProperties": { "notebook": { "referenceName": "{{ workload }}_quality_silver" }, "parameters": { "zone": { "value": "silver", "type": "string" } } }
+      },
+      {
+        "name": "GateSilver",
+        "type": "IfCondition",
+        "dependsOn": [ { "activity": "QualitySilver", "dependencyConditions": ["Succeeded"] } ],
+        "typeProperties": {
+          "expression": { "value": "@greaterOrEquals(activity('QualitySilver').output.score, 0.80)", "type": "Expression" },
+          "ifTrueActivities": [
+            {
+              "name": "SilverToGold",
+              "type": "SynapseSparkJobDefinitionActivity",
+              "typeProperties": { "sparkJob": { "referenceName": "{{ workload }}_silver_to_gold" } }
+            },
+            {
+              "name": "QualityGold",
+              "type": "SynapseNotebook",
+              "dependsOn": [ { "activity": "SilverToGold", "dependencyConditions": ["Succeeded"] } ],
+              "typeProperties": { "notebook": { "referenceName": "{{ workload }}_quality_gold" }, "parameters": { "zone": { "value": "gold", "type": "string" } } }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": ["adop", "{{ workload }}", "medallion"]
+  }
+}

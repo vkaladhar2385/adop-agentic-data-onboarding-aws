@@ -1,0 +1,5 @@
+schema_version: v1
+workload: azure_demo
+gold_spark_fn: silver_to_gold_dfs
+silver_parquet: output/azure_demo/silver/silver_azure_demo.parquet
+silver_read_suffix: /quality_export

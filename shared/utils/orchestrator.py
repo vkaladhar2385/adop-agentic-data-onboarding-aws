@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 DEFAULT_ORCHESTRATOR = "step_functions"
-VALID_ORCHESTRATORS = frozenset({"step_functions", "mwaa", "both"})
-ORCHESTRATION_ARTIFACTS = frozenset({"state_machine", "dag", "eventbridge_schedule"})
+VALID_ORCHESTRATORS = frozenset({"step_functions", "mwaa", "both", "adf"})
+ORCHESTRATION_ARTIFACTS = frozenset(
+    {"state_machine", "dag", "eventbridge_schedule", "adf_pipeline"}
+)
 
 
 def resolve_orchestrator(schedule_config: dict[str, Any] | None) -> str:
@@ -35,4 +37,6 @@ def resolve_orchestration_artifacts(schedule_config: dict[str, Any] | None) -> f
         return frozenset({"state_machine", "dag", "eventbridge_schedule"})
     if orch == "mwaa":
         return frozenset({"dag"})
+    if orch == "adf":
+        return frozenset({"adf_pipeline"})
     return frozenset({"state_machine", "eventbridge_schedule"})

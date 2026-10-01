@@ -1,0 +1,4 @@
+schema_version: v1
+workload: azure_demo
+silver_s3_prefix: silver/azure_demo/quality_export/
+gold_s3_prefix: gold/azure_demo/gold_azure_demo/

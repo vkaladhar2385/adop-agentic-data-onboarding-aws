@@ -13,6 +13,7 @@ venv/
 
 # Terraform (never commit live state — it contains resource IDs)
 iac/terraform/.terraform/
+platform-packs/**/.terraform/
 iac/terraform/*.tfstate*
 iac/terraform/terraform.tfvars
 iac/terraform/backend.hcl

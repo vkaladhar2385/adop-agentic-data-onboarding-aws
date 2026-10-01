@@ -76,6 +76,18 @@ def load_compute_yaml(path: Path) -> dict:
     return data
 
 
+def load_platform_profile(workload_dir: Path) -> str:
+    """Return platform profile from config/platform.yaml (defaults to aws)."""
+    path = workload_dir / "config" / "platform.yaml"
+    if not path.is_file():
+        return "aws"
+    with path.open(encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    if isinstance(data, dict):
+        return str(data.get("profile") or "aws")
+    return "aws"
+
+
 def _resolve_effective_job_type(step: str, step_cfg: dict, profile: dict, defaults: dict) -> str:
     explicit = step_cfg.get("job_type")
     if explicit and explicit != "auto":
@@ -443,6 +455,17 @@ def validate_workload(
     report = WorkloadReport(workload=workload)
 
     report.issues.extend(validate_compute_rules(workload_dir, data))
+
+    platform_profile = load_platform_profile(workload_dir)
+    if platform_profile != "aws":
+        report.issues.append(
+            Issue(
+                "warning",
+                f"platform profile={platform_profile}: AWS Terraform glue_jobs drift check skipped "
+                f"(deploy via platform-packs/{platform_profile}/)",
+            )
+        )
+        return report
 
     sync_cfg = data.get("terraform_sync") or {}
     sync_status = sync_cfg.get("status", "enforced")

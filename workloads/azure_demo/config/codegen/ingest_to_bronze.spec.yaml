@@ -1,0 +1,4 @@
+schema_version: v1
+workload: azure_demo
+bronze_table: bronze_azure_demo
+source_sample: demo/sample_data/supplier_lead_times.csv

@@ -123,8 +123,8 @@ def validate_workload(wl_dir: Path) -> list[str]:
     if rules.get("requires_mode") and not platform.get("snowflake_mode"):
         errors.append(f"{name}: profile 'snowflake' requires snowflake_mode (sink|platform)")
 
-    # Orchestrator must match schedule.yaml on aws (single source of truth there).
-    if profile == "aws" and orchestrator:
+    # Orchestrator must match schedule.yaml (single source of truth for codegen routing).
+    if orchestrator:
         schedule = _load_yaml(wl_dir / "config" / "schedule.yaml")
         sched_orch = schedule.get("orchestrator") or "step_functions"
         if sched_orch != orchestrator:

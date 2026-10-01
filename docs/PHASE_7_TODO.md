@@ -32,11 +32,24 @@ Legend: `[ ]` todo · `[x]` done · `[~]` in progress · `[B]` blocked on sandbo
 
 ---
 
-## Phase 7.1 — Azure-native pack
+## Phase 7.1 — Azure-native pack (Synapse Spark + ADLS Gen2 + ADF)
 
-- [ ] A Build: `platform-packs/azure/` templates + specs render
-- [ ] B Plan: `terraform plan` clean + unit tests
-- [B] C Live E2E on Azure sandbox (1 workload) — **blocked: no Azure account**
+- [x] 7.1-a Scaffold: `platform-packs/azure/{templates,terraform,deploy}/` + README + deploy adapter
+- [x] 7.1-b Templates: ingest (ADLS), bronze→silver + silver→gold (Synapse PySpark + Iceberg), quality (python) — render Gate A
+- [x] 7.1-c Orchestration exporter: `adf_pipeline.json.j2` (ADF pipeline, quality-gated promotion)
+- [x] 7.1-d Terraform skeleton (azurerm: RG, ADLS Gen2, Synapse workspace+pool, ADF) — `terraform validate` PASS (Gate B)
+- [x] 7.1-b Unit tests: `tests/test_azure_pack.py` (+12, render + Synapse-not-Glue + ADF JSON)
+- [x] 7.1-e `workloads/azure_demo/` — profile azure, orchestrator adf, full render via `render_workload --all --write`
+- [x] 7.1-e ADF routing: `resolve_orchestration_artifacts` + `render_workload` adf_pipeline synthesis + write_guard
+- [x] 7.1-e `validate_compute` skips AWS TF drift for non-aws profiles
+- [x] 7.1-e Push skill: `.cursor/skills/push-both-remotes/` (origin + perficient)
+- [B] 7.1-f C Live E2E on Azure sandbox (1 workload) — **blocked: no Azure account**
+
+**7.1 Gate A+B status:** ✅ **COMPLETE (2026-10-01)**
+- `azure_demo` renders Synapse scripts + ADF pipeline; drift clean
+- pytest 209 passed (+14), 1 pre-existing MCP failure unrelated
+- azurerm `terraform validate` passes · all validators PASS
+- Gate C parked until Azure sandbox
 
 ## Phase 7.2 — GCP-native pack
 

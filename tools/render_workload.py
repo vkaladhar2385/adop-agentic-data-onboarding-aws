@@ -69,6 +69,13 @@ ARTIFACTS = {
         "orchestration": True,
         "artifact_key": "eventbridge_schedule",
     },
+    "adf_pipeline": {
+        "spec": "config/codegen/adf_pipeline.spec.yaml",
+        "template_id": "adf_pipeline",
+        "output": "orchestration/{workload}_adf_pipeline.json",
+        "orchestration": True,
+        "artifact_key": "adf_pipeline",
+    },
 }
 
 
@@ -79,6 +86,14 @@ def _load_source(wl_dir: Path) -> dict:
     with path.open(encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}
     return data if isinstance(data, dict) else {}
+
+
+def _adf_pipeline_spec(workload: str) -> dict:
+    return {
+        "schema_version": "v1",
+        "workload": workload,
+        "template_id": "adf_pipeline",
+    }
 
 
 def _eventbridge_spec(workload: str, wl_dir: Path) -> dict:
@@ -161,6 +176,30 @@ def _render_one(
     wl_dir = REPO_ROOT / "workloads" / workload
     profile = _load_profile(wl_dir)
     spec_path = wl_dir / meta["spec"]
+    if artifact == "adf_pipeline" and not spec_path.is_file():
+        spec = _adf_pipeline_spec(workload)
+        spec_hash = compute_spec_hash(spec)
+        template_id = "adf_pipeline"
+        out_path = _output_path(wl_dir, workload, meta)
+        content = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+        if write:
+            os.environ[TOKEN_ENV] = "render"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(content, encoding="utf-8", newline="\n")
+            print(f"Wrote {out_path.relative_to(REPO_ROOT)}")
+        if check_drift:
+            if not out_path.is_file():
+                print(f"DRIFT: {out_path}: missing adf_pipeline.json", file=sys.stderr)
+                return 1
+            expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+            if out_path.read_text(encoding="utf-8") != expected:
+                print(f"DRIFT: {out_path}: adf_pipeline.json does not match synthesized spec", file=sys.stderr)
+                return 1
+            print(f"OK no drift: {out_path}")
+        if not write and not check_drift:
+            print(content)
+        return 0
+
     if artifact == "eventbridge_schedule" and not spec_path.is_file():
         spec = _eventbridge_spec(workload, wl_dir)
         spec_hash = compute_spec_hash(spec)

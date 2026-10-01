@@ -1,0 +1,47 @@
+{
+  "name": "azure_demo_pipeline",
+  "properties": {
+    "description": "ADOP medallion pipeline for azure_demo (Azure Data Factory + Synapse Spark). Quality gates block promotion.",
+    "activities": [
+      {
+        "name": "IngestToBronze",
+        "type": "SynapseSparkJobDefinitionActivity",
+        "typeProperties": { "sparkJob": { "referenceName": "azure_demo_ingest_to_bronze" } }
+      },
+      {
+        "name": "BronzeToSilver",
+        "type": "SynapseSparkJobDefinitionActivity",
+        "dependsOn": [ { "activity": "IngestToBronze", "dependencyConditions": ["Succeeded"] } ],
+        "typeProperties": { "sparkJob": { "referenceName": "azure_demo_bronze_to_silver" } }
+      },
+      {
+        "name": "QualitySilver",
+        "type": "SynapseNotebook",
+        "dependsOn": [ { "activity": "BronzeToSilver", "dependencyConditions": ["Succeeded"] } ],
+        "typeProperties": { "notebook": { "referenceName": "azure_demo_quality_silver" }, "parameters": { "zone": { "value": "silver", "type": "string" } } }
+      },
+      {
+        "name": "GateSilver",
+        "type": "IfCondition",
+        "dependsOn": [ { "activity": "QualitySilver", "dependencyConditions": ["Succeeded"] } ],
+        "typeProperties": {
+          "expression": { "value": "@greaterOrEquals(activity('QualitySilver').output.score, 0.80)", "type": "Expression" },
+          "ifTrueActivities": [
+            {
+              "name": "SilverToGold",
+              "type": "SynapseSparkJobDefinitionActivity",
+              "typeProperties": { "sparkJob": { "referenceName": "azure_demo_silver_to_gold" } }
+            },
+            {
+              "name": "QualityGold",
+              "type": "SynapseNotebook",
+              "dependsOn": [ { "activity": "SilverToGold", "dependencyConditions": ["Succeeded"] } ],
+              "typeProperties": { "notebook": { "referenceName": "azure_demo_quality_gold" }, "parameters": { "zone": { "value": "gold", "type": "string" } } }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": ["adop", "azure_demo", "medallion"]
+  }
+}

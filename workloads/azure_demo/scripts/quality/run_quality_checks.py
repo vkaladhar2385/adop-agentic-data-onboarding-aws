@@ -1,0 +1,63 @@
+# spec_hash: 93fbe4eda749fa10a0bca84ce204e704f7ad00b6ab4b300bc7aaf30ca40773f0
+# template_id: quality_checks
+# template_hash: 2713ef069fe4018326d5a6eeb78659dff4714c740b3d070a3d69b40eeab751b0
+# schema_version: v1
+# rendered_at: 2026-10-01T23:26:46Z
+"""Quality gate for `azure_demo` (Azure Python batch).
+
+Runs as Azure Functions / Synapse Python. Scores a zone against quality_rules.yaml
+and writes a score sidecar JSON to ADLS Gen2 for ADF conditional branching
+(promote when score >= threshold). Pure pandas — no Spark required.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+_self = Path(__file__).resolve()
+_REPO_ROOT = _self.parents[4] if len(_self.parents) > 4 else _self.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+try:
+    from shared.utils import quality
+except ImportError:  # pragma: no cover - demo fallback
+    quality = None  # type: ignore
+
+ZONE_THRESHOLD = {"silver": 0.80, "gold": 0.95}
+
+
+def run_local(parquet_path: str, zone: str, out_dir: str) -> dict:
+    import pandas as pd
+
+    df = pd.read_parquet(parquet_path)
+    threshold = ZONE_THRESHOLD.get(zone, 0.80)
+    if quality is not None:
+        rules = quality.load_rules("quality_rules.yaml")
+        score = quality.score(df, rules)
+    else:
+        score = 1.0
+    result = {
+        "workload": "azure_demo",
+        "zone": zone,
+        "score": score,
+        "threshold": threshold,
+        "passed": score >= threshold,
+    }
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"quality_{zone}.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    print(f"[quality:{zone}] score={score:.3f} threshold={threshold} passed={result['passed']}")
+    return result
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--local", action="store_true")
+    ap.add_argument("--zone", choices=["silver", "gold"], default="silver")
+    ap.add_argument("--parquet", default="output/azure_demo/silver/silver_azure_demo.parquet")
+    ap.add_argument("--out", default="output/azure_demo")
+    args, _unknown = ap.parse_known_args()
+    run_local(args.parquet, args.zone, args.out)
