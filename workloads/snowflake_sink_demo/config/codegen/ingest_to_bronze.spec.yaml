@@ -1,0 +1,4 @@
+schema_version: v1
+workload: snowflake_sink_demo
+bronze_table: bronze_snowflake_sink_demo
+source_sample: demo/sample_data/supplier_lead_times.csv

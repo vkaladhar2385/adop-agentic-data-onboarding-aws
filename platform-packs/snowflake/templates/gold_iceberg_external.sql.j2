@@ -1,0 +1,16 @@
+{# template_id: gold_iceberg_external #}
+{# required_slots: schema_version, workload, database, schema, table #}
+-- ADOP Phase 7.4: Snowflake Mode A Gold sink (external Iceberg over {{ host_cloud | default('aws') }} lake)
+-- workload={{ workload }} spec_hash={{ spec_hash }} template_id={{ template_id }}
+-- Gate C: apply after storage integration + external volume exist in Snowflake.
+
+USE DATABASE {{ database }};
+USE SCHEMA {{ schema }};
+
+CREATE OR REPLACE ICEBERG TABLE {{ table }}
+  EXTERNAL_VOLUME = '{{ external_volume }}'
+  CATALOG = '{{ catalog_integration }}'
+  METADATA_FILE_PATH = '{{ metadata_file_path }}';
+
+-- Optional: grant read to analyst role (uncomment in live deploy)
+-- GRANT SELECT ON TABLE {{ table }} TO ROLE ANALYST;

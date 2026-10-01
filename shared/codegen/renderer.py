@@ -48,7 +48,7 @@ def _template_hash(source: str) -> str:
 
 def _load_template(template_id: str, profile: str = DEFAULT_PROFILE) -> tuple[str, str, str]:
     for base in _template_search_dirs(profile):
-        for ext in (".py.j2", ".json.j2"):
+        for ext in (".py.j2", ".json.j2", ".sql.j2"):
             path = base / f"{template_id}{ext}"
             if path.exists():
                 source = path.read_text(encoding="utf-8")
@@ -89,7 +89,7 @@ def render(
     except jinja2.TemplateError as exc:
         raise RenderError(template_id, str(exc)) from exc
 
-    if ext == ".json.j2":
+    if ext in (".json.j2", ".sql.j2"):
         return body
 
     header = HEADER.format(

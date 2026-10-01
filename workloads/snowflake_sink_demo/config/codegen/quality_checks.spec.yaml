@@ -1,0 +1,4 @@
+schema_version: v1
+workload: snowflake_sink_demo
+silver_s3_prefix: silver/snowflake_sink_demo/quality_export/
+gold_s3_prefix: gold/snowflake_sink_demo/gold_snowflake_sink_demo/

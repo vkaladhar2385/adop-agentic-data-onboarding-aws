@@ -1,0 +1,42 @@
+workload: snowflake_sink_demo
+domain: procurement
+description: >-
+  Phase 7.4 demo — AWS medallion with Snowflake Mode A Gold Iceberg external table sink.
+
+source:
+  type: s3
+  format: csv
+  has_header: true
+  location: s3://<bucket>/landing/snowflake_sink_demo/
+  compression: none
+  primary_key: supplier_id
+  estimated_row_count: 120
+
+cadence:
+  mode: batch
+  frequency: weekly
+  time_utc: "06:00"
+
+zones:
+  bronze:
+    database: snowflake_sink_demo_db
+    table: bronze_snowflake_sink_demo
+    format: parquet
+  silver:
+    database: snowflake_sink_demo_db
+    table: silver_snowflake_sink_demo
+    format: iceberg
+  gold:
+    database: snowflake_sink_demo_db
+    table: gold_snowflake_sink_demo
+    format: iceberg
+    schema_style: flat
+
+compliance:
+  regulation: none
+  retention_years: 2
+  bronze_immutable: true
+
+orchestration:
+  engine: step_functions
+  schedule: eventbridge_scheduler

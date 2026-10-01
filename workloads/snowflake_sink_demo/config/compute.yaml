@@ -1,0 +1,44 @@
+workload: snowflake_sink_demo
+
+profile:
+  estimated_rows_per_run: 120
+  peak_rows_per_run: 2000
+  silver_format: iceberg
+  gold_format: iceberg
+  compliance: none
+
+defaults:
+  transform_job_type: glueetl
+  quality_job_type: pythonshell
+  ingest_job_type: pythonshell
+
+pipeline_steps:
+  ingest_to_bronze:
+    job_type: pythonshell
+    script: scripts/extract/ingest_to_bronze.py
+
+  bronze_to_silver:
+    job_type: glueetl
+    script: scripts/transform/bronze_to_silver.py
+
+  quality_silver:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+  silver_to_gold:
+    job_type: glueetl
+    script: scripts/transform/silver_to_gold.py
+
+  quality_gold:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+terraform_sync:
+  status: pending
+  note: Snowflake sink DDL via platform-packs/snowflake — not iac/terraform glue_jobs.
+
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+  snowflake: true

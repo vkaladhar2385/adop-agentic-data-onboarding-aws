@@ -73,9 +73,13 @@ Legend: `[ ]` todo · `[x]` done · `[~]` in progress · `[B]` blocked on sandbo
 
 ## Phase 7.4 — Snowflake Mode A (Gold sink)
 
-- [ ] A Build: `platform-packs/snowflake/` sink adapter
-- [ ] B Plan: SQL compile / `terraform plan` + unit tests
-- [B] C Live: Gold -> Snowflake Iceberg external table — **blocked: no Snowflake account**
+- [x] 7.4-a `platform-packs/snowflake/` Gold Iceberg external table SQL template + renderer `.sql.j2`
+- [x] 7.4-b `render_workload` snowflake_sink artifact (synthesized when `sinks.snowflake: true`)
+- [x] 7.4-c `platform-packs/snowflake/terraform/` — `terraform validate` PASS
+- [x] 7.4-d `workloads/snowflake_sink_demo/` + `tests/test_snowflake_pack.py`
+- [B] 7.4-e C Live: Gold -> Snowflake Iceberg external table — **blocked: no Snowflake account**
+
+**7.4 Gate A+B status:** ✅ **COMPLETE (2026-10-01)**
 
 ## Phase 7.5 — Snowflake Mode B (full platform, on request)
 

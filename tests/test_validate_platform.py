@@ -78,6 +78,21 @@ def test_snowflake_requires_mode(tmp_path):
     assert any("requires snowflake_mode" in e for e in errors)
 
 
+def test_snowflake_sink_mode_iceberg_sql_ok(tmp_path):
+    wl = tmp_path / "demo"
+    _write(
+        wl,
+        """
+        profile: snowflake
+        snowflake_mode: sink
+        storage: { lake_format: iceberg }
+        capabilities: { transform_engine: sql }
+        deploy_adapter: snowflake_cli
+        """,
+    )
+    assert validate_workload(wl) == []
+
+
 def test_snowflake_native_sql_with_mode_ok(tmp_path):
     wl = tmp_path / "demo"
     _write(

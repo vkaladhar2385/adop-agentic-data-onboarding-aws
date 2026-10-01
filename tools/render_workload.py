@@ -90,6 +90,13 @@ ARTIFACTS = {
         "orchestration": True,
         "artifact_key": "databricks_workflow",
     },
+    "snowflake_sink": {
+        "spec": "config/codegen/snowflake_sink.spec.yaml",
+        "template_id": "gold_iceberg_external",
+        "output": "sql/snowflake/{workload}_gold_iceberg_external.sql",
+        "orchestration": False,
+        "sink": "snowflake",
+    },
 }
 
 
@@ -115,6 +122,44 @@ def _databricks_workflow_spec(workload: str) -> dict:
         "schema_version": "v1",
         "workload": workload,
         "template_id": "databricks_workflow",
+    }
+
+
+def _load_compute(wl_dir: Path) -> dict:
+    path = wl_dir / "config" / "compute.yaml"
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    return data if isinstance(data, dict) else {}
+
+
+def _load_platform(wl_dir: Path) -> dict:
+    path = wl_dir / "config" / "platform.yaml"
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    return data if isinstance(data, dict) else {}
+
+
+def _snowflake_sink_spec(workload: str, wl_dir: Path) -> dict:
+    source = _load_source(wl_dir)
+    gold = (source.get("zones") or {}).get("gold") or {}
+    platform = _load_platform(wl_dir)
+    host = str(platform.get("host_cloud") or "aws")
+    table = str(gold.get("table") or f"gold_{workload}")
+    return {
+        "schema_version": "v1",
+        "workload": workload,
+        "template_id": "gold_iceberg_external",
+        "database": str(gold.get("database") or f"{workload}_analytics").upper(),
+        "schema": "GOLD",
+        "table": table.upper(),
+        "external_volume": f"ADOP_{workload.upper()}_GOLD_VOL",
+        "catalog_integration": "SNOWFLAKE",
+        "metadata_file_path": f"s3://<bucket>/gold/{workload}/{table}/metadata/",
+        "host_cloud": host,
     }
 
 
@@ -213,7 +258,37 @@ def _render_one(
     meta = ARTIFACTS[artifact]
     wl_dir = REPO_ROOT / "workloads" / workload
     profile = _load_profile(wl_dir)
+    if meta.get("sink"):
+        sinks = (_load_compute(wl_dir).get("sinks") or {})
+        if not sinks.get(meta["sink"]):
+            print(f"SKIP {workload}/{artifact}: sinks.{meta['sink']} not enabled")
+            return 0
+        profile = "snowflake"
     spec_path = wl_dir / meta["spec"]
+    if artifact == "snowflake_sink" and not spec_path.is_file():
+        spec = _snowflake_sink_spec(workload, wl_dir)
+        spec_hash = compute_spec_hash(spec)
+        template_id = meta["template_id"]
+        out_path = _output_path(wl_dir, workload, meta)
+        content = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+        if write:
+            os.environ[TOKEN_ENV] = "render"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(content, encoding="utf-8", newline="\n")
+            print(f"Wrote {out_path.relative_to(REPO_ROOT)}")
+        if check_drift:
+            if not out_path.is_file():
+                print(f"DRIFT: {out_path}: missing snowflake sink SQL", file=sys.stderr)
+                return 1
+            expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+            if out_path.read_text(encoding="utf-8") != expected:
+                print(f"DRIFT: {out_path}: snowflake sink SQL does not match synthesized spec", file=sys.stderr)
+                return 1
+            print(f"OK no drift: {out_path}")
+        if not write and not check_drift:
+            print(content)
+        return 0
+
     if artifact == "databricks_workflow" and not spec_path.is_file():
         spec = _databricks_workflow_spec(workload)
         spec_hash = compute_spec_hash(spec)
