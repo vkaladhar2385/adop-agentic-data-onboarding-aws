@@ -36,6 +36,10 @@ _ADF_RE = re.compile(
     r"workloads[/\\][^/\\]+[/\\]orchestration[/\\][^/\\]+_adf_pipeline\.json$",
     re.IGNORECASE,
 )
+_DATABRICKS_WF_RE = re.compile(
+    r"workloads[/\\][^/\\]+[/\\]orchestration[/\\][^/\\]+_databricks_workflow\.json$",
+    re.IGNORECASE,
+)
 _RENDERER_HINTS = ("render_workload.py", "check_codegen_drift.py")
 _SHELL_WRITE_HINTS = (
     ">",
@@ -74,7 +78,9 @@ def is_protected_path(file_path: str) -> bool:
         return True
     if _DAG_RE.search(normalized):
         return True
-    return bool(_ADF_RE.search(normalized))
+    if _ADF_RE.search(normalized):
+        return True
+    return bool(_DATABRICKS_WF_RE.search(normalized))
 
 
 def extract_file_paths(event: dict) -> list[str]:

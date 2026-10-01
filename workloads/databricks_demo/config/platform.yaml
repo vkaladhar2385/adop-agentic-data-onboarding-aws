@@ -1,0 +1,21 @@
+# Databricks cross-cloud demo — Phase 7.3 proof (UC + Delta + Workflows).
+profile: databricks
+host_cloud: aws
+
+storage:
+  lake_format: delta
+  object_store: s3
+
+capabilities:
+  transform_engine: spark
+  batch_python: true
+  catalog:
+    kind: unity_catalog
+    database: databricks_demo_db
+  governance:
+    pii_tags: true
+    kind: unity_catalog
+  orchestrator:
+    type: workflows
+
+deploy_adapter: terraform

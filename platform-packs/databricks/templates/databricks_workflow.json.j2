@@ -1,0 +1,49 @@
+{# template_id: databricks_workflow #}
+{# required_slots: schema_version, workload #}
+{
+  "name": "{{ workload }}_pipeline",
+  "description": "ADOP medallion pipeline for {{ workload }} (Databricks Workflows + Unity Catalog).",
+  "tags": {
+    "adop": "true",
+    "workload": "{{ workload }}"
+  },
+  "tasks": [
+    {
+      "task_key": "ingest_to_bronze",
+      "spark_python_task": {
+        "python_file": "/Workspace/adop/{{ workload }}/scripts/extract/ingest_to_bronze.py"
+      }
+    },
+    {
+      "task_key": "bronze_to_silver",
+      "depends_on": [{ "task_key": "ingest_to_bronze" }],
+      "spark_python_task": {
+        "python_file": "/Workspace/adop/{{ workload }}/scripts/transform/bronze_to_silver.py"
+      }
+    },
+    {
+      "task_key": "quality_silver",
+      "depends_on": [{ "task_key": "bronze_to_silver" }],
+      "spark_python_task": {
+        "python_file": "/Workspace/adop/{{ workload }}/scripts/quality/run_quality_checks.py",
+        "parameters": ["--zone", "silver"]
+      }
+    },
+    {
+      "task_key": "silver_to_gold",
+      "depends_on": [{ "task_key": "quality_silver" }],
+      "spark_python_task": {
+        "python_file": "/Workspace/adop/{{ workload }}/scripts/transform/silver_to_gold.py"
+      }
+    },
+    {
+      "task_key": "quality_gold",
+      "depends_on": [{ "task_key": "silver_to_gold" }],
+      "spark_python_task": {
+        "python_file": "/Workspace/adop/{{ workload }}/scripts/quality/run_quality_checks.py",
+        "parameters": ["--zone", "gold"]
+      }
+    }
+  ],
+  "quality_gate_note": "Silver score >= 0.80 required before Gold promotion (enforce via task conditions in live deploy)."
+}

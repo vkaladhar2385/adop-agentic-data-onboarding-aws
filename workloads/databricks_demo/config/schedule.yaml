@@ -1,0 +1,16 @@
+workload: databricks_demo
+orchestrator: workflows
+
+schedule:
+  engine: databricks_workflow
+  cron: "0 6 * * MON"
+  timezone: UTC
+
+execution:
+  pipeline: databricks_demo_pipeline
+  retries: 2
+
+failure_handling:
+  on_failure: notify
+
+dependencies: []

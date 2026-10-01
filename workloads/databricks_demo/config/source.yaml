@@ -1,0 +1,43 @@
+workload: databricks_demo
+domain: procurement
+description: >-
+  Databricks Phase 7.3 demo — same business rules as supplier_lead_times,
+  rendered via platform-packs/databricks (UC + Delta + Workflows).
+
+source:
+  type: s3
+  format: csv
+  has_header: true
+  location: s3://<bucket>/landing/databricks_demo/
+  compression: none
+  primary_key: supplier_id
+  estimated_row_count: 120
+
+cadence:
+  mode: batch
+  frequency: weekly
+  time_utc: "06:00"
+
+zones:
+  bronze:
+    database: databricks_demo_db
+    table: bronze_databricks_demo
+    format: parquet
+  silver:
+    database: databricks_demo_db
+    table: silver_databricks_demo
+    format: delta
+  gold:
+    database: databricks_demo_db
+    table: gold_databricks_demo
+    schema_style: flat
+    format: delta
+
+compliance:
+  regulation: none
+  retention_years: 2
+  bronze_immutable: true
+
+orchestration:
+  engine: workflows
+  schedule: databricks_workflow

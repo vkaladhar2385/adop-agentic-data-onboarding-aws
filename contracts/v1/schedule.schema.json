@@ -9,7 +9,7 @@
     "workload": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
     "orchestrator": {
       "type": "string",
-      "enum": ["step_functions", "mwaa", "both", "adf", "composer"]
+      "enum": ["step_functions", "mwaa", "both", "adf", "composer", "workflows"]
     },
     "ontology_staging": { "type": "boolean" },
     "schedule": {

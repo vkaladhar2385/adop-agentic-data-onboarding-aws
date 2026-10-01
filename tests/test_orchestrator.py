@@ -33,3 +33,9 @@ def test_adf_emits_adf_pipeline_only():
 
 def test_composer_emits_composer_dag_only():
     assert resolve_orchestration_artifacts({"orchestrator": "composer"}) == frozenset({"composer_dag"})
+
+
+def test_workflows_emits_databricks_workflow_only():
+    assert resolve_orchestration_artifacts({"orchestrator": "workflows"}) == frozenset(
+        {"databricks_workflow"}
+    )

@@ -1,0 +1,6 @@
+schema_version: v1
+workload: databricks_demo
+catalog: main
+database: databricks_demo_db
+gold_table: gold_databricks_demo
+lake_format: delta

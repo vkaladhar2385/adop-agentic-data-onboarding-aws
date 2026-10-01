@@ -63,9 +63,13 @@ Legend: `[ ]` todo · `[x]` done · `[~]` in progress · `[B]` blocked on sandbo
 
 ## Phase 7.3 — Databricks pack
 
-- [ ] A Build: `platform-packs/databricks/` (Iceberg or Delta via `lake_format`)
-- [ ] B Plan: bundle validate / `terraform plan` + unit tests
-- [B] C Live E2E on Databricks workspace — **blocked: no workspace**
+- [x] 7.3-a Workflows orchestrator routing + `databricks_workflow` synthesis in `render_workload`
+- [x] 7.3-b `platform-packs/databricks/` templates (UC PySpark, Delta default, Workflows JSON)
+- [x] 7.3-c `platform-packs/databricks/terraform/` (databricks_job) — `terraform validate` PASS
+- [x] 7.3-d `workloads/databricks_demo/` full render e2e + `tests/test_databricks_pack.py`
+- [B] 7.3-e C Live E2E on Databricks workspace — **blocked: no workspace**
+
+**7.3 Gate A+B status:** ✅ **COMPLETE (2026-10-01)**
 
 ## Phase 7.4 — Snowflake Mode A (Gold sink)
 

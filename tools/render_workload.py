@@ -83,6 +83,13 @@ ARTIFACTS = {
         "orchestration": True,
         "artifact_key": "composer_dag",
     },
+    "databricks_workflow": {
+        "spec": "config/codegen/databricks_workflow.spec.yaml",
+        "template_id": "databricks_workflow",
+        "output": "orchestration/{workload}_databricks_workflow.json",
+        "orchestration": True,
+        "artifact_key": "databricks_workflow",
+    },
 }
 
 
@@ -100,6 +107,14 @@ def _adf_pipeline_spec(workload: str) -> dict:
         "schema_version": "v1",
         "workload": workload,
         "template_id": "adf_pipeline",
+    }
+
+
+def _databricks_workflow_spec(workload: str) -> dict:
+    return {
+        "schema_version": "v1",
+        "workload": workload,
+        "template_id": "databricks_workflow",
     }
 
 
@@ -199,6 +214,30 @@ def _render_one(
     wl_dir = REPO_ROOT / "workloads" / workload
     profile = _load_profile(wl_dir)
     spec_path = wl_dir / meta["spec"]
+    if artifact == "databricks_workflow" and not spec_path.is_file():
+        spec = _databricks_workflow_spec(workload)
+        spec_hash = compute_spec_hash(spec)
+        template_id = "databricks_workflow"
+        out_path = _output_path(wl_dir, workload, meta)
+        content = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+        if write:
+            os.environ[TOKEN_ENV] = "render"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(content, encoding="utf-8", newline="\n")
+            print(f"Wrote {out_path.relative_to(REPO_ROOT)}")
+        if check_drift:
+            if not out_path.is_file():
+                print(f"DRIFT: {out_path}: missing databricks workflow json", file=sys.stderr)
+                return 1
+            expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+            if out_path.read_text(encoding="utf-8") != expected:
+                print(f"DRIFT: {out_path}: databricks workflow does not match synthesized spec", file=sys.stderr)
+                return 1
+            print(f"OK no drift: {out_path}")
+        if not write and not check_drift:
+            print(content)
+        return 0
+
     if artifact == "composer_dag" and not spec_path.is_file():
         spec = _composer_dag_spec(workload, wl_dir)
         spec_hash = compute_spec_hash(spec)
