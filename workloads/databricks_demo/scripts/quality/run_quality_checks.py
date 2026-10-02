@@ -1,8 +1,8 @@
-# spec_hash: bf559fcbad0845314f45e312762c0f0e76023b7f766d2bf83704e971950b11b2
+# spec_hash: 5a38f7d521378eb3db7288d700287de87b061534cbfa54ed18079a237edf03c3
 # template_id: quality_checks
 # template_hash: 52107f8f5da0b02ea3c04ffdebabd68585e2595a06e318eb5d50d776ea2a6b0b
 # schema_version: v1
-# rendered_at: 2026-10-01T23:47:23Z
+# rendered_at: 2026-10-02T00:13:38Z
 """Quality gate for `databricks_demo` (Databricks Python wheel task)."""
 from __future__ import annotations
 

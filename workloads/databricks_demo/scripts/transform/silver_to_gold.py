@@ -1,8 +1,8 @@
-# spec_hash: a7b80e59753aeca7bdc4a3f7bafdaeb562b668cc4251ae6003e6d22e9c2f52d6
+# spec_hash: 2110fb0e4cad7de2136402737bcd758ebaa172339f76dfd46f4967176e5c5200
 # template_id: silver_to_gold
 # template_hash: 1e158a357229b30d5b3cd36b5fc7fe52f640d52abd0a4f24ea7ab5d61958a901
 # schema_version: v1
-# rendered_at: 2026-10-01T23:47:23Z
+# rendered_at: 2026-10-02T00:13:38Z
 """Silver -> Gold for `databricks_demo` (Databricks PySpark + Unity Catalog)."""
 from __future__ import annotations
 

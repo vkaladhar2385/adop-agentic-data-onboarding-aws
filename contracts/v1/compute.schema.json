@@ -16,8 +16,8 @@
       "properties": {
         "estimated_rows_per_run": { "type": "integer", "minimum": 0 },
         "peak_rows_per_run": { "type": "integer", "minimum": 0 },
-        "silver_format": { "type": "string", "enum": ["iceberg", "parquet"] },
-        "gold_format": { "type": "string", "enum": ["iceberg", "parquet"] },
+        "silver_format": { "type": "string", "enum": ["iceberg", "parquet", "delta", "native"] },
+        "gold_format": { "type": "string", "enum": ["iceberg", "parquet", "delta", "native"] },
         "compliance": { "type": "string" }
       },
       "additionalProperties": true
@@ -25,9 +25,9 @@
     "defaults": {
       "type": "object",
       "properties": {
-        "transform_job_type": { "type": "string", "enum": ["glueetl", "pythonshell"] },
-        "quality_job_type": { "type": "string", "enum": ["glueetl", "pythonshell"] },
-        "ingest_job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "auto"] }
+        "transform_job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "snowpark"] },
+        "quality_job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "snowpark"] },
+        "ingest_job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "auto", "snowpark"] }
       },
       "additionalProperties": true
     },
@@ -38,7 +38,7 @@
         "type": "object",
         "required": ["job_type", "script"],
         "properties": {
-          "job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "auto"] },
+          "job_type": { "type": "string", "enum": ["glueetl", "pythonshell", "auto", "snowpark"] },
           "script": { "type": "string", "minLength": 1 },
           "workers": { "type": "integer", "minimum": 1 },
           "worker_type": { "type": "string" },
@@ -118,7 +118,8 @@
       "properties": {
         "redshift": { "type": "boolean" },
         "opensearch": { "type": "boolean" },
-        "redis": { "type": "boolean" }
+        "redis": { "type": "boolean" },
+        "snowflake": { "type": "boolean", "description": "Mode A Gold sink SQL (platform-packs/snowflake)" }
       }
     }
   }

@@ -1,0 +1,21 @@
+{
+  "Comment": "EventBridge Scheduler for snowflake_sink_demo (weekly).",
+  "Name": "snowflake-sink-demo-weekly",
+  "ScheduleExpression": "cron(0 6 ? * MON *)",
+  "ScheduleExpressionTimezone": "UTC",
+  "FlexibleTimeWindow": { "Mode": "OFF" },
+  "Target": {
+    "Arn": "arn:aws:states:us-east-1:<account>:stateMachine:snowflake_sink_demo_pipeline",
+    "RoleArn": "arn:aws:iam::<account>:role/snowflake-sink-demo-scheduler-role",
+    "Input": {
+      "source_path": "s3://data-lake-<account>-us-east-1/landing/snowflake_sink_demo/",
+      "bronze_path": "s3://data-lake-<account>-us-east-1/bronze/snowflake_sink_demo/",
+      "silver_path": "s3://data-lake-<account>-us-east-1/silver/snowflake_sink_demo/",
+      "gold_path": "s3://data-lake-<account>-us-east-1/gold/snowflake_sink_demo/"
+    },
+    "RetryPolicy": {
+      "MaximumRetryAttempts": 2,
+      "MaximumEventAgeInSeconds": 3600
+    }
+  }
+}

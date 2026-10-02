@@ -1,8 +1,8 @@
-# spec_hash: 71752bb44a0c44ec643e663359acdf9b4bdc204dd19b2ba35ae1969308a3bac7
+# spec_hash: 7e91ba8e9989eaac584e985395d3f7747d17863ca0925a4e15cb4b9a7af735ed
 # template_id: silver_to_gold
 # template_hash: 5ab38f44eb29b862d0cdaaedb667275bd72389e0aa729bae875f89c8bbd4b026
 # schema_version: v1
-# rendered_at: 2026-10-02T00:01:16Z
+# rendered_at: 2026-10-02T00:13:50Z
 """Silver -> Gold for `snowflake_demo` (Snowflake Snowpark, native tables)."""
 from __future__ import annotations
 

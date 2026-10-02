@@ -1,8 +1,8 @@
-# spec_hash: 7947e01af6659802fb4243a44f4203f2334eda331ee3d26df3ce1edcd23112b6
+# spec_hash: 71f718008e1199bc13b1367d61d0baa01f59998089d49c12431b0b0b40e7d5d7
 # template_id: quality_checks
 # template_hash: 4ffb62430175c07c82acdf831df61cd7631d3c4eea0fcc06a8eedc5eca95ce4c
 # schema_version: v1
-# rendered_at: 2026-10-02T00:01:16Z
+# rendered_at: 2026-10-02T00:13:50Z
 """Quality gate for `snowflake_demo` (Snowflake Python / SQL UDF task)."""
 from __future__ import annotations
 

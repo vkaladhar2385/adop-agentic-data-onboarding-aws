@@ -1,2 +1,4 @@
 schema_version: v1
 workload: databricks_demo
+silver_s3_prefix: silver/databricks_demo/quality_export/
+gold_s3_prefix: gold/databricks_demo/gold_databricks_demo/

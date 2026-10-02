@@ -1,2 +1,4 @@
 schema_version: v1
 workload: snowflake_demo
+silver_s3_prefix: silver/snowflake_demo/quality_export/
+gold_s3_prefix: gold/snowflake_demo/gold_snowflake_demo/
