@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snowflake deploy adapter (Phase 7.4 Mode A). Gate B validate/SQL compile only."""
+"""Snowflake deploy adapter (Phase 7.4/7.5). Gate B validate/SQL compile only."""
 from __future__ import annotations
 
 import argparse
@@ -16,7 +16,7 @@ def _run(args: list[str], cwd: Path) -> int:
     return subprocess.run(args, cwd=str(cwd)).returncode
 
 
-def _compile_sink_sql(workload: str) -> int:
+def _compile_artifact(workload: str, artifact: str, marker: str) -> int:
     proc = subprocess.run(
         [
             sys.executable,
@@ -24,7 +24,7 @@ def _compile_sink_sql(workload: str) -> int:
             "--workload",
             workload,
             "--artifact",
-            "snowflake_sink",
+            artifact,
         ],
         cwd=str(REPO_ROOT),
         capture_output=True,
@@ -34,18 +34,27 @@ def _compile_sink_sql(workload: str) -> int:
         print(proc.stderr or proc.stdout, file=sys.stderr)
         return proc.returncode
     sql = proc.stdout.strip()
-    if not sql.upper().startswith("-- ADOP") and "CREATE OR REPLACE ICEBERG TABLE" not in sql.upper():
-        print("ERROR: snowflake_sink SQL compile produced unexpected output", file=sys.stderr)
+    if marker not in sql.upper():
+        print(f"ERROR: {artifact} SQL compile missing marker {marker!r}", file=sys.stderr)
         return 1
-    print(f"OK SQL compile for {workload} ({len(sql)} bytes)")
+    print(f"OK SQL compile {artifact} for {workload} ({len(sql)} bytes)")
     return 0
+
+
+def _compile_sink_sql(workload: str) -> int:
+    return _compile_artifact(workload, "snowflake_sink", "CREATE OR REPLACE ICEBERG TABLE")
+
+
+def _compile_tasks_sql(workload: str) -> int:
+    return _compile_artifact(workload, "snowflake_tasks", "CREATE OR REPLACE TASK")
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workload", required=True)
     ap.add_argument("--validate", action="store_true")
-    ap.add_argument("--compile-sql", action="store_true")
+    ap.add_argument("--compile-sql", action="store_true", help="Mode A sink SQL")
+    ap.add_argument("--compile-tasks", action="store_true", help="Mode B Tasks SQL")
     ap.add_argument("--approve-apply", action="store_true")
     args = ap.parse_args(argv)
 
@@ -56,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     rc = 0
     if args.compile_sql:
         rc = _compile_sink_sql(args.workload)
+    if rc == 0 and args.compile_tasks:
+        rc = _compile_tasks_sql(args.workload)
     if rc == 0 and args.validate:
         rc = _run(["terraform", "init", "-backend=false"], TF_DIR)
         if rc == 0:

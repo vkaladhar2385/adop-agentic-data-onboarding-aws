@@ -1,0 +1,61 @@
+{# template_id: silver_to_gold #}
+{# required_slots: schema_version, workload #}
+"""Silver -> Gold for `{{ workload }}` (Snowflake Snowpark, native tables)."""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+_self = Path(__file__).resolve()
+_REPO_ROOT = _self.parents[4] if len(_self.parents) > 4 else _self.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+try:
+    from workloads.{{ workload }}.scripts.transform import local_runner, spark_transforms
+except ImportError:  # pragma: no cover
+    local_runner = None  # type: ignore
+    spark_transforms = None  # type: ignore
+
+DATABASE = "{{ database | default(workload ~ '_db') }}"
+SILVER_SCHEMA = "{{ silver_schema | default('SILVER') }}"
+GOLD_SCHEMA = "{{ gold_schema | default('GOLD') }}"
+SILVER_TABLE = "{{ silver_table | default('silver_' ~ workload) }}"
+GOLD_TABLE = "{{ gold_table | default('gold_' ~ workload) }}"
+
+
+def run_local(silver_parquet: str, out_dir: str) -> dict:
+    import pandas as pd
+
+    cfg = local_runner.load_config("transformations.yaml")
+    silver = pd.read_parquet(silver_parquet)
+    gold = local_runner.silver_to_gold(silver, cfg)
+    out = Path(out_dir)
+    (out / "gold").mkdir(parents=True, exist_ok=True)
+    gold.to_parquet(out / "gold" / "gold_{{ workload }}.parquet", index=False)
+    print(f"[gold] rows={len(gold)}")
+    return {"gold": gold}
+
+
+def run_snowpark():  # pragma: no cover
+    from snowflake.snowpark import Session
+
+    session = Session.builder.appName("{{ workload }}_silver_to_gold").getOrCreate()
+    silver_df = session.table(f"{DATABASE}.{SILVER_SCHEMA}.{SILVER_TABLE}")
+    gold_df = spark_transforms.silver_to_gold_df(silver_df) if spark_transforms else silver_df
+    fqn = f"{DATABASE}.{GOLD_SCHEMA}.{GOLD_TABLE}"
+    gold_df.write.mode("overwrite").save_as_table(fqn)
+    print(f"[gold] {fqn}")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--local", action="store_true")
+    ap.add_argument("--silver", default="output/{{ workload }}/silver/silver_{{ workload }}.parquet")
+    ap.add_argument("--out", default="output/{{ workload }}")
+    args, _unknown = ap.parse_known_args()
+    if args.local:
+        run_local(args.silver, args.out)
+    else:
+        run_snowpark()

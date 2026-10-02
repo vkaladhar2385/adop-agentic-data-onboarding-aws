@@ -1,0 +1,44 @@
+{# template_id: snowflake_tasks #}
+{# required_slots: schema_version, workload, database, schema, warehouse #}
+-- ADOP Phase 7.5: Snowflake Tasks root + dependent chain (Mode B platform)
+-- workload={{ workload }} spec_hash={{ spec_hash }} template_id={{ template_id }}
+
+USE DATABASE {{ database }};
+USE SCHEMA {{ schema }};
+
+CREATE OR REPLACE TASK {{ workload }}_ingest_to_bronze
+  WAREHOUSE = {{ warehouse }}
+  SCHEDULE = '{{ schedule_cron }}'
+AS
+  CALL SYSTEM$EXECUTE_PYTHON('/adop/{{ workload }}/scripts/extract/ingest_to_bronze.py');
+
+CREATE OR REPLACE TASK {{ workload }}_bronze_to_silver
+  WAREHOUSE = {{ warehouse }}
+  AFTER {{ workload }}_ingest_to_bronze
+AS
+  CALL SYSTEM$EXECUTE_PYTHON('/adop/{{ workload }}/scripts/transform/bronze_to_silver.py');
+
+CREATE OR REPLACE TASK {{ workload }}_quality_silver
+  WAREHOUSE = {{ warehouse }}
+  AFTER {{ workload }}_bronze_to_silver
+AS
+  CALL SYSTEM$EXECUTE_PYTHON('/adop/{{ workload }}/scripts/quality/run_quality_checks.py', '--zone', 'silver');
+
+CREATE OR REPLACE TASK {{ workload }}_silver_to_gold
+  WAREHOUSE = {{ warehouse }}
+  AFTER {{ workload }}_quality_silver
+AS
+  CALL SYSTEM$EXECUTE_PYTHON('/adop/{{ workload }}/scripts/transform/silver_to_gold.py');
+
+CREATE OR REPLACE TASK {{ workload }}_quality_gold
+  WAREHOUSE = {{ warehouse }}
+  AFTER {{ workload }}_silver_to_gold
+AS
+  CALL SYSTEM$EXECUTE_PYTHON('/adop/{{ workload }}/scripts/quality/run_quality_checks.py', '--zone', 'gold');
+
+-- Resume leaf-to-root so dependencies propagate (Gate C live deploy).
+ALTER TASK {{ workload }}_quality_gold RESUME;
+ALTER TASK {{ workload }}_silver_to_gold RESUME;
+ALTER TASK {{ workload }}_quality_silver RESUME;
+ALTER TASK {{ workload }}_bronze_to_silver RESUME;
+ALTER TASK {{ workload }}_ingest_to_bronze RESUME;

@@ -1,17 +1,24 @@
 # Snowflake platform pack
 
-**Mode A (default): Gold sink** — medallion runs on the host cloud (AWS/Azure/GCP);
-Snowflake exposes Gold Iceberg as an external table for BI/warehouse queries.
+**Mode A (7.4): Gold sink** — medallion on host cloud; Snowflake external Iceberg table for BI.
 
-**Mode B (7.5):** full medallion in Snowflake (`snowflake_mode: platform`).
+**Mode B (7.5): Full platform** — Snowpark transforms + native tables + Snowflake Tasks.
 
-## Mode A capability mapping
+## Capability mapping
 
-| Capability | Snowflake resolution |
-|------------|---------------------|
-| Sink | External **Iceberg** table over host-cloud object store |
-| TransformEngine | N/A (read-only sink; pipeline stays on host profile) |
-| DeployAdapter | **Terraform** or **snowflake_cli** |
-| Gate C | Blocked until Snowflake account + storage integration |
+| Mode | TransformEngine | Lake format | Orchestrator |
+|------|-----------------|-------------|--------------|
+| A (sink) | N/A (host cloud) | Iceberg external | host orchestrator |
+| B (platform) | **Snowpark** | **native** | **snowflake_tasks** |
 
-Render sink SQL: `python tools/render_workload.py --workload <name> --artifact snowflake_sink --write`
+## Render
+
+```bash
+# Mode A — Gold sink SQL (AWS workload + sinks.snowflake: true)
+python tools/render_workload.py --workload snowflake_sink_demo --artifact snowflake_sink --write
+
+# Mode B — full medallion
+python tools/render_workload.py --workload snowflake_demo --all --write
+```
+
+Gate C blocked until Snowflake account exists.

@@ -1,0 +1,6 @@
+schema_version: v1
+workload: snowflake_demo
+database: snowflake_demo_db
+bronze_table: bronze_snowflake_demo
+bronze_schema: BRONZE
+source_sample: demo/sample_data/supplier_lead_times.csv

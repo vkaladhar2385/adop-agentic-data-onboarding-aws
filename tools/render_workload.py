@@ -97,6 +97,13 @@ ARTIFACTS = {
         "orchestration": False,
         "sink": "snowflake",
     },
+    "snowflake_tasks": {
+        "spec": "config/codegen/snowflake_tasks.spec.yaml",
+        "template_id": "snowflake_tasks",
+        "output": "orchestration/{workload}_snowflake_tasks.sql",
+        "orchestration": True,
+        "artifact_key": "snowflake_tasks",
+    },
 }
 
 
@@ -122,6 +129,22 @@ def _databricks_workflow_spec(workload: str) -> dict:
         "schema_version": "v1",
         "workload": workload,
         "template_id": "databricks_workflow",
+    }
+
+
+def _snowflake_tasks_spec(workload: str, wl_dir: Path) -> dict:
+    schedule = _load_schedule(wl_dir)
+    sched = schedule.get("schedule") or {}
+    source = _load_source(wl_dir)
+    silver = (source.get("zones") or {}).get("silver") or {}
+    return {
+        "schema_version": "v1",
+        "workload": workload,
+        "template_id": "snowflake_tasks",
+        "database": str(silver.get("database") or f"{workload}_db").upper(),
+        "schema": "PIPELINE",
+        "warehouse": "ADOP_WH",
+        "schedule_cron": sched.get("cron") or "USING CRON 0 6 * * MON UTC",
     }
 
 
@@ -283,6 +306,30 @@ def _render_one(
             expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
             if out_path.read_text(encoding="utf-8") != expected:
                 print(f"DRIFT: {out_path}: snowflake sink SQL does not match synthesized spec", file=sys.stderr)
+                return 1
+            print(f"OK no drift: {out_path}")
+        if not write and not check_drift:
+            print(content)
+        return 0
+
+    if artifact == "snowflake_tasks" and not spec_path.is_file():
+        spec = _snowflake_tasks_spec(workload, wl_dir)
+        spec_hash = compute_spec_hash(spec)
+        template_id = "snowflake_tasks"
+        out_path = _output_path(wl_dir, workload, meta)
+        content = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+        if write:
+            os.environ[TOKEN_ENV] = "render"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(content, encoding="utf-8", newline="\n")
+            print(f"Wrote {out_path.relative_to(REPO_ROOT)}")
+        if check_drift:
+            if not out_path.is_file():
+                print(f"DRIFT: {out_path}: missing snowflake tasks SQL", file=sys.stderr)
+                return 1
+            expected = render(spec, spec_hash, template_id, schema_version="v1", profile=profile)
+            if out_path.read_text(encoding="utf-8") != expected:
+                print(f"DRIFT: {out_path}: snowflake tasks SQL does not match synthesized spec", file=sys.stderr)
                 return 1
             print(f"OK no drift: {out_path}")
         if not write and not check_drift:

@@ -1,0 +1,46 @@
+workload: snowflake_demo
+
+profile:
+  estimated_rows_per_run: 120
+  peak_rows_per_run: 2000
+  silver_format: native
+  gold_format: native
+  compliance: none
+
+defaults:
+  transform_job_type: snowpark
+  quality_job_type: pythonshell
+  ingest_job_type: pythonshell
+
+pipeline_steps:
+  ingest_to_bronze:
+    job_type: pythonshell
+    script: scripts/extract/ingest_to_bronze.py
+    rationale: stage CSV to internal Snowflake stage
+
+  bronze_to_silver:
+    job_type: snowpark
+    script: scripts/transform/bronze_to_silver.py
+    rationale: Snowpark transform to native Silver table
+
+  quality_silver:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+  silver_to_gold:
+    job_type: snowpark
+    script: scripts/transform/silver_to_gold.py
+
+  quality_gold:
+    job_type: pythonshell
+    script: scripts/quality/run_quality_checks.py
+
+terraform_sync:
+  status: pending
+  note: Snowflake deploy via platform-packs/snowflake/terraform — not iac/terraform glue_jobs.
+
+sinks:
+  redshift: false
+  opensearch: false
+  redis: false
+  snowflake: false

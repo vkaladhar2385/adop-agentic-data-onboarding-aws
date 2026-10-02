@@ -1,0 +1,54 @@
+{# template_id: ingest_to_bronze #}
+{# required_slots: schema_version, workload #}
+"""Ingest -> Bronze for `{{ workload }}` (Snowflake Snowpark + internal stage)."""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+_self = Path(__file__).resolve()
+_REPO_ROOT = _self.parents[4] if len(_self.parents) > 4 else _self.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+DATABASE = "{{ database | default(workload ~ '_db') }}"
+BRONZE_SCHEMA = "{{ bronze_schema | default('BRONZE') }}"
+BRONZE_TABLE = "{{ bronze_table | default('bronze_' ~ workload) }}"
+
+
+def run_local(src_path: str, out_dir: str) -> str:
+    import pandas as pd
+
+    df = pd.read_csv(src_path)
+    out = Path(out_dir) / "bronze"
+    out.mkdir(parents=True, exist_ok=True)
+    target = out / "bronze_{{ workload }}.parquet"
+    df.to_parquet(target, index=False)
+    print(f"[bronze] landed {len(df)} rows -> {target}")
+    return str(target)
+
+
+def run_snowpark():  # pragma: no cover
+    from snowflake.snowpark import Session
+
+    session = Session.builder.appName("{{ workload }}_ingest").getOrCreate()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--stage_path", required=True)
+    args, _ = ap.parse_known_args()
+    df = session.read.options({"FIELD_OPTIONALLY_ENCLOSED_BY": '"'}).csv(args.stage_path)
+    fqn = f"{DATABASE}.{BRONZE_SCHEMA}.{BRONZE_TABLE}"
+    df.write.mode("overwrite").save_as_table(fqn)
+    print(f"[bronze] {fqn} rows={df.count()}")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--local", action="store_true")
+    ap.add_argument("--src", default="demo/sample_data/supplier_lead_times.csv")
+    ap.add_argument("--out", default="output/{{ workload }}")
+    args, _unknown = ap.parse_known_args()
+    if args.local:
+        run_local(args.src, args.out)
+    else:
+        run_snowpark()

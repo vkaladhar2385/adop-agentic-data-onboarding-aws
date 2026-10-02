@@ -83,9 +83,15 @@ Legend: `[ ]` todo · `[x]` done · `[~]` in progress · `[B]` blocked on sandbo
 
 ## Phase 7.5 — Snowflake Mode B (full platform, on request)
 
-- [ ] A Build: Snowpark/SQL transform engine + Tasks orchestration exporter
-- [ ] B Plan: SQL compile + unit tests
-- [B] C Live E2E full medallion in Snowflake — **blocked: no Snowflake account**
+- [x] 7.5-a `snowflake_tasks` orchestrator routing + Tasks SQL synthesis in `render_workload`
+- [x] 7.5-b Snowpark templates (ingest, bronze→silver, silver→gold, quality)
+- [x] 7.5-c `platform-packs/snowflake/terraform/tasks.tf` — `terraform validate` PASS
+- [x] 7.5-d `workloads/snowflake_demo/` + extended `tests/test_snowflake_pack.py`
+- [B] 7.5-e C Live E2E full medallion in Snowflake — **blocked: no Snowflake account**
+
+**7.5 Gate A+B status:** ✅ **COMPLETE (2026-10-01)**
+
+**Phase 7 multi-platform factory:** all packs through Gate A+B complete (Gate C parked on sandboxes).
 
 ---
 

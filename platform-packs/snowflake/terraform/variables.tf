@@ -48,3 +48,8 @@ variable "external_volume" {
   description = "Existing external volume name (created in Gate C)."
   default     = "ADOP_PLACEHOLDER_GOLD_VOL"
 }
+
+variable "warehouse" {
+  type    = string
+  default = "ADOP_WH"
+}

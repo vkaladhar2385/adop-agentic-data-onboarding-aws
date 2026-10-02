@@ -39,3 +39,9 @@ def test_workflows_emits_databricks_workflow_only():
     assert resolve_orchestration_artifacts({"orchestrator": "workflows"}) == frozenset(
         {"databricks_workflow"}
     )
+
+
+def test_snowflake_tasks_emits_tasks_sql_only():
+    assert resolve_orchestration_artifacts({"orchestrator": "snowflake_tasks"}) == frozenset(
+        {"snowflake_tasks"}
+    )

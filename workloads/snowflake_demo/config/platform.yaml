@@ -1,0 +1,22 @@
+# Snowflake Mode B — full medallion in Snowflake (Phase 7.5).
+profile: snowflake
+snowflake_mode: platform
+host_cloud: aws
+
+storage:
+  lake_format: native
+  object_store: s3
+
+capabilities:
+  transform_engine: snowpark
+  batch_python: true
+  catalog:
+    kind: snowflake
+    database: snowflake_demo_db
+  governance:
+    pii_tags: true
+    kind: snowflake_rbac
+  orchestrator:
+    type: snowflake_tasks
+
+deploy_adapter: snowflake_cli

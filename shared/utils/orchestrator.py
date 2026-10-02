@@ -5,9 +5,19 @@ from __future__ import annotations
 from typing import Any
 
 DEFAULT_ORCHESTRATOR = "step_functions"
-VALID_ORCHESTRATORS = frozenset({"step_functions", "mwaa", "both", "adf", "composer", "workflows"})
+VALID_ORCHESTRATORS = frozenset(
+    {"step_functions", "mwaa", "both", "adf", "composer", "workflows", "snowflake_tasks"}
+)
 ORCHESTRATION_ARTIFACTS = frozenset(
-    {"state_machine", "dag", "eventbridge_schedule", "adf_pipeline", "composer_dag", "databricks_workflow"}
+    {
+        "state_machine",
+        "dag",
+        "eventbridge_schedule",
+        "adf_pipeline",
+        "composer_dag",
+        "databricks_workflow",
+        "snowflake_tasks",
+    }
 )
 
 
@@ -43,4 +53,6 @@ def resolve_orchestration_artifacts(schedule_config: dict[str, Any] | None) -> f
         return frozenset({"composer_dag"})
     if orch == "workflows":
         return frozenset({"databricks_workflow"})
+    if orch == "snowflake_tasks":
+        return frozenset({"snowflake_tasks"})
     return frozenset({"state_machine", "eventbridge_schedule"})

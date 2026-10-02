@@ -1,0 +1,6 @@
+schema_version: v1
+workload: snowflake_demo
+database: snowflake_demo_db
+silver_table: silver_snowflake_demo
+bronze_schema: BRONZE
+silver_schema: SILVER

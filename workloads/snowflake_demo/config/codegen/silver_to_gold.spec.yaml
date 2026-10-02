@@ -1,0 +1,6 @@
+schema_version: v1
+workload: snowflake_demo
+database: snowflake_demo_db
+gold_table: gold_snowflake_demo
+silver_schema: SILVER
+gold_schema: GOLD

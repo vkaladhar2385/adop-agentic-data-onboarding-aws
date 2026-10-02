@@ -1,0 +1,42 @@
+workload: snowflake_demo
+domain: procurement
+description: >-
+  Snowflake Phase 7.5 demo — full medallion in Snowflake (Snowpark + Tasks).
+
+source:
+  type: internal_stage
+  format: csv
+  has_header: true
+  location: "@adop_stage/snowflake_demo/"
+  compression: none
+  primary_key: supplier_id
+  estimated_row_count: 120
+
+cadence:
+  mode: batch
+  frequency: weekly
+  time_utc: "06:00"
+
+zones:
+  bronze:
+    database: snowflake_demo_db
+    table: bronze_snowflake_demo
+    format: native
+  silver:
+    database: snowflake_demo_db
+    table: silver_snowflake_demo
+    format: native
+  gold:
+    database: snowflake_demo_db
+    table: gold_snowflake_demo
+    schema_style: flat
+    format: native
+
+compliance:
+  regulation: none
+  retention_years: 2
+  bronze_immutable: true
+
+orchestration:
+  engine: snowflake_tasks
+  schedule: snowflake_tasks

@@ -63,6 +63,7 @@ VALID_FORMAT_ENGINE: set[tuple[str, str]] = {
     ("iceberg", "snowpark"),
     ("iceberg", "sql"),
     ("native", "sql"),
+    ("native", "snowpark"),
 }
 
 # Transform steps that must honor the Iceberg-on-Spark hard rule on AWS.
