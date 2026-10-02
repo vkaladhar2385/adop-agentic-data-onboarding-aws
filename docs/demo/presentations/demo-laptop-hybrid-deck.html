@@ -172,9 +172,9 @@
 <section class="slide opener active">
   <div class="slide-main">
     <div class="kicker">Live demo · laptop + hybrid MCP · mixed audience</div>
-    <h1>Agentic data onboarding factory on AWS</h1>
+    <h1>Agentic data onboarding factory</h1>
     <table class="wwh" style="margin-top:4px;">
-      <tr><th style="width:56px;">What</th><td>Human-approved <strong>YAML specs</strong> → governed Bronze → Silver → Gold on AWS (Glue, Iceberg, Step Functions).</td></tr>
+      <tr><th style="width:56px;">What</th><td>Human-approved <strong>YAML specs</strong> → governed Bronze → Silver → Gold. <strong>Live demo today: AWS</strong> (Glue, Iceberg, Step Functions). Same factory now renders Azure, GCP, Databricks, and Snowflake.</td></tr>
       <tr><th>Why</th><td>One new feed = <strong>multi-week</strong> manual work — bespoke PySpark, inconsistent quality, IaC/LF/PII redone every time.</td></tr>
       <tr><th>How</th><td>Discovery → specs → codegen → pytest &amp; drift → <strong>you approve</strong> → hybrid MCP + Terraform → green pipeline → destroy sandbox.</td></tr>
     </table>
@@ -206,7 +206,7 @@
     </div>
     <p class="note"><strong>~90 sec opener.</strong> One sentence each for What / Why / How, point at the compare boxes, then “Let’s run it.” Do not read bullets aloud. Exec: “Weeks → hours, governance built in.” Tech: “Specs → Glue + SFN; MCP catalog; Terraform jobs.”</p>
   </div>
-  <div class="foot"><span>docs/demo/CLIENT_DEMO_RUNBOOK.md · presenter Q&amp;A: demo-laptop-hybrid-presenter-qa.html</span><span>1 / 13</span></div>
+  <div class="foot"><span>docs/demo/CLIENT_DEMO_RUNBOOK.md · presenter Q&amp;A: demo-laptop-hybrid-presenter-qa.html</span><span>1 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -223,7 +223,7 @@
     <p class="callout" style="font-size:13px;"><strong>Factory builds · Operations deploys · Pipeline runs.</strong> Hybrid MCP = Operations only — deploy tools from the laptop, not the data plane. Glue always runs in AWS after deploy.</p>
     <p class="note">~45 sec. Transition from Slide 1: “Three moving parts — quick map before the terminal.” If Gateway confusion: tool bus, not pipeline. Live Part 1 = Factory · Part 2 = Operations · Part 3 = Pipeline.</p>
   </div>
-  <div class="foot"><span>docs/demo/FACTORY_LEARNING_GUIDE.md — Step 1</span><span>2 / 13</span></div>
+  <div class="foot"><span>docs/demo/FACTORY_LEARNING_GUIDE.md — Step 1</span><span>2 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -252,7 +252,7 @@
       <text x="244" y="92" font-size="9" fill="#4a5568" text-anchor="middle">+ templates</text>
       <rect x="18" y="108" width="268" height="36" rx="3" fill="#fff" stroke="#d8dee9"/>
       <text x="152" y="130" font-size="10" fill="#1b2a4a" text-anchor="middle">validate · pytest · drift check</text>
-      <text x="152" y="168" font-size="9" fill="#4a5568" text-anchor="middle">Generated: Glue scripts + Step Functions JSON</text>
+      <text x="152" y="168" font-size="9" fill="#4a5568" text-anchor="middle">Generated: Glue + SFN · or ADF · Composer · Workflows · Tasks</text>
       <!-- Operations -->
       <rect x="318" y="28" width="290" height="164" rx="4" fill="#f4f6fa" stroke="#1b2a4a" stroke-width="1.5"/>
       <text x="328" y="48" font-size="11" font-weight="650" fill="#1b2a4a">OPERATIONS · human APPROVE · hybrid MCP</text>
@@ -294,7 +294,7 @@
     <p style="font-size:12px; margin:4px 0 0;"><strong>AWS services:</strong> S3 · Glue · Iceberg · Athena · Lake Formation · Step Functions · EventBridge · KMS · Lambda</p>
     <p class="note">~60 sec. Follow left → right: matches Slide 2 layers in time. Next slide = medallion detail inside the green box. Skip this slide if short on time — Slide 2 + live demo is enough.</p>
   </div>
-  <div class="foot"><span>docs/demo/FACTORY_LEARNING_GUIDE.md master diagram · docs/ARCHITECTURE.md</span><span>3 / 13</span></div>
+  <div class="foot"><span>docs/demo/FACTORY_LEARNING_GUIDE.md master diagram · docs/ARCHITECTURE.md</span><span>3 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -332,7 +332,7 @@
     <p class="callout" style="font-size:12px; margin-top:8px;"><strong>Compute mix:</strong> Python Shell for ingest + quality scoring · Spark (<code>glueetl</code>) for Iceberg transforms · Lambda for catalog + post-deploy verify. Other workloads use the same shape (SOX star schema, GDPR rollup).</p>
     <p class="note">~45 sec. One story only — do not walk every box. Say: “Same CSV you’ll see in Athena after deploy.” Skip slide if you go straight to live demo; return here while SFN runs if you need a filler.</p>
   </div>
-  <div class="foot"><span>workloads/supplier_lead_times/config/ · orchestration/*.json</span><span>4 / 13</span></div>
+  <div class="foot"><span>workloads/supplier_lead_times/config/ · orchestration/*.json</span><span>4 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -375,13 +375,122 @@
         <td><code>codegen/state_machine.spec.yaml</code></td>
         <td><code>orchestration/*_state_machine.json</code></td>
       </tr>
+      <tr>
+        <td><code>platform.yaml</code><br/><span style="font-size:10px;color:#4a5568;">Client cloud profile (aws · azure · gcp · databricks · snowflake)</span></td>
+        <td>profile-aware renderer</td>
+        <td><code>platform-packs/&lt;profile&gt;/</code> scripts + orchestration</td>
+      </tr>
     </table>
     <p style="font-size:11px; margin:4px 0 0; color:#4a5568;">Every generated file carries a <code>spec_hash</code> header — same factory pattern for ingest and Silver→Gold.</p>
     <div class="flow" style="margin-top:6px;">/onboard-workflow → YAML specs → render_workload.py → validate · pytest · drift → ready for APPROVE + deploy</div>
     <p class="callout" style="font-size:12px;"><strong>Proof:</strong> <code>spec_hash</code> in generated files · write guard blocks hand-edits · CI fails on drift.</p>
-    <p class="note">~60 sec. Point at one row only: “Transform, quality, orchestration — same pattern.” Don’t read all three. Then open <code>config/</code> in Live Part 1 (Slide 9).</p>
+    <p class="note">~60 sec. Point at one row only: “Transform, quality, orchestration — same pattern.” Don’t read all three. Then open <code>config/</code> in Live Part 1 (Slide 12).</p>
   </div>
-  <div class="foot"><span>.cursor/commands/onboard-workflow.md · Live Part 1 = slide 9</span><span>5 / 13</span></div>
+  <div class="foot"><span>.cursor/commands/onboard-workflow.md · Live Part 1 = slide 12</span><span>5 / 16</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Phase 7 · multi-platform factory</div>
+    <h2>One factory SKU — client picks the platform in <code>platform.yaml</code></h2>
+    <p style="font-size:13px; margin:0 0 6px;">We did <strong>not</strong> fork the repo per cloud. Business specs stay identical; only the <strong>platform pack</strong> changes.</p>
+    <div class="compare">
+      <div class="box">
+        <h3>Today (manual / per cloud)</h3>
+        <ul class="tight">
+          <li>Separate codebase per AWS, Azure, Snowflake</li>
+          <li>Re-write transforms for each engine</li>
+          <li>Different orchestration every time</li>
+          <li>Governance re-invented per project</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>With ADOP multi-platform</h3>
+        <ul class="tight">
+          <li>One repo · <code>platform-packs/&lt;profile&gt;/</code></li>
+          <li>Same <code>transformations.yaml</code> + quality gates</li>
+          <li>One graph → SFN / ADF / Composer / Workflows / Tasks</li>
+          <li>CI: <code>validate_platform</code> + drift on every profile</li>
+        </ul>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><b>5 profiles</b><span>aws · azure · gcp · databricks · snowflake</span></div>
+      <div class="stat"><b>1 SKU</b><span>discovery → specs → render → test</span></div>
+      <div class="stat"><b>Gate A+B</b><span>build + plan on laptop · no sandbox spend</span></div>
+    </div>
+    <p class="note">~60 sec. Exec: “Same factory, client’s cloud in config.” Tech: “Packs are lazy-loaded; workloads never import platform code.” Skip if short on time — Slide 7 has the selector detail.</p>
+  </div>
+  <div class="foot"><span>docs/PHASE_7_MULTI_PLATFORM.md · docs/PHASE_7_TODO.md</span><span>6 / 16</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Platform selection</div>
+    <h2>Three resolvers — validated in CI</h2>
+    <div class="flow">config/platform.yaml  →  profile: aws | azure | gcp | databricks | snowflake
+        ↓
+  TableFormat (iceberg | delta | native)  +  TransformEngine (spark | snowpark | sql)
+        ↓
+  DeployAdapter (terraform | bundle | snowflake_cli)  +  Orchestrator exporter
+        ↓
+  platform-packs/&lt;profile&gt;/templates  →  render_workload.py  →  drift check</div>
+    <table style="margin-top:8px;">
+      <tr><th>Proof workload</th><th>Profile</th><th>What it proves (Gate A+B)</th></tr>
+      <tr><td><code>supplier_lead_times</code></td><td>aws</td><td><strong>Live E2E today</strong> — your demo</td></tr>
+      <tr><td><code>azure_demo</code></td><td>azure</td><td>Synapse + ADF pipeline JSON</td></tr>
+      <tr><td><code>gcp_demo</code></td><td>gcp</td><td>Dataproc + Composer DAG</td></tr>
+      <tr><td><code>databricks_demo</code></td><td>databricks</td><td>Unity Catalog + Workflows</td></tr>
+      <tr><td><code>snowflake_sink_demo</code></td><td>aws + sink</td><td>Gold on lake → Snowflake Iceberg read</td></tr>
+      <tr><td><code>snowflake_demo</code></td><td>snowflake</td><td>Full medallion · Snowpark + Tasks</td></tr>
+    </table>
+    <p class="callout" style="font-size:12px;"><strong>Live trick (Part 1):</strong> <code>python tools/render_workload.py --workload azure_demo --artifact bronze_to_silver</code> — Synapse output vs Glue on screen (~10 sec, no cloud cost).</p>
+    <p class="note">~45 sec. Gate C (live run on Azure/GCP/etc.) blocked until client sandboxes — but render + terraform validate already pass on laptop.</p>
+  </div>
+  <div class="foot"><span>tools/validate_platform.py · platform-packs/</span><span>7 / 16</span></div>
+</section>
+
+<section class="slide">
+  <div class="slide-main dense">
+    <div class="kicker">Snowflake · two modes</div>
+    <h2>Snowflake without cloning Glue</h2>
+    <p style="font-size:13px; margin:0 0 6px;">Snowflake is a <strong>platform profile</strong>, not a fifth “cloud fork.” Clients choose Mode A or B in <code>platform.yaml</code>.</p>
+    <table>
+      <tr><th>Mode</th><th>When to use</th><th>Factory output</th><th>Demo workload</th></tr>
+      <tr>
+        <td><strong>A — Gold sink</strong> (default)</td>
+        <td>Lake stays on AWS/Azure/GCP; BI in Snowflake</td>
+        <td>External Iceberg DDL · <code>sinks.snowflake: true</code></td>
+        <td><code>snowflake_sink_demo</code></td>
+      </tr>
+      <tr>
+        <td><strong>B — Full platform</strong></td>
+        <td>Greenfield Snowflake-native medallion</td>
+        <td>Snowpark scripts + Snowflake Tasks SQL</td>
+        <td><code>snowflake_demo</code></td>
+      </tr>
+    </table>
+    <div class="compare" style="margin-top:8px;">
+      <div class="box">
+        <h3>Client advantage · Mode A</h3>
+        <ul class="tight">
+          <li>Low-risk add-on to existing lakehouse</li>
+          <li>No re-platform of Bronze/Silver/Gold</li>
+          <li>Analysts query Gold in Snowflake immediately</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Client advantage · Mode B</h3>
+        <ul class="tight">
+          <li>Same HITL + YAML discipline as AWS</li>
+          <li>Snowpark transforms from same business rules</li>
+          <li>Tasks chain mirrors Step Functions graph</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">~30 sec. If Snowflake not in scope, skip — one line: “We can expose Gold to Snowflake or run full medallion there; same specs either way.”</p>
+  </div>
+  <div class="foot"><span>platform-packs/snowflake/ · workloads/snowflake_*_demo/</span><span>8 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -409,9 +518,9 @@
     </div>
     <p class="callout" style="font-size:12px; margin-top:8px;"><strong>Deploy order (Live Part 2):</strong> validate + drift → <code>package_and_sync</code> (scripts to S3) → MCP catalog/LF → <strong>human APPROVE</strong> → <code>terraform apply</code> → SFN E2E.</p>
     <p style="font-size:12px; margin:4px 0 0;"><strong>Phase 0:</strong> <code>mcp_health_check.py</code> — REQUIRED: glue-athena, lakeformation, iam</p>
-    <p class="note">~45 sec · optional before Live Part 2 (or while deploy runs). <strong>#1 mistake:</strong> “MCP creates Glue jobs” — no. <strong>#2:</strong> “Why two tools?” — MCP has no SFN/job create in Track A; TF has no catalog agent. Skip → Slide 10 / deploy command.</p>
+    <p class="note">~45 sec · optional before Live Part 2 (or while deploy runs). <strong>#1 mistake:</strong> “MCP creates Glue jobs” — no. <strong>#2:</strong> “Why two tools?” — MCP has no SFN/job create in Track A; TF has no catalog agent. Skip → Slide 13 / deploy command.</p>
   </div>
-  <div class="foot"><span>TOOL_ROUTING.md · workloads/supplier_lead_times/config/compute.yaml</span><span>6 / 13</span></div>
+  <div class="foot"><span>TOOL_ROUTING.md · workloads/supplier_lead_times/config/compute.yaml</span><span>9 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -438,7 +547,7 @@
       <line x1="260" y1="59" x2="280" y2="59" stroke="#4a5568" marker-end="url(#arr7)"/>
       <rect x="282" y="40" width="200" height="38" rx="3" fill="#fff" stroke="#d8dee9"/>
       <text x="382" y="58" font-size="10" fill="#1b2a4a" text-anchor="middle">Register catalog · Lake Formation</text>
-      <text x="382" y="72" font-size="9" fill="#4a5568" text-anchor="middle">before / during deploy (Slide 6)</text>
+      <text x="382" y="72" font-size="9" fill="#4a5568" text-anchor="middle">before / during deploy (Slide 9)</text>
       <text x="520" y="62" font-size="10" fill="#b45309" font-weight="650">Hybrid</text>
       <text x="580" y="62" font-size="9" fill="#4a5568">= some MCP tools reach AWS via</text>
       <text x="580" y="76" font-size="9" fill="#4a5568">AgentCore Gateway instead of all on laptop</text>
@@ -460,10 +569,10 @@
       <text x="420" y="168" font-size="9" fill="#4a5568">MCP sets up metadata; Glue moves the data.</text>
     </svg>
     <p class="callout" style="font-size:13px;"><strong>Remember one thing:</strong> MCP helps the <em>agent</em> deploy. The <em>pipeline</em> is Glue + Step Functions in the cloud.</p>
-    <p style="font-size:12px; margin:4px 0 0;"><strong>Today:</strong> hybrid mode for demo · ~30 sec show MCP connected in Cursor · then terminal deploy (Slide 10).</p>
+    <p style="font-size:12px; margin:4px 0 0;"><strong>Today:</strong> hybrid mode for demo · ~30 sec show MCP connected in Cursor · then terminal deploy (Slide 13).</p>
     <p class="note">Presenter: prep Gateway before room (MODE_B_SETUP.md). Do not read CLI on slide. If they missed Slides 2–6, re-use the A/B diagram above. Skip slide → say callout line only.</p>
   </div>
-  <div class="foot"><span>Recall Slide 2 Operations · Slide 4 Pipeline · Slide 6 what MCP creates</span><span>7 / 13</span></div>
+  <div class="foot"><span>Recall Slide 2 Operations · Slide 4 Pipeline · Slide 9 what MCP creates</span><span>10 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -484,9 +593,9 @@
       <div class="box">
         <h3>Live demo — 3 parts (~30 min)</h3>
         <ul class="tight">
-          <li><strong>Part 1 · Build</strong> — human YAML in <code>config/</code> → render → pytest (Slide 9)</li>
-          <li><strong>Part 2 · Deploy</strong> — you APPROVE → AWS catalog + jobs (Slides 10, 6–7)</li>
-          <li><strong>Part 3 · Verify</strong> — Slide 4 pipeline goes green + spot-check (Slide 11)</li>
+          <li><strong>Part 1 · Build</strong> — human YAML in <code>config/</code> → render → pytest (Slide 12)</li>
+          <li><strong>Part 2 · Deploy</strong> — you APPROVE → AWS catalog + jobs (Slides 13, 9–10)</li>
+          <li><strong>Part 3 · Verify</strong> — Slide 4 pipeline goes green + spot-check (Slide 14)</li>
         </ul>
       </div>
     </div>
@@ -498,9 +607,9 @@
       </tr>
     </table>
     <p class="callout" style="font-size:12px; margin-top:8px;"><strong>One folder all day:</strong> <code>workloads/supplier_lead_times/</code> — same name on Slide 1, 4, 5, and in every command we run next.</p>
-    <p class="note">~45 sec. Say: “Realistic feed, smallest SKU that still proves the whole factory.” Then → Slide 9 / open IDE. Do not compare workloads unless asked.</p>
+    <p class="note">~45 sec. Say: “Realistic feed, smallest SKU that still proves the whole factory.” Then → Slide 12 / open IDE. Do not compare workloads unless asked.</p>
   </div>
-  <div class="foot"><span>workloads/supplier_lead_times/README.md · demo CSV in demo/sample_data/</span><span>8 / 13</span></div>
+  <div class="foot"><span>workloads/supplier_lead_times/README.md · demo CSV in demo/sample_data/</span><span>11 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -529,10 +638,10 @@
       <div class="flow">python tools/render_workload.py --workload supplier_lead_times --all --check-drift
 python -m pytest workloads/supplier_lead_times/tests/ -v</div>
     </div>
-    <p class="callout" style="font-size:12px;">Say: “Specs are the contract — Python and Step Functions JSON are generated, drift-checked.” → <strong>Part 2</strong> (Slide 10).</p>
+    <p class="callout" style="font-size:12px;">Say: “Specs are the contract — Python and Step Functions JSON are generated, drift-checked.” → <strong>Part 2</strong> (Slide 13).</p>
     <p class="note">Presenter cheat sheet — not for reading aloud. Switch to terminal/Cursor now. HITL map: presenter QA slide 6.</p>
   </div>
-  <div class="foot"><span>Part 1 · onboard-workflow · CLIENT_DEMO_RUNBOOK.md</span><span>9 / 13</span></div>
+  <div class="foot"><span>Part 1 · onboard-workflow · CLIENT_DEMO_RUNBOOK.md</span><span>12 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -541,7 +650,7 @@ python -m pytest workloads/supplier_lead_times/tests/ -v</div>
     <h2>Deploy to AWS — Operations layer</h2>
     <div class="act">
       <div class="time">Optional · ~2 min</div>
-      <p>Cursor Settings → MCP: Gateway connected (Slide 7 context). Then terminal — don’t debug MCP on stage.</p>
+      <p>Cursor Settings → MCP: Gateway connected (Slide 10 context). Then terminal — don’t debug MCP on stage.</p>
     </div>
     <div class="act">
       <div class="time">Deploy · ~13 min</div>
@@ -553,9 +662,9 @@ python -m pytest workloads/supplier_lead_times/tests/ -v</div>
   --aws-profile aws-agent</div>
       <p style="font-size:12px; margin-top:6px;">--auto-provision = TF module + apply + landing sync + SFN E2E poll</p>
     </div>
-    <p class="note">While waiting: Slide 6 deploy order · Slide 4 filler. → <strong>Part 3</strong> when SFN green.</p>
+    <p class="note">While waiting: Slide 9 deploy order · Slide 4 filler. → <strong>Part 3</strong> when SFN green.</p>
   </div>
-  <div class="foot"><span>Part 2 · deploy_workload.py</span><span>10 / 13</span></div>
+  <div class="foot"><span>Part 2 · deploy_workload.py</span><span>13 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -571,7 +680,7 @@ python -m pytest workloads/supplier_lead_times/tests/ -v</div>
     <p class="callout" style="font-size:13px;">Last verified green run: <strong>tier-b-e2e-fix-v3-20260909-124345</strong> (see docs/STATUS.md)</p>
     <p class="note">Exec close: “Governed pipeline live in ~30 minutes, with approval gates and verification.”</p>
   </div>
-  <div class="foot"><span>Part 3 · verify · closes live demo</span><span>11 / 13</span></div>
+  <div class="foot"><span>Part 3 · verify · closes live demo</span><span>14 / 16</span></div>
 </section>
 
 <section class="slide qa">
@@ -618,7 +727,7 @@ python -m pytest workloads/supplier_lead_times/tests/ -v</div>
     </div>
     <p class="note">Presenter: full Q&amp;A + HITL command map → <code>demo-laptop-hybrid-presenter-qa.html</code>. Backup decks: conventional-vs-agentic-adop.html · adop-client-deck.html</p>
   </div>
-  <div class="foot"><span>docs/demo/DEMO_PREP_ABCD.md · docs/demo/BEFORE_AFTER.md</span><span>12 / 13</span></div>
+  <div class="foot"><span>docs/demo/DEMO_PREP_ABCD.md · docs/demo/BEFORE_AFTER.md</span><span>15 / 16</span></div>
 </section>
 
 <section class="slide">
@@ -635,7 +744,7 @@ python tools/switch_mcp_mode.py --mode local</div>
     <p class="callout"><strong>Close:</strong> Agents generate · Humans approve · AWS runs · Sandbox destroys.</p>
     <p class="note">Before room: dry-run Day D from DEMO_PREP_ABCD.md. Capture SFN screenshot for backup if live deploy fails.</p>
   </div>
-  <div class="foot"><span>Questions · docs/demo/CLIENT_PITCH.md · docs/ADAPTATION_GAP.md</span><span>13 / 13</span></div>
+  <div class="foot"><span>Questions · docs/demo/CLIENT_PITCH.md · docs/ADAPTATION_GAP.md</span><span>16 / 16</span></div>
 </section>
 
 </div>
